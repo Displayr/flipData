@@ -1,11 +1,12 @@
 Package: flipData
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Functions for extracting and describing data
 Version: 0.1.0
 Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Maintainer: Tim Bock <tim.bock@numbers.net.au>
+Description: Functions for extracting data from formulas and environments, and for describing data, for addressing missing data, and for setting up data in a neat format for other analyses.
+License: GPL-3
 LazyData: TRUE
+Imports: flipTransformations, flipFormat, flipImputation, stats
 RoxygenNote: 5.0.1
 Suggests: testthat
