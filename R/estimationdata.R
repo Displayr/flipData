@@ -24,7 +24,7 @@ EstimationData <- function(formula,
                            subset = NULL,
                            weights = NULL,
                            missing = "Exclude cases with missing data",
-                           m = 1,
+                           m = 10,
                            seed = 12321)
 {
     # Cleaning weightes and subsets.
