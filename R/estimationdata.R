@@ -19,8 +19,8 @@
 #' @param seed The random number seed used in the imputation.
 #' @importFrom flipImputation Imputation
 #' @export
-EstimationData <- function(formula,
-                           data,
+EstimationData <- function(formula = NULL,
+                           data = NULL,
                            subset = NULL,
                            weights = NULL,
                            missing = "Exclude cases with missing data",
@@ -80,7 +80,7 @@ EstimationData <- function(formula,
     if (n.estimation < length(variable.names))
         stop("Sample size is too small ")
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        attr(subset, "label"), weighted, weight.label, missing, imputation.label)
+        attr(subset, "label"), weighted, weight.label, missing, imputation.label, m)
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
