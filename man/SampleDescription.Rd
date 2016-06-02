@@ -5,7 +5,7 @@
 \title{\code{SampleDescription}}
 \usage{
 SampleDescription(n.total, n.subset, n.estimation, subset.label,
-  weighted = TRUE, weight.label = "", missing, imputation.label = NULL)
+  weighted = TRUE, weight.label = "", missing, imputation.label = NULL, m)
 }
 \arguments{
 \item{n.total}{Total number of observations in the database.}
@@ -26,7 +26,9 @@ than or equal to \code{subset}).}
 are: \code{"Error if missing data"}, \code{"Exclude cases with missing
 data"}, ,and \code{"Imputation (replace missing values with estimates)"}.}
 
-\item{imputation.label}{TODO}
+\item{imputation.label}{Method used to impute the data.}
+
+\item{m}{Number of imputaton samples.}
 }
 \description{
 Describes the sample, for use as footers in multivariate
