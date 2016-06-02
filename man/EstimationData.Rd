@@ -6,7 +6,7 @@
 Conducts imputation if necessary.}
 \usage{
 EstimationData(formula, data, subset = NULL, weights = NULL,
-  missing = "Exclude cases with missing data", m = 1, seed = 12321)
+  missing = "Exclude cases with missing data", m = 10, seed = 12321)
 }
 \arguments{
 \item{formula}{An object of class \code{\link{formula}} (or one that can be
