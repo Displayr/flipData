@@ -23,10 +23,11 @@ removeCasesWithAllNA <- function(x)
 #' @param missing How missing data is to be treated in the analysis. Options
 #'   are: \code{"Error if missing data"}, \code{"Exclude cases with missing
 #'   data"}, ,and \code{"Imputation (replace missing values with estimates)"}.
-#' @param imputation.label TODO
+#' @param imputation.label Method used to impute the data.
+#' @param m Number of imputaton samples.
 #'
 #' @export
-SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, weighted = TRUE, weight.label = "", missing, imputation.label = NULL)
+SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, weighted = TRUE, weight.label = "", missing, imputation.label = NULL, m)
 {
     # Warning if there is less than 50% data.
     missing.data.proportion <- 1 - n.estimation / n.subset
@@ -36,13 +37,16 @@ SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, wei
                       "or, set 'Missing Data' to another option."))
     # Creating description.
     missing.data <- n.estimation < n.subset
+    imputation <-  missing == "Imputation (replace missing values with estimates)" | missing == "Multiple imputation"
     description <- BaseDescription(paste0("n = ", n.estimation," cases used in estimation"),
         n.total, n.subset, n.estimation, subset.label, weighted, weight.label)
-    description <- paste(description, if(missing.data | missing == "Imputation (replace missing values with estimates)")
+    description <- paste(description, if(missing.data | imputation)
         switch(missing, "Error if missing data" = "",
-                   "Exclude cases with missing data" = "Cases containing missing values have been excluded;",
+                   "Exclude cases with missing data" = "cases containing missing values have been excluded;",
                    "Imputation (replace missing values with estimates)" =
-                       paste0("Missing values of predictor variables have been imputed using ", imputation.label, ";"))
+                        paste0("missing values of predictor variables have been imputed using ", imputation.label, ";"),
+                   "Multiple imputation" =
+                        paste0("multiple imputaton (m = ", m, ", ", imputation.label, ") has been used to impute missing values of predictor variables;"))
         else "")
     description
 }
