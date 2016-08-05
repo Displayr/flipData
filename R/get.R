@@ -5,19 +5,34 @@
 #' been provided as an argument.
 #' @param formula A \code{\link{formula}}.
 #' @param data A \code{\link{data.frame}}.
+#' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
 #' @export
-GetData <- function(formula, data)
+GetData <- function(formula, data, auxiliary.data)
 {
-    if (is.null(data)) # Extracting the data from the environment
+    data.provided <- !is.null(data)
+    variable.names <- all.vars(formula)
+    if (!data.provided) # Extracting the data from the environment
     {
-        variable.names <- all.vars(formula)
         data <- environment(formula)
         data <- as.data.frame(lapply(variable.names, function(x) {get(x, data)}))
         names(data) <- variable.names
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
+    else  # Extracting the variables from the data.frame.
+        data <- data[, variable.names]
+    if (!is.null(auxiliary.data))
+    {
+        matches <- match(names(auxiliary.data), names(data))
+        matched <- !is.na(matches)
+        if(!all(matched))
+        {
+            if (any(matched)) #De-duping
+                auxiliary.data <- auxiliary.data[, is.na(matches)]
+            data <- cbind(data, auxiliary.data)
+        }
+    }
     data
 }
 

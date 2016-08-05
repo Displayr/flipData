@@ -4,12 +4,14 @@
 \alias{GetData}
 \title{\code{GetData}}
 \usage{
-GetData(formula, data)
+GetData(formula, data, auxiliary.data)
 }
 \arguments{
 \item{formula}{A \code{\link{formula}}.}
 
 \item{data}{A \code{\link{data.frame}}.}
+
+\item{auxiliary.data}{A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).}
 }
 \value{
 character.
