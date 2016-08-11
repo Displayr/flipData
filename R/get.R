@@ -21,7 +21,7 @@ GetData <- function(formula, data, auxiliary.data)
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
     else  # Extracting the variables from the data.frame.
-        data <- data[, variable.names]
+        data <- data[, variable.names, drop = FALSE]
     if (!is.null(auxiliary.data))
     {
         matches <- match(names(auxiliary.data), names(data))
