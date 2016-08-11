@@ -43,7 +43,7 @@ EstimationData <- function(formula = NULL,
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- all.vars(formula)
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
-    if ( single.imputation | missing ==  "Multiple imputation")
+    if (single.imputation | missing ==  "Multiple imputation")
     {
         if (single.imputation)
             m = 1
@@ -56,9 +56,9 @@ EstimationData <- function(formula = NULL,
         data$filter.ewerrfdfdsrew045 <- as.integer(filter.ewerrfdfdsrew045) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
         # Removing the variables not in the model.
         for (i in 1:m)
-            data.for.estimation[[i]] <- data.for.estimation[[i]][, variable.names]
+            data.for.estimation[[i]] <- data.for.estimation[[i]][, variable.names, drop = FALSE]
         # Imputing for the entire data set for prediction purposes.
-        data = Imputation(data, m = m)[[1]][, variable.names]
+        data = Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation[[1]])
         data[estimation.sample, ] = data.for.estimation[[1]]
         if (single.imputation)
@@ -66,7 +66,7 @@ EstimationData <- function(formula = NULL,
     }
     else
     {
-        data.subset <- data.subset[ ,variable.names]
+        data.subset <- data.subset[ ,variable.names, drop = FALSE]
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
                    "Exclude cases with missing data" = removeCasesWithAnyNA(data.subset),
                    "Use partial data" = removeCasesWithAllNA(data.subset),

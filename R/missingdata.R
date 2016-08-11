@@ -1,11 +1,11 @@
 removeCasesWithAnyNA <- function(x)
 {
-    x[apply(is.na(x), 1, sum) == 0, ]
+    x[apply(is.na(x), 1, sum) == 0, , drop = FALSE]
 }
 
 removeCasesWithAllNA <- function(x)
 {
-    x[apply(is.na(x), 1, sum) < ncol(x), ]
+    x[apply(is.na(x), 1, sum) < ncol(x), , drop = FALSE]
 }
 
 #' \code{SampleDescription}
