@@ -8,24 +8,6 @@ AllIntegers <- function(x)
     all(x %% 1 == 0)
 }
 
-#' \code{AllVariablesNames}
-#' @description Find the names of the variables in a formula.
-#' @param formula A \code{\link{formula}}.
-#' @export
-AllVariablesNames<- function(formula)
-{
-    c(OutcomeName(formula), PredictorNames(formula))
-}
-
-#' \code{PredictorNames}
-#' @description Find the names of the predictor variables.
-#' @param formula A \code{\link{formula}}.
-#' @export
-PredictorNames <- function(formula)
-{
-    t <- terms(formula)
-    attr(t, "term.labels")[attr(t, "order") == 1]
-}
 
 #' \code{OutcomeName}
 #' @description Find the name of the outcome variable.
@@ -35,9 +17,10 @@ PredictorNames <- function(formula)
 OutcomeName <- function(formula)
 {
     if (HasOutcome(formula))
-        return(as.character(formula)[2])
+        return(all.vars(formula)[1])
     return(NULL)
 }
+
 
 #' \code{HasOutcome}
 #' @description Checking if the formula contains an outcome (varib)i.e., dependent variable).
@@ -114,3 +97,5 @@ HasSubset <- function(subset)
 {
     !is.null(subset) & length(subset) != 1
 }
+
+

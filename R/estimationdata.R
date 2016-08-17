@@ -27,7 +27,7 @@ EstimationData <- function(formula = NULL,
                            m = 10,
                            seed = 12321)
 {
-    # Cleaning weights and subsets.
+    # Cleaning weightes and subsets.
     n.total <- nrow(data)
     subset <- CleanSubset(subset, n.total)
     n.subset <- attr(subset, "n.subset")
@@ -41,7 +41,7 @@ EstimationData <- function(formula = NULL,
     filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 else subset #Name to avoid bug in subset.data.frame
     data.subset <- subset(data, filter.ewerrfdfdsrew045)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
-    variable.names <- AllVariablesNames(formula)
+    variable.names <- all.vars(formula)
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
     if (single.imputation | missing ==  "Multiple imputation")
     {
