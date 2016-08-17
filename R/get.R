@@ -11,17 +11,15 @@
 GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
-    variable.names <- all.vars(formula)
     if (!data.provided) # Extracting the data from the environment
-    {
-        data <- environment(formula)
-        data <- as.data.frame(lapply(variable.names, function(x) {get(x, data)}))
-        names(data) <- variable.names
-    }
+        data <- model.frame(formula, na.action = NULL)
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
     else  # Extracting the variables from the data.frame.
+    {
+        variable.names <- AllVariablesNames(formula)
         data <- data[, variable.names, drop = FALSE]
+    }
     if (!is.null(auxiliary.data))
     {
         matches <- match(names(auxiliary.data), names(data))

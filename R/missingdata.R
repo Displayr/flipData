@@ -101,7 +101,7 @@ AnyNA <- function(data, formula = NULL)
 {
     if (!is.null(formula))
     {
-        data <- data[, all.vars(formula)]
+        data <- data[, AllVariablesNames(formula)]
     }
     any(is.na(data))
 }
