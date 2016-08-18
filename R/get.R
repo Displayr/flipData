@@ -11,11 +11,22 @@
 GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
-    variable.names <- all.vars(formula)
+    variable.names <- AllVariablesNames(formula)
     if (!data.provided) # Extracting the data from the environment
     {
         data <- environment(formula)
-        data <- as.data.frame(lapply(variable.names, function(x) {get(x, data)}))
+        data <- as.data.frame(lapply(variable.names, function(x)
+            {
+                i <- indexOfUnescapedCharacter(x, "$")
+                if (i == -1)
+                    get(x, data)
+                else
+                {
+                    v <- get(substr(x, 1, i - 1), data)
+                    eval(parse(text = paste("v", substr(x, i, nchar(x)))))
+                }
+            }
+        ))
         names(data) <- variable.names
     }
     else if (!is.data.frame(data))
@@ -34,6 +45,23 @@ GetData <- function(formula, data, auxiliary.data)
         }
     }
     data
+}
+
+indexOfUnescapedCharacter <- function(s, char)
+{
+    idx <- -1
+    inside.backticks <- FALSE
+    for (i in 1:nchar(s))
+    {
+        c <- substr(s, i, i)
+        if (c == char && !inside.backticks)
+        {
+            idx <- i
+            break
+        } else if (c == "`")
+            inside.backticks <- !inside.backticks
+    }
+    idx
 }
 
 #' \code{GetTidyTwoDimensionalArray}

@@ -8,6 +8,17 @@ AllIntegers <- function(x)
     all(x %% 1 == 0)
 }
 
+#' \code{AllVariablesNames}
+#' @description Find the names of the variables (including those in dataframes) in a formula.
+#' @param formula A \code{\link{formula}}.
+#' @export
+AllVariablesNames <- function(formula)
+{
+    rand.str <- "wPpJPcPZGeUTPe2j"
+    var.names <- all.vars(formula(gsub("$", rand.str, deparse(formula), fixed = TRUE)))
+    sapply(var.names, function(x) gsub(rand.str, "$", x, fixed = TRUE), USE.NAMES = FALSE)
+}
+
 
 #' \code{OutcomeName}
 #' @description Find the name of the outcome variable.
@@ -17,7 +28,7 @@ AllIntegers <- function(x)
 OutcomeName <- function(formula)
 {
     if (HasOutcome(formula))
-        return(all.vars(formula)[1])
+        return(AllVariablesNames(formula)[1])
     return(NULL)
 }
 
