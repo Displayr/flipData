@@ -17,6 +17,7 @@
 #'   estimates)"}, and  \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
+#' @importFrom flipU AllVariablesNames
 #' @importFrom flipImputation Imputation
 #' @export
 EstimationData <- function(formula = NULL,

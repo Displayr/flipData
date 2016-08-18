@@ -96,6 +96,7 @@ BaseDescription <- function(description.of.n,
 #' @param formula A no optional \code{\link{formula}}. Variables not listed in a formula are excluded from the evaluation.
 #'
 
+#' @importFrom flipU AllVariablesNames
 #' @export
 AnyNA <- function(data, formula = NULL)
 {

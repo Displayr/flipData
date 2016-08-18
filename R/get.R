@@ -7,6 +7,7 @@
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
+#' @importFrom flipU AllVariablesNames
 #' @export
 GetData <- function(formula, data, auxiliary.data)
 {
@@ -52,6 +53,7 @@ GetData <- function(formula, data, auxiliary.data)
 #' a dataframe variable is referred to, in which case the dataframe variable is converted to a normal
 #' variable by adding backticks around it.
 #' @param formula An object of class \code{\link{formula}}.
+#' @importFrom flipU AllVariablesNames
 #' @export
 DataFormula <- function(formula)
 {
