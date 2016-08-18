@@ -47,6 +47,25 @@ GetData <- function(formula, data, auxiliary.data)
     data
 }
 
+#' \code{DataFormula}
+#' @description The formula to be used with extracted data. Same as the original formula except when
+#' a dataframe variable is referred to, in which case the dataframe variable is converted to a normal
+#' variable by adding backticks around it.
+#' @param formula An object of class \code{\link{formula}}.
+#' @export
+DataFormula <- function(formula)
+{
+    formula.str <- paste(deparse(formula), collapse = "")
+    var.names <- AllVariablesNames(formula)
+    for (i in 1:length(var.names))
+    {
+        name <- var.names[i]
+        if (indexOfUnescapedCharacter(name, "$") > -1)
+            formula.str <- gsub(name, paste("`", name, "`", sep = ""), formula.str, fixed = TRUE)
+    }
+    formula(formula.str)
+}
+
 indexOfUnescapedCharacter <- function(s, char)
 {
     idx <- -1
