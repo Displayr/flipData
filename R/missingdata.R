@@ -46,7 +46,7 @@ SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, wei
                    "Imputation (replace missing values with estimates)" =
                         paste0("missing values of predictor variables have been imputed using ", imputation.label, ";"),
                    "Multiple imputation" =
-                        paste0("multiple imputaton (m = ", m, ", ", imputation.label, ") has been used to impute missing values of predictor variables;"))
+                        paste0("multiple imputation (m = ", m, ", ", imputation.label, ") has been used to impute missing values of predictor variables;"))
         else "")
     description
 }
