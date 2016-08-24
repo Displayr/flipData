@@ -17,7 +17,7 @@
 #'   estimates)"}, and  \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
-#' @importFrom flipU AllVariablesNames
+#' @importFrom flipU AllVariablesNames CopyAttributes
 #' @importFrom flipImputation Imputation
 #' @export
 EstimationData <- function(formula = NULL,
@@ -41,6 +41,7 @@ EstimationData <- function(formula = NULL,
     # Filtering the data
     filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 else subset #Name to avoid bug in subset.data.frame
     data.subset <- subset(data, filter.ewerrfdfdsrew045)
+    data.subset <- CopyAttributes(data, data.subset)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- AllVariablesNames(formula)
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
@@ -91,3 +92,5 @@ EstimationData <- function(formula = NULL,
          #subset = filter,
          description = description)
 }
+
+
