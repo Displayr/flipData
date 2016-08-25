@@ -36,6 +36,7 @@ GetData <- function(formula, data, auxiliary.data)
         data <- data[, variable.names, drop = FALSE]
     if (!is.null(auxiliary.data))
     {
+        print(auxiliary.data)
         if (!is.data.frame(auxiliary.data))
             auxiliary.data <- data.frame(auxiliary.data)
         if(nrow(data) != nrow(auxiliary.data))
