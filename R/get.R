@@ -36,6 +36,8 @@ GetData <- function(formula, data, auxiliary.data)
         data <- data[, variable.names, drop = FALSE]
     if (!is.null(auxiliary.data))
     {
+        if (!is.data.frame(auxiliary.data))
+            auxiliary.data <- data.frame(auxiliary.data)
         if(nrow(data) != nrow(auxiliary.data))
             stop(paste("'data' has", nrow(data), "rows, whereas 'auxiliary.data' has", nrow(auxiliary.data), "rows. They need to have the same number of rows."))
         matches <- match(names(auxiliary.data), names(data))
