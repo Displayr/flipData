@@ -34,9 +34,8 @@ GetData <- function(formula, data, auxiliary.data)
         stop("'data' must be a 'data.frame'.")
     else  # Extracting the variables from the data.frame.
         data <- data[, variable.names, drop = FALSE]
-    if (!is.null(auxiliary.data))
+    if (!is.null(auxiliary.data) & length(auxiliary.data) > 0)
     {
-        print(auxiliary.data)
         if (!is.data.frame(auxiliary.data))
             auxiliary.data <- data.frame(auxiliary.data)
         if(nrow(data) != nrow(auxiliary.data))
