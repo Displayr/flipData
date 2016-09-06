@@ -18,6 +18,7 @@
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
 #' @importFrom flipU AllVariablesNames CopyAttributes
+#' @importFrom flipFormat Labels
 #' @importFrom flipImputation Imputation
 #' @export
 EstimationData <- function(formula = NULL,
@@ -35,7 +36,7 @@ EstimationData <- function(formula = NULL,
     if (weighted <- !is.null(weights))
     {
         weights <- CleanWeights(weights)
-        weight.label <- attr(weights, "label")
+        weight.label <- Labels(weights)
     }
     unfiltered.weights <- weights
     # Filtering the data
@@ -82,7 +83,7 @@ EstimationData <- function(formula = NULL,
     if (n.estimation < length(variable.names))
         stop("Sample size is too small ")
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        attr(subset, "label"), weighted, weight.label, missing, imputation.label, m)
+        Labels(subset), weighted, weight.label, missing, imputation.label, m)
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
