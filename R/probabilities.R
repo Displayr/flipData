@@ -1,4 +1,4 @@
-#' Goodness-of-Fit Plot
+#' Probabilities
 #' \code{Probabilities} A generic function used to extract one or more
 #' variables containing probabilities relating to cases (e.g., segment membership).
 #' @param object An object for which probabilities are desired.
@@ -8,8 +8,8 @@ Probabilities <- function(object, ...) {
     UseMethod("GoodnessOfFitPlot")
 }
 
-#' @describeIn GoodnessOfFitPlot  Default goodness-of-fit plot
-#' @importFrom stats lm
+#' @inheritParams Probabilities
+#' @describeIn Probabilities Error occurs as no method has been specified.
 #' @export
 Probabilities.default = function(object, ...)
 {
