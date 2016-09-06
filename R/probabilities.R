@@ -5,13 +5,13 @@
 #' @param ... Additional argument
 #' @export
 Probabilities <- function(object, ...) {
-    UseMethod("GoodnessOfFitPlot")
+    UseMethod("Probabilities")
 }
 
-#' @inheritParams Probabilities
-#' @describeIn Probabilities Error occurs as no method has been specified.
-#' @export
-Probabilities.default = function(object, ...)
-{
-    stop("No 'Probabilities' method exists for this class of objects.")
-}
+#' #' @inheritParams Probabilities
+#' #' @describeIn Probabilities Error occurs as no method has been specified.
+#' #' @export
+#' Probabilities.default = function(object, ...)
+#' {
+#'     stop("No 'Probabilities' method exists for this class of objects.")
+#' }

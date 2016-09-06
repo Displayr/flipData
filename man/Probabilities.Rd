@@ -2,14 +2,11 @@
 % Please edit documentation in R/probabilities.R
 \name{Probabilities}
 \alias{Probabilities}
-\alias{Probabilities.default}
 \title{Probabilities
 \code{Probabilities} A generic function used to extract one or more
 variables containing probabilities relating to cases (e.g., segment membership).}
 \usage{
 Probabilities(object, ...)
-
-\method{Probabilities}{default}(object, ...)
 }
 \arguments{
 \item{object}{An object for which probabilities are desired.}
@@ -21,8 +18,4 @@ Probabilities
 \code{Probabilities} A generic function used to extract one or more
 variables containing probabilities relating to cases (e.g., segment membership).
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{default}: Error occurs as no method has been specified.
-}}
 
