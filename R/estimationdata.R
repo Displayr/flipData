@@ -73,7 +73,7 @@ EstimationData <- function(formula = NULL,
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
-                   "Use partial data (pairwise correlations)" = removeCasesWithAllNA(data.subset))
+                   "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset))
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
     if (weighted)
