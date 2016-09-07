@@ -71,8 +71,8 @@ EstimationData <- function(formula = NULL,
     {
         data.subset <- data.subset[ ,variable.names, drop = FALSE]
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
-                   "Exclude cases with missing data" = removeCasesWithAnyNA(data.subset),
-                   "Use partial data" = removeCasesWithAllNA(data.subset),
+                   "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
+                   "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = removeCasesWithAllNA(data.subset))
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }

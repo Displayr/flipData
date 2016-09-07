@@ -1,9 +1,19 @@
-removeCasesWithAnyNA <- function(x)
+#' \code{RemoveCasesWithAnyNA}
+#'
+#' @description Remove rows which contain NA.
+#' @param x The input dataframe.
+#' @export
+RemoveCasesWithAnyNA <- function(x)
 {
     x[apply(is.na(x), 1, sum) == 0, , drop = FALSE]
 }
 
-removeCasesWithAllNA <- function(x)
+#' \code{RemoveCasesWithAllNA}
+#'
+#' @description Remove rows which are all NA.
+#' @param x The input dataframe.
+#' @export
+RemoveCasesWithAllNA <- function(x)
 {
     x[apply(is.na(x), 1, sum) < ncol(x), , drop = FALSE]
 }
