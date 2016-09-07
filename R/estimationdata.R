@@ -17,6 +17,8 @@
 #'   estimates)"}, and  \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
+#' @details Removes any empty levels from factors.
+#' @importFrom flipTransformations RemoveMissingLevelsFromFactors
 #' @importFrom flipU AllVariablesNames CopyAttributes
 #' @importFrom flipFormat Labels
 #' @importFrom flipImputation Imputation
@@ -59,7 +61,11 @@ EstimationData <- function(formula = NULL,
         data$filter.ewerrfdfdsrew045 <- as.integer(filter.ewerrfdfdsrew045) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
         # Removing the variables not in the model.
         for (i in 1:m)
+        {
             data.for.estimation[[i]] <- data.for.estimation[[i]][, variable.names, drop = FALSE]
+            data.for.estimation[[i]] <- RemoveMissingLevelsFromFactors(data.for.estimation[[i]])
+
+        }
         # Imputing for the entire data set for prediction purposes.
         data = Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation[[1]])
@@ -74,6 +80,7 @@ EstimationData <- function(formula = NULL,
                    "Exclude cases with missing data" = removeCasesWithAnyNA(data.subset),
                    "Use partial data" = removeCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = removeCasesWithAllNA(data.subset))
+        data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
     if (weighted)
@@ -93,5 +100,6 @@ EstimationData <- function(formula = NULL,
          #subset = filter,
          description = description)
 }
+
 
 

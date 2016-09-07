@@ -37,4 +37,7 @@ estimates)"}, and  \code{"Multiple imputation"}.}
 \code{EstimationData} Selects the data from a data frame for estimation.
 Conducts imputation if necessary.
 }
+\details{
+Removes any empty levels from factors.
+}
 
