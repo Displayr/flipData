@@ -11,6 +11,8 @@ Observed <- function(x) UseMethod("Observed", x)
 #' @export
 Observed.default <- function(x)
 {
+    if (!is.null(x$outcome.name))
+        return(x$model[, x$outcome.name])
     x$model[, all.vars(formula(x))[1]]
 }
 
