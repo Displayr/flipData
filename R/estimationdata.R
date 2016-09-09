@@ -80,9 +80,9 @@ EstimationData <- function(formula = NULL,
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset))
-        levels.pre <- sum(sapply(data.for.estimation, nlevels))
+        levels.pre <- sapply(data.for.estimation, nlevels)
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
-        levels.post <- sum(sapply(data.for.estimation, nlevels))
+        levels.post <- sapply(data.for.estimation, nlevels)
         if (any(levels.pre > levels.post))
             warning(paste("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, or, filter the data:",
                           paste(names(data.for.estimation[levels.pre > levels.post]), collapse = ", ")))
