@@ -2,6 +2,19 @@ library(testthat)
 context("Estimation data")
 
 
+context("LDA")
+
+data(hbatwithsplits, package = "flipExampleData")
+hair <- hbatwithsplits
+library(flipMultivariates)
+hair1  <- flipTransformations::AsNumeric(hair[, paste0("x",6:18)], binary = FALSE, remove.first = TRUE)
+hair1$x1 <- hair$x1
+hair1$split60 <- hair$split60
+hair1$id <- hair$id
+LDA(x1 ~ x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18, method = "moment", data = hair1, subset = split60 == "Estimation Sample", show.labels = TRUE)
+
+
+
 test_that("Single vs multiple imputation",
 {
     data("bank", package = "flipExampleData")
