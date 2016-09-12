@@ -105,7 +105,7 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
         if (length(dim.x) == 3 & !is.null(dim.names))
         {
             x <- x[ , ,1]
-            warning(paste0("Correspondence analysis has been performed on the first statistic in the table (",
+            warning(paste0("The analysis has been performed on the first statistic in the table (",
                            dim.names[[3]][1], ")."))
             if (is.character(x[1,1]))
                 x <- matrix(as.numeric(x), nrow(x), dimnames = dimnames(x))
