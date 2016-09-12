@@ -1,4 +1,3 @@
-library(testthat)
 context("Utilities")
 
 
@@ -24,6 +23,10 @@ test_that("GetTidyTwoDimensionalArray",
     expect_error(GetTidyTwoDimensionalArray(z))
     dimnames(z) <- list(dimnames(x.with.labels)[[1]], dimnames(x.with.labels)[[2]], 1:2)
     expect_error(suppressWarnings(GetTidyTwoDimensionalArray(z)), NA)
+    # SUM and NET
+    dimnames(x.with.labels) <- list(Brand=c('SUM','NET',"Red\nBull","Lift\nPlus",'Diet.Coke','Fanta','Lift','Pepsi'),
+                                    Attribute=c('SUM', 'NET',    "Enjoy life",   'Picks you up', 'Refreshes',    'Cheers you up',    'Energy',   'Up-to-date',   'Fun',  'When tired',   'Relax'))
+    GetTidyTwoDimensionalArray(x.with.labels)
 })
 
 
