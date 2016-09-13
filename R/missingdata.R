@@ -93,51 +93,6 @@ BaseDescription <- function(description.of.n,
 
 
 
-
-
-#' \code{AnyNA}
-#'
-#' Checks to see if the are any missing valus
-#' @param data A \code{\link{data.frame}}.
-#' @param formula A no optional \code{\link{formula}}. Variables not listed in a formula are excluded from the evaluation.
-#'
-
-#' @importFrom flipU AllVariablesNames
-#' @export
-AnyNA <- function(data, formula = NULL)
-{
-    if (!is.null(formula))
-    {
-        data <- data[, AllVariablesNames(formula)]
-    }
-    any(is.na(data))
-}
-
-# k <- 1:ncol(dat)
-# characters <- k[unlist(lapply(dat, is.character))]
-# ordered <- unlist(lapply(dat, is.ordered))
-# factors <- k[unlist(lapply(dat, is.factor)) & !ordered]
-# ordered <- k[ordered]
-# amelia(dat, noms = factors, ords = ordered, idvars = characters)
-#
-# mdf <- missing_data.frame(dat)
-# mi(mdf)
-#     a     b     c     d     e
-# FALSE FALSE FALSE FALSE  TRUE
-# > unlist(lapply(dat, is.ordered))
-#     a     b     c     d     e
-# FALSE FALSE FALSE  TRUE FALSE
-# > amelia(dat)
-# Amelia Error Code:  37
-#  The following variable(s) are 'factors':
-# c, d
-# You may have wanted to set this as a ID variable to remove it
-# from the imputation model or as an ordinal or nominal
-# variable to be imputed.  Please set it as either and
-# try again.
-
-
-
 #' \code{ExcludeCasesWithAnyMissingData}
 #' @description This is a wrapper for \code{\link{na.omit}}
 #' @param data A \code{\link{data.frame}}.
