@@ -57,5 +57,13 @@ test_that("Removing unused factors prior to regression", {
     expect_error(suppressWarnings(flipRegression::Regression(q3 ~ q2, data = phone, missing = "Multiple imputation")), NA)
 })
 
+test_that("Duplicate variables", {
+
+    data(phone, package = "flipExampleData")
+    expect_error(flipRegression::Regression(q2 ~ q2 + q3, data = phone))
+})
+
+
+
 
 
