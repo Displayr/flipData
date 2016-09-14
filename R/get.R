@@ -12,6 +12,7 @@
 GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
+    CheckForUniqueVariableNames(formula)
     variable.names <- AllVariablesNames(formula)
     if (!data.provided) # Extracting the data from the environment
     {
