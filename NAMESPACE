@@ -3,6 +3,7 @@
 S3method(Observed,default)
 export(BaseDescription)
 export(CalibrateWeight)
+export(CheckForUniqueVariableNames)
 export(CleanSubset)
 export(CleanWeights)
 export(DataFormula)
