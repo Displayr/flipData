@@ -90,8 +90,8 @@ EstimationData <- function(formula = NULL,
             if (any(nms != labls))
                 nms <- paste0(labls, " (", nms, ")")
             nms <- paste(nms, collapse = ", ")
-            warning(paste0("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, or, filter the data:",
-                          nms, ". This may cause an error."))
+            warning(paste0("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data: ",
+                          nms, ". This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
         }
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
