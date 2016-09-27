@@ -84,8 +84,15 @@ EstimationData <- function(formula = NULL,
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
         levels.post <- sapply(data.for.estimation, nlevels)
         if (any(levels.pre > levels.post))
-            warning(paste("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, or, filter the data:",
-                          paste(names(data.for.estimation[levels.pre > levels.post]), collapse = ", ")))
+        {
+            nms <- names(data.for.estimation)[levels.pre > levels.post]
+            labls <- Labels(data.for.estimation)[levels.pre > levels.post]
+            if (any(nms != labls))
+                nms <- paste0(labls, " (", nms, ")")
+            nms <- paste(nms, collapse = ", ")
+            warning(paste0("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, or, filter the data:",
+                          nms, ". This may cause an error."))
+        }
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
     if (weighted)
