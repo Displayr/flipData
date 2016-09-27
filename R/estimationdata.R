@@ -47,6 +47,7 @@ EstimationData <- function(formula = NULL,
     data.subset <- CopyAttributes(data, data.subset)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- AllVariablesNames(formula)
+    labels <- Labels(data[, variable.names])
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
     if (single.imputation | missing ==  "Multiple imputation")
     {
@@ -86,7 +87,7 @@ EstimationData <- function(formula = NULL,
         if (any(levels.pre > levels.post))
         {
             nms <- names(data.for.estimation)[levels.pre > levels.post]
-            labls <- Labels(data.for.estimation)[levels.pre > levels.post]
+            labls <- labels[levels.pre > levels.post]
             if (any(nms != labls))
                 nms <- paste0(labls, " (", nms, ")")
             nms <- paste(nms, collapse = ", ")
