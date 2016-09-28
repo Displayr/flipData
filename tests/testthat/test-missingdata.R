@@ -15,3 +15,4 @@ test_that("Missing options",
     expect_equal(823, nrow(EstimationData(Overall ~ Overall ~ Branch, bank, missing = "Use partial data")$estimation.data))
     expect_equal(823, nrow(EstimationData(Overall ~ Overall ~ Branch, bank, missing = "Use partial data (pairwise correlations)")$estimation.data))
 })
+
