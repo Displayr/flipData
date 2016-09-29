@@ -88,9 +88,8 @@ EstimationData <- function(formula = NULL,
         if (any(levels.pre > levels.post))
         {
             labls <- paste(labels[levels.pre > levels.post], collapse = ", ")
-            subset.msg <- if (n.total > n.subset) " and filtering/subsetting the data" else ""
-            warning(paste0("After removing missing values", subset.msg, ", some some categories no longer exist in the data: ",
-                          labls, ". This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
+            warning(paste0("Some categories do not appear in the data: ", labls, ". This may be because they are empty in the raw data, or because they are empty after any weights, filters/subsets, or missing data settings are applied. ",
+                            "This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
         }
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
