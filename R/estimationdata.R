@@ -47,7 +47,7 @@ EstimationData <- function(formula = NULL,
     data.subset <- CopyAttributes(data, data.subset)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- AllVariablesNames(formula)
-    labels <- Labels(data[, variable.names])
+    labels <- Labels(data[, variable.names], show.name = TRUE)
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
     if (single.imputation | missing ==  "Multiple imputation")
     {
@@ -79,6 +79,7 @@ EstimationData <- function(formula = NULL,
         data.subset <- data.subset[ ,variable.names, drop = FALSE]
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
+                   "Assign partial data to clusters" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset))
         levels.pre <- sapply(data.for.estimation, nlevels)
@@ -86,13 +87,10 @@ EstimationData <- function(formula = NULL,
         levels.post <- sapply(data.for.estimation, nlevels)
         if (any(levels.pre > levels.post))
         {
-            nms <- names(data.for.estimation)[levels.pre > levels.post]
-            labls <- labels[levels.pre > levels.post]
-            if (any(nms != labls))
-                nms <- paste0(labls, " (", nms, ")")
-            nms <- paste(nms, collapse = ", ")
-            warning(paste0("After removing missing values and, if applicable, subsetting the data, some some categories no longer exist in the data: ",
-                          nms, ". This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
+            labls <- paste(labels[levels.pre > levels.post], collapse = ", ")
+            subset.msg <- if (n.total > n.subset) " and filtering/subsetting the data" else ""
+            warning(paste0("After removing missing values", subset.msg, ", some some categories no longer exist in the data: ",
+                          labls, ". This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
         }
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
@@ -108,9 +106,7 @@ EstimationData <- function(formula = NULL,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
          post.missing.data.estimation.sample = estimation.sample,
-         #estimation.subset = estimation.subset,
          data = data,
-         #subset = filter,
          description = description)
 }
 
