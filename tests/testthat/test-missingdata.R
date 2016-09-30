@@ -3,8 +3,8 @@ data(bank, package = "flipExampleData")
 
 dat <- data.frame(a = rep((1:10)/10,2),
     b = rep(1:10,2),
-    c = factor(rep(c(rep("A",5),rep("B",5)),2)),
-    d = ordered(rep(c(rep("A",5),rep("B",5)),2)), e = rep("dog",20), stringsAsFactors = FALSE)
+    c = factor(rep(c(rep("A",5), rep("B",5)),2)),
+    d = ordered(rep(c(rep("A",5), rep("B",5)),2)), e = rep("dog",20), stringsAsFactors = FALSE)
 for (i in 1:5)
     dat[i, i] <- NA
 
