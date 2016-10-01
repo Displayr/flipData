@@ -12,7 +12,8 @@ Imports:
     flipImputation,
     flipTransformations,
     flipU,
-    stats
+    stats,
+    survey
 RoxygenNote: 5.0.1
 Suggests: testthat,
     flipMultivariates,

@@ -1,3 +1,14 @@
+#' weightedSurveyDesign
+#' @param data The data frame.
+#' @param weights Weights The sampling weights.
+#' @importFrom survey svydesign
+#' @export
+WeightedSurveyDesign <- function(data, weights)
+{
+    svydesign(ids = ~ 1, weights = weights, data = data)
+}
+
+
 #' \code{EffectiveSampleSize}
 #' @description Uses Kish's formula for computing an effective sample size.
 #' @param weights A vector of weights.
