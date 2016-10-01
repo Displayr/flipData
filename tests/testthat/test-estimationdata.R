@@ -59,6 +59,30 @@ test_that("Duplicate variables", {
 })
 
 
+context("Regression Diagnostics")
+zformula <- formula("Overall ~ Fees + Interest + Phone + Branch + Online + ATM")
+data(bank, package = "flipExampleData")
+sb <- bank$ID > 100
+attr(sb, "label") <- "ID greater than 100"
+wgt <- bank$ID
+wgt[is.na(wgt)] = 0
+attr(wgt, "label") <- "ID"
+attr(bank$Overall, "label") <- "Overall satisfaction"
+attr(bank$Fees, "label") <- "Fees paid"
+attr(bank$Online, "label") <- "Online banking"
+
+
+test_that(paste("Grand mean"),
+{
+    type  = "Linear"
+    z = suppressWarnings(Regression(Overall ~ Fees + Interest + Phone + Branch + Online + ATM, data = bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")], type = type, subset = sb, weights = wgt))
+    subset <- sb & wgt > 0 & !is.na(sb) & !is.na(wgt)
+    subset <- subset & complete.cases(cbind(sb, wgt, bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")]))
+    y <- bank$Overall[subset]
+    w <- wgt[subset]
+    mn <- sum(y * w) / sum(w)
+    expect_equal(mn, GrandMean(z))
+})
 
 
 
