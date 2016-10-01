@@ -87,7 +87,7 @@ BaseDescription <- function(description.of.n,
     paste0(description.of.n,
            base,
         ifelse(weighted,
-               paste0("; data has been weighted (", weight.label, ");"),
+               paste0("data has been weighted (", weight.label, ");"),
                ""))
 }
 
