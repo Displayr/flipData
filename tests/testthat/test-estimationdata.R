@@ -59,7 +59,6 @@ test_that("Duplicate variables", {
 })
 
 
-context("Regression Diagnostics")
 zformula <- formula("Overall ~ Fees + Interest + Phone + Branch + Online + ATM")
 data(bank, package = "flipExampleData")
 sb <- bank$ID > 100
@@ -75,6 +74,7 @@ attr(bank$Online, "label") <- "Online banking"
 test_that(paste("Grand mean"),
 {
     type  = "Linear"
+    library(flipRegression)
     z = suppressWarnings(Regression(Overall ~ Fees + Interest + Phone + Branch + Online + ATM, data = bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")], type = type, subset = sb, weights = wgt))
     subset <- sb & wgt > 0 & !is.na(sb) & !is.na(wgt)
     subset <- subset & complete.cases(cbind(sb, wgt, bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")]))
