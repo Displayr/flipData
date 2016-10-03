@@ -103,14 +103,13 @@ MissingValuesByVariable <- function(data)
 #' @param subset A QSubset variable from Displayr or Q.
 #' @param n.total The total number of observations.
 #' @export
-
 CleanSubset <- function(subset, n.total)
 {
-    subset.label <- attr(subset, "label")
+    new.subset <- NULL
     if (is.null(subset))
     {
         n.subset <- n.total
-        subset <- rep(TRUE, n.total)
+        new.subset <- rep(TRUE, n.total)
     }
     else
     {
@@ -118,7 +117,7 @@ CleanSubset <- function(subset, n.total)
         if(subset.length == 1)
         {
             n.subset <- n.total
-            subset <- rep(subset, n.total)
+            new.subset <- rep(subset, n.total)
         }
         else
         {
@@ -130,8 +129,9 @@ CleanSubset <- function(subset, n.total)
 
         }
     }
+    if (!is.null(new.subset))
+        subset <- CopyAttributes(new.subset, subset)
     attr(subset, "n.subset") = n.subset
-    attr(subset, "label") = subset.label
     subset
 }
 

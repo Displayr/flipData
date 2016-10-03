@@ -44,7 +44,7 @@ EstimationData <- function(formula = NULL,
     # Filtering the data
     filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 else subset #Name to avoid bug in subset.data.frame
     data.subset <- subset(data, filter.ewerrfdfdsrew045)
-    data.subset <- CopyAttributes(data, data.subset)
+    data.subset <- CopyAttributes(data.subset, data)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- AllVariablesNames(formula)
     labels <- Labels(data[, variable.names], show.name = TRUE)
@@ -63,14 +63,17 @@ EstimationData <- function(formula = NULL,
         # Removing the variables not in the model.
         for (i in 1:m)
         {
-            data.for.estimation[[i]] <- data.for.estimation[[i]][, variable.names, drop = FALSE]
-            data.for.estimation[[i]] <- RemoveMissingLevelsFromFactors(data.for.estimation[[i]])
+            est.data <- data.for.estimation[[i]]
+            est.data <- est.data[, variable.names, drop = FALSE]
+            est.data <- RemoveMissingLevelsFromFactors(est.data)
+            data.for.estimation[[i]] <- est.data#CopyAttributes(est.data, data.for.estimation[[i]])
 
         }
         # Imputing for the entire data set for prediction purposes.
         data = Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation[[1]])
         data[estimation.sample, ] = data.for.estimation[[1]]
+        #data <- CopyAttributes(data, data.for.estimation[[1]])
         if (single.imputation)
             data.for.estimation = data.for.estimation[[1]]
     }
