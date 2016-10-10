@@ -26,10 +26,21 @@ EffectiveSampleSize <- function(weights)
 #' \code{CalibrateWeight}
 #' @description Calibrates a weight to sum to the Effective Sample Size.
 #' @param weights A vector of weights.
+#' @param strata Strata, to perform the weight-calibration within.
 #' @return vector
 #' @export
-CalibrateWeight <- function(weights)
+CalibrateWeight <- function(weights, strata = NULL)
 {
-    weights / sum(weights) * EffectiveSampleSize(weights)
+    .calibrate <- function(weights) weights / sum(weights) * EffectiveSampleSize(weights)
+    if (is.null(strata))
+        return(.calibrate(weights))
+    strata <- factor(strata)
+    result <- rep(NA, length(weights))
+    for (st in levels(strata))
+    {
+        i <- st == strata
+        result[i] <- CalibrateWeight(weights[i])
+    }
+    result
 }
 

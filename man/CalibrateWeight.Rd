@@ -4,10 +4,12 @@
 \alias{CalibrateWeight}
 \title{\code{CalibrateWeight}}
 \usage{
-CalibrateWeight(weights)
+CalibrateWeight(weights, strata = NULL)
 }
 \arguments{
 \item{weights}{A vector of weights.}
+
+\item{strata}{Strata, to perform the weight-calibration within.}
 }
 \value{
 vector

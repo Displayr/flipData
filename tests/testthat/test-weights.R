@@ -11,6 +11,14 @@ test_that("Effective Sample Size",
     expect_error(EffectiveSampleSize(c(NA, rep(1,9))))
 })
 
+test_that("Calibrate weights",
+{
+    s <- rep(c(1, 2), 5)
+    w <- c(1, 10)[s]
+    expect_equal(sum(CalibrateWeight(w)), EffectiveSampleSize(w))
+    expect_equal(sum(CalibrateWeight(w, s)), length(s))
+})
+
 
 #
 # ## one-stage cluster sample
