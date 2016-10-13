@@ -10,8 +10,8 @@ DataFormula(formula)
 \item{formula}{An object of class \code{\link{formula}}.}
 }
 \description{
-The formula to be used with extracted data. Same as the original formula except when
-a dataframe variable is referred to, in which case the dataframe variable is converted to a normal
-variable by adding backticks around it.
+Modifies formula so that any variables that refer to dataframes
+with a dollar sign are surrounded by backticks. Any such variables that already
+contain backticks will have those backticks removed.
 }
 

@@ -54,9 +54,9 @@ GetData <- function(formula, data, auxiliary.data)
 }
 
 #' \code{DataFormula}
-#' @description The formula to be used with extracted data. Same as the original formula except when
-#' a dataframe variable is referred to, in which case the dataframe variable is converted to a normal
-#' variable by adding backticks around it.
+#' @description Modifies formula so that any variables that refer to dataframes
+#' with a dollar sign are surrounded by backticks. Any such variables that already
+#' contain backticks will have those backticks removed.
 #' @param formula An object of class \code{\link{formula}}.
 #' @importFrom flipU AllVariablesNames
 #' @export
@@ -67,10 +67,26 @@ DataFormula <- function(formula)
     for (i in 1:length(var.names))
     {
         name <- var.names[i]
-        if (indexOfUnescapedCharacter(name, "$") > -1)
-            formula.str <- gsub(name, paste0("`", name, "`"), formula.str, fixed = TRUE)
+        new.name <- SurroundWithBackticks(name)
+        if (name != new.name)
+            formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
     }
     formula(formula.str)
+}
+
+#' \code{SurroundWithBackticks}
+#' @description Surrounds names with backticks, after removing existing backticks,
+#' provided there is a $ in the name.
+#' @param names A vector of names.
+#' @export
+SurroundWithBackticks <- function(names)
+{
+    sapply(names, function(nm) {
+        if (indexOfUnescapedCharacter(nm, "$") > -1)
+            paste0("`", gsub("`", "", nm, fixed = TRUE), "`")
+        else
+            nm
+    }, USE.NAMES = FALSE)
 }
 
 indexOfUnescapedCharacter <- function(s, char)
