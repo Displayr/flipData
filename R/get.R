@@ -76,6 +76,22 @@ DataFormula <- function(formula)
     formula(formula.str)
 }
 
+
+#' \code{CleanBackticks}
+#' @description Removes extra backticks and unescapes original backticks
+#' in variable names due to usage of DataFormula.
+#' @param nms Vector of variable names.
+#' @export
+CleanBackticks <- function(nms)
+{
+    sapply(nms, function(nm) {
+        if (length(grep("$", nms, fixed = TRUE)) > 0)
+            gsub("\\`" , "`", gsub("(^`|`$)", "", nm), fixed = TRUE)
+        else
+            nm
+    } , USE.NAMES = FALSE)
+}
+
 indexOfUnescapedCharacter <- function(s, char)
 {
     idx <- -1
@@ -87,7 +103,7 @@ indexOfUnescapedCharacter <- function(s, char)
         {
             idx <- i
             break
-        } else if (c == "`")
+        } else if (c == "`" && (i == 1 || substr(s, i - 1, i - 1) != "\\"))
             inside.backticks <- !inside.backticks
     }
     idx
