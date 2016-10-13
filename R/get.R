@@ -71,7 +71,6 @@ DataFormula <- function(formula)
         if (name != new.name)
             formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
     }
-    print(formula.str)
     formula(formula.str)
 }
 
