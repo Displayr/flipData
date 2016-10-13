@@ -67,9 +67,11 @@ DataFormula <- function(formula)
     for (i in 1:length(var.names))
     {
         name <- var.names[i]
-        new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
-        if (name != new.name)
+        if (indexOfUnescapedCharacter(name, "$") > -1)
+        {
+            new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
             formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
+        }
     }
     formula(formula.str)
 }
