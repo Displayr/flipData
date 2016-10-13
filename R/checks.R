@@ -3,6 +3,7 @@
 #' @description Throws an error if any variables cotnain a standard deviation of 0.
 #' @param x A \code{\link{matrix}} or \code{\link{data.frame}}.
 #' @param variable.names Variable names.
+#' @importFrom stats sd
 #' @export
 CheckForPositiveVariance <- function(x, variable.names = names(x))
 {
@@ -20,6 +21,7 @@ CheckForPositiveVariance <- function(x, variable.names = names(x))
 #' @param x A \code{\link{matrix}} or \code{\link{data.frame}}.
 #' @param variable.names Variable names.
 #' @param correlations If TRUE, the data is assumed to be a correlation matrix.
+#' @importFrom stats cor
 #' @export
 CheckForLinearDependence <- function(x, variable.names = colnames(x), correlations = FALSE)
 {

@@ -24,7 +24,7 @@ GetData <- function(formula, data, auxiliary.data)
                     get(x, data)
                 else
                 {
-                    v <- get(substr(x, 1, i - 1), data)
+                    v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
                     eval(parse(text = paste("v", substr(x, i, nchar(x)))))
                 }
             }
