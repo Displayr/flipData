@@ -11,6 +11,6 @@ CleanBackticks(nms)
 }
 \description{
 Removes extra backticks and unescapes original backticks
-in variable names.
+in variable names due to usage of DataFormula.
 }
 
