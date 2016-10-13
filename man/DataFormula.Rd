@@ -12,6 +12,6 @@ DataFormula(formula)
 \description{
 Modifies formula so that any variables that refer to dataframes
 with a dollar sign are surrounded by backticks. Any such variables that already
-contain backticks will have those backticks removed.
+contain backticks will have those backticks escaped.
 }
 
