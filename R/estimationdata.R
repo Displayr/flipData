@@ -103,7 +103,7 @@ EstimationData <- function(formula = NULL,
     # Reporting.
     n.estimation <- sum(estimation.sample)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
-        stop(paste("There are fewer observations (", n.estimation,
+        stop(paste0("There are fewer observations (", n.estimation,
                    ") than there are variables (", length(variable.names), ")."))
     description <- SampleDescription(n.total, n.subset, n.estimation,
         Labels(subset), weighted, weight.label, missing, imputation.label, m)
