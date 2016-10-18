@@ -7,7 +7,7 @@ Conducts imputation if necessary.}
 \usage{
 EstimationData(formula = NULL, data = NULL, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data", m = 10,
-  seed = 12321)
+  seed = 12321, error.if.insufficient.obs = TRUE)
 }
 \arguments{
 \item{formula}{An object of class \code{\link{formula}} (or one that can be
@@ -32,6 +32,8 @@ estimates)"}, and  \code{"Multiple imputation"}.}
 \item{m}{Number of imputation samples.}
 
 \item{seed}{The random number seed used in the imputation.}
+
+\item{error.if.insufficient.obs}{Throw an error if there are more variables than observations.}
 }
 \description{
 \code{EstimationData} Selects the data from a data frame for estimation.

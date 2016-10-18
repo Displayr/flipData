@@ -17,6 +17,7 @@
 #'   estimates)"}, and  \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
+#' @param error.if.insufficient.obs Throw an error if there are more variables than observations.
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
 #' @importFrom flipU AllVariablesNames CopyAttributes
@@ -29,7 +30,8 @@ EstimationData <- function(formula = NULL,
                            weights = NULL,
                            missing = "Exclude cases with missing data",
                            m = 10,
-                           seed = 12321)
+                           seed = 12321,
+                           error.if.insufficient.obs = TRUE)
 {
     # Cleaning weights and subsets.
     n.total <- nrow(data)
@@ -100,8 +102,9 @@ EstimationData <- function(formula = NULL,
         weights <- weights[estimation.sample]
     # Reporting.
     n.estimation <- sum(estimation.sample)
-    if (n.estimation < length(variable.names))
-        stop("Sample size is too small ")
+    if (error.if.insufficient.obs && n.estimation < length(variable.names))
+        stop(paste("There are fewer observations (", n.estimation,
+                   ") than there are variables (", length(variable.names), ")."))
     description <- SampleDescription(n.total, n.subset, n.estimation,
         Labels(subset), weighted, weight.label, missing, imputation.label, m)
     list(estimation.data = data.for.estimation,
