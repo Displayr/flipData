@@ -1,5 +1,3 @@
-
-
 #' \code{GetData}
 #' @description Extracts data from the environment of the formula, if it has not
 #' been provided as an argument.
