@@ -30,14 +30,14 @@ SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, wei
     imputation <-  missing == "Imputation (replace missing values with estimates)" | missing == "Multiple imputation"
     description <- BaseDescription(paste0("n = ", n.estimation," cases used in estimation"),
                                    n.total, n.subset, n.estimation, subset.label, weighted, weight.label)
-    description <- paste(description, if(missing.data | imputation)
-        switch(missing, "Error if missing data" = "",
-               "Exclude cases with missing data" = "cases containing missing values have been excluded;",
-               "Imputation (replace missing values with estimates)" =
-                   paste0("missing values of predictor variables have been imputed using ", imputation.label, ";"),
-               "Multiple imputation" =
-                   paste0("multiple imputation (m = ", m, ", ", imputation.label, ") has been used to impute missing values of predictor variables;"))
-        else "")
+    if (missing.data | imputation)
+        description <- paste(description, switch(missing,
+            "Error if missing data" = "",
+            "Exclude cases with missing data" = "cases containing missing values have been excluded;",
+            "Imputation (replace missing values with estimates)" =
+                paste0("missing values of predictor variables have been imputed using ", imputation.label, ";"),
+            "Multiple imputation" =
+                paste0("multiple imputation (m = ", m, ", ", imputation.label, ") has been used to impute missing values of predictor variables;")))
     description
 }
 
