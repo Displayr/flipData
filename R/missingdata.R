@@ -125,12 +125,12 @@ CleanSubset <- function(subset, n.total)
                 stop("subset.length != n.total")
             subset[is.na(subset)] <- FALSE
             subset[is.na(subset)] <- FALSE
-            n.subset <- sum(subset)
 
         }
     }
     if (!is.null(new.subset))
         subset <- CopyAttributes(new.subset, subset)
+    n.subset <- sum(subset)
     attr(subset, "n.subset") = n.subset
     subset
 }

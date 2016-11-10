@@ -5,7 +5,8 @@
 \title{\code{SampleDescription}}
 \usage{
 SampleDescription(n.total, n.subset, n.estimation, subset.label,
-  weighted = TRUE, weight.label = "", missing, imputation.label = NULL, m)
+  weighted = TRUE, weight.label = "", missing, imputation.label = NULL, m,
+  variable.description = "")
 }
 \arguments{
 \item{n.total}{Total number of observations in the database.}
@@ -29,6 +30,10 @@ data"}, ,and \code{"Imputation (replace missing values with estimates)"}.}
 \item{imputation.label}{Method used to impute the data.}
 
 \item{m}{Number of imputaton samples.}
+
+\item{variable.description}{A \code{char} specifying the type of
+variables being imputed. Used in the description of the imputation
+that typically appears in a footer.}
 }
 \description{
 Describes the sample, for use as footers in multivariate

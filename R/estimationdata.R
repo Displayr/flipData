@@ -20,7 +20,7 @@
 #' @param error.if.insufficient.obs Throw an error if there are more variables than observations.
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
-#' @importFrom flipU AllVariablesNames CopyAttributes
+#' @importFrom flipU AllVariablesNames CopyAttributes OutcomeName
 #' @importFrom flipFormat Labels
 #' @importFrom flipImputation Imputation
 #' @export
@@ -36,6 +36,7 @@ EstimationData <- function(formula = NULL,
     # Cleaning weights and subsets.
     n.total <- nrow(data)
     subset <- CleanSubset(subset, n.total)
+    # Removing cases with completely missing data
     n.subset <- attr(subset, "n.subset")
     if (weighted <- !is.null(weights))
     {
@@ -43,13 +44,16 @@ EstimationData <- function(formula = NULL,
         weight.label <- Labels(weights)
     }
     unfiltered.weights <- weights
-    # Filtering the data
-    filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 else subset #Name to avoid bug in subset.data.frame
-    data.subset <- subset(data, filter.ewerrfdfdsrew045)
-    data.subset <- CopyAttributes(data.subset, data)
     # Selecting the relevant variables from the data frame (unless imputation is being used).
     variable.names <- AllVariablesNames(formula)
     labels <- Labels(data[, variable.names], show.name = TRUE)
+    # Removing cases with entirely missing data
+    some.data <- !apply(is.na(data[, variable.names]), 1, all)
+    # Filtering the data
+    filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 & some.data else subset & some.data #Name to avoid bug in subset.data.frame
+    data.subset <- subset(data, filter.ewerrfdfdsrew045)
+    data.subset <- CopyAttributes(data.subset, data)
+    # Imputation
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
     if (single.imputation | missing ==  "Multiple imputation")
     {
@@ -60,7 +64,7 @@ EstimationData <- function(formula = NULL,
         # range to be imputed.
         data.for.estimation = Imputation(data.subset, formula, m = m, seed = seed)
         imputation.label <- attr(data.for.estimation[[1]], "imputation.method")
-        #Filtering for the whole data set (as if using only the non-filter,the sample may be too small)
+        # Filtering for the whole data set (as if using only the non-filter, the sample may be too small)
         data$filter.ewerrfdfdsrew045 <- as.integer(filter.ewerrfdfdsrew045) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
         # Removing the variables not in the model.
         for (i in 1:m)
@@ -107,7 +111,7 @@ EstimationData <- function(formula = NULL,
         stop(paste0("There are fewer observations (", n.estimation,
                    ") than there are variables (", length(variable.names), ")."))
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        Labels(subset), weighted, weight.label, missing, imputation.label, m)
+        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(is.null(OutcomeName(formula))) "" else "predictor")
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
