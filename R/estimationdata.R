@@ -86,7 +86,8 @@ EstimationData <- function(formula = NULL,
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
                    "Assign partial data to clusters" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
-                   "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset))
+                   "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
+                   stop(paste("Unknown 'missing' method:", missing)))
         levels.pre <- sapply(data.for.estimation, nlevels)
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
         levels.post <- sapply(data.for.estimation, nlevels)
