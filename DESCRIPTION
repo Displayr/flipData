@@ -17,5 +17,6 @@ Imports:
 RoxygenNote: 5.0.1
 Suggests: testthat,
     flipMultivariates,
-    flipRegression
+    flipRegression,
+    flipCluster
 
