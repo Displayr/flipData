@@ -6,11 +6,16 @@ meanDat <- as.data.frame(lapply(dat, unclass))
 mn <- matrix(apply(meanDat, 2, mean, na.rm = TRUE), byrow = TRUE, ncol = 25, nrow = nrow(meanDat))
 meanDat[is.na(meanDat)] <- mn[is.na(meanDat)]
 
-missing = "Imputation (replace missing values with estimates)"
-KMeans(data = dat, missing = missing, show.labels = TRUE, centers = 3)
+test_that("kmeans",
+          {
+
+                missing = "Imputation (replace missing values with estimates)"
+                expect_error(suppressWarnings(KMeans(data = dat, missing = missing, show.labels = TRUE, centers = 3)), NA)
+                expect_error(KMeans(data = meanDat, missing = missing, show.labels = TRUE, centers = 3))
+
+          })
 
 
-KMeans(data = meanDat, missing = missing, show.labels = TRUE, centers = 3)
 
 #
 # data(iris)

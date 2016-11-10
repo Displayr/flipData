@@ -20,7 +20,7 @@
 #' @param error.if.insufficient.obs Throw an error if there are more variables than observations.
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
-#' @importFrom flipU AllVariablesNames CopyAttributes OutcomeName
+#' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
 #' @importFrom flipFormat Labels
 #' @importFrom flipImputation Imputation
 #' @export
@@ -111,7 +111,7 @@ EstimationData <- function(formula = NULL,
         stop(paste0("There are fewer observations (", n.estimation,
                    ") than there are variables (", length(variable.names), ")."))
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(is.null(OutcomeName(formula))) "" else "predictor")
+        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(HasOutcome(formula)) "" else "predictor")
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
