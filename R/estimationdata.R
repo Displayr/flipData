@@ -111,7 +111,7 @@ EstimationData <- function(formula = NULL,
         stop(paste0("There are fewer observations (", n.estimation,
                    ") than there are variables (", length(variable.names), ")."))
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(HasOutcome(formula)) "" else "predictor")
+        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(HasOutcome(formula)) "predictor" else "")
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
