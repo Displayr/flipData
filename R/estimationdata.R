@@ -48,7 +48,7 @@ EstimationData <- function(formula = NULL,
     variable.names <- AllVariablesNames(formula)
     labels <- Labels(data[, variable.names], show.name = TRUE)
     # Removing cases with entirely missing data
-    some.data <- !apply(is.na(data[, variable.names]), 1, all)
+    some.data <- !apply(is.na(data[, variable.names, drop = FALSE]), 1, all)
     # Filtering the data
     filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 & some.data else subset & some.data #Name to avoid bug in subset.data.frame
     data.subset <- subset(data, filter.ewerrfdfdsrew045)
