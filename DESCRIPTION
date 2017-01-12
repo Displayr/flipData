@@ -15,8 +15,15 @@ Imports:
     stats,
     survey
 RoxygenNote: 5.0.1
-Suggests: testthat,
+Suggests: 
+    testthat,
     flipMultivariates,
     flipRegression,
     flipCluster
+Remotes:
+    NumbersInternational/flipFormat,
+    NumbersInternational/flipImputation,
+    NumbersInternational/flipTransformations,
+    NumbersInternational/flipU
+  
 
