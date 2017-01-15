@@ -14,11 +14,11 @@ script:
   - R CMD build .
   - travis_wait 60 R CMD check flipData.tar.gz
  
- notifications:
+notifications:
   slack:
     rooms: 
         - numbers:FTgSTNHC2rpanhJMGTKMwZXM#github-notifications
     template:
-      - "Build <%{build_url}|#%{build_number}> %{result} in %{repository_name}@%{branch} by %{author}: <%{compare_url}|%{commit_message}>"
+      - "Build <%{build_url}|#%{build_number}> %{result} in %{repository}@%{branch} by %{author}: <%{compare_url}|%{commit_message}>"
     on_success: change
     on_failure: always
