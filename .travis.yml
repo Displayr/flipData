@@ -10,9 +10,11 @@ before_install:
 
 r_github_packages: hadley/devtools#1263
 
-script:
-  - R CMD build .
-  - travis_wait 60 R CMD check flipData.tar.gz
+# This is only needed if we need tests take a long time to run
+# If so, you need to check the name of the gzipped file in the job log
+# script:
+#  - R CMD build .
+#  - travis_wait 60 R CMD check flipData_0.1.0.tar.gz
  
 notifications:
   slack:
