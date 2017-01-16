@@ -25,7 +25,6 @@ Remotes:
     NumbersInternational/flipImputation,
     NumbersInternational/flipTransformations,
     NumbersInternational/flipU,
-    NumbersInternational/flipMultivariates,
     NumbersInternational/flipRegression,
     NumbersInternational/flipCluster
   
