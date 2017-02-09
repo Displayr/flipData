@@ -20,9 +20,9 @@ than or equal to \code{subset}).}
 
 \item{subset.label}{E.g., "Males living in New York".}
 
-\item{weighted}{Total number of observations in the database.}
+\item{weighted}{Whether sample has been weighted.}
 
-\item{weight.label}{Total number of observations in the database.}
+\item{weight.label}{The label of the weight.}
 }
 \description{
 Describes the sample, for use as footers in multivariate

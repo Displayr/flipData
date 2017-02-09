@@ -17,11 +17,11 @@ equal to \code{n.total}).}
 \item{n.estimation}{The total number of observations used in estimation (less
 than or equal to \code{subset}).}
 
-\item{subset.label}{Total number of observations in the database.}
+\item{subset.label}{E.g., "Males living in New York".}
 
-\item{weighted}{Total number of observations in the database.}
+\item{weighted}{Whether sample has been weighted.}
 
-\item{weight.label}{Total number of observations in the database.}
+\item{weight.label}{The label of the weight.}
 
 \item{missing}{How missing data is to be treated in the analysis. Options
 are: \code{"Error if missing data"}, \code{"Exclude cases with missing

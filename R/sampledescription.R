@@ -7,9 +7,9 @@
 #'   equal to \code{n.total}).
 #' @param n.estimation The total number of observations used in estimation (less
 #'   than or equal to \code{subset}).
-#' @param subset.label Total number of observations in the database.
-#' @param weighted Total number of observations in the database.
-#' @param weight.label Total number of observations in the database.
+#' @param subset.label E.g., "Males living in New York".
+#' @param weighted Whether sample has been weighted.
+#' @param weight.label The label of the weight.
 #' @param missing How missing data is to be treated in the analysis. Options
 #'   are: \code{"Error if missing data"}, \code{"Exclude cases with missing
 #'   data"}, ,and \code{"Imputation (replace missing values with estimates)"}.
@@ -59,8 +59,8 @@ SampleDescription <- function(n.total, n.subset, n.estimation, subset.label, wei
 #' @param n.estimation The total number of observations used in estimation (less
 #'   than or equal to \code{subset}).
 #' @param subset.label E.g., "Males living in New York".
-#' @param weighted Total number of observations in the database.
-#' @param weight.label Total number of observations in the database.
+#' @param weighted Whether sample has been weighted.
+#' @param weight.label The label of the weight.
 #'
 #' @export
 BaseDescription <- function(description.of.n,
