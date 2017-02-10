@@ -21,7 +21,7 @@
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
 #' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
-#' @importFrom flipFormat Labels
+#' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
 #' @export
 EstimationData <- function(formula = NULL,
