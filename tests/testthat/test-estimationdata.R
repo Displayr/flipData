@@ -3,7 +3,6 @@ context("Estimation data")
 
 data(hbatwithsplits, package = "flipExampleData")
 hair <- hbatwithsplits
-library(flipMultivariates)
 hair1  <- flipTransformations::AsNumeric(hair[, paste0("x",6:18)], binary = FALSE, remove.first = TRUE)
 hair1$x1 <- hair$x1
 hair1$split60 <- hair$split60
