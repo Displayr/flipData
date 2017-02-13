@@ -22,9 +22,9 @@ Suggests:
     flipRegression,
     flipCluster
 Remotes:
-    NumbersInternational/flipFormat,
-    NumbersInternational/flipImputation,
-    NumbersInternational/flipTransformations,
-    NumbersInternational/flipU
+    Displayr/flipFormat,
+    Displayr/flipImputation,
+    Displayr/flipTransformations,
+    Displayr/flipU
   
 
