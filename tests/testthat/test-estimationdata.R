@@ -32,25 +32,6 @@ test_that("Checking that label is retained",
 })
 
 
-test_that("Removing unused factors prior to regression", {
-
-    data(phone, package = "flipExampleData")
-    levs <- attr(phone$q3, "value.labels")
-
-    z <- phone$q3
-    z[is.na(z)] <- 100
-    z <- as.numeric(z)
-    z <- factor(z)
-
-    lv <- c("-9", "0", names(levs[7:1]), "100")
-    levels(z) <- lv
-    z[z == "100"] <- NA
-    phone$q3 <- z
-
-    expect_error(suppressWarnings(flipRegression::Regression(q3 ~ q2, data = phone, missing = "Multiple imputation")))
-    expect_error(suppressWarnings(flipRegression::Regression(q2 ~ q3, data = phone, missing = "Multiple imputation")), NA)
-})
-
 test_that("Duplicate variables", {
 
     data(phone, package = "flipExampleData")
@@ -70,18 +51,6 @@ attr(bank$Fees, "label") <- "Fees paid"
 attr(bank$Online, "label") <- "Online banking"
 
 
-test_that(paste("Grand mean"),
-{
-    type  = "Linear"
-    library(flipRegression)
-    z = suppressWarnings(Regression(Overall ~ Fees + Interest + Phone + Branch + Online + ATM, data = bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")], type = type, subset = sb, weights = wgt))
-    subset <- sb & wgt > 0 & !is.na(sb) & !is.na(wgt)
-    subset <- subset & complete.cases(cbind(sb, wgt, bank[, c("Overall", "Fees", "Interest","Phone", "Branch", "Online", "ATM")]))
-    y <- bank$Overall[subset]
-    w <- wgt[subset]
-    mn <- sum(y * w) / sum(w)
-    expect_equal(mn, GrandMean(z))
-})
 
 
 

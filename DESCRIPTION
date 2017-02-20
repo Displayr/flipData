@@ -17,10 +17,7 @@ Imports:
 RoxygenNote: 5.0.1
 Suggests: 
     testthat,
-    flipExampleData,
-    flipMultivariates,
-    flipRegression,
-    flipCluster
+    flipExampleData
 Remotes:
     Displayr/flipFormat,
     Displayr/flipImputation,
