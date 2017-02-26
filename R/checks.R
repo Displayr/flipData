@@ -133,12 +133,12 @@ CheckPredictionVariables <- function(object, newdata)
     # levels not present but were in training data.  Thus droplevels(newdata) is aligned with fitted levels.
 
     training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
-    train.levels <- sapply(droplevels(training), levels)
+    train.levels <- lapply(droplevels(training), levels)
 
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
         stop("Attempting to predict based on fewer variables than those used to train the model.")
     newdata <- newdata[, names(training)]
-    prediction.levels <- sapply(newdata, levels)
+    prediction.levels <- lapply(newdata, levels)
 
     new.level.flags <- rep(FALSE, nrow(newdata))
     nb.flags <- 0
