@@ -9,7 +9,7 @@ CheckPredictionVariables(object, newdata)
 \arguments{
 \item{object}{A \code{SupportVectorMachine} object.}
 
-\item{newdata}{Optionally, a data frame including the variables used to fit the model.
+\item{newdata}{A data frame including the variables used to fit the model.
 If omitted, the actual data used to fit the model is used (before any filtering).}
 }
 \description{

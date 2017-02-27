@@ -113,25 +113,11 @@ CheckForUniqueVariableNames <- function(formula)
 #' levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
 #' of the fitted model.
 #' @param object A \code{SupportVectorMachine} object.
-#' @param newdata Optionally, a data frame including the variables used to fit the model.
+#' @param newdata A data frame including the variables used to fit the model.
 #' If omitted, the actual data used to fit the model is used (before any filtering).
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
-    if (is.null(newdata))
-    {
-        newdata <- object$model
-        predicting.training <- TRUE
-    }
-    else
-        predicting.training <- FALSE
-
-    # EstimationData removes unused levels from training data (after filter and removing NA). Models binary
-    # encode factor variables according to the number of their levels and may fail if newdata contains
-    # a different number of levels from training data (even if no instances have the unused levels).
-    # Hence we filter out instances of newdata with new levels (predicting NA), and add back to newdata any
-    # levels not present but were in training data.
-
     training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
     train.levels <- lapply(droplevels(training), levels)
 
@@ -155,7 +141,7 @@ CheckPredictionVariables <- function(object, newdata)
                 # set all new factor levels to NA
                 new.level.rows <- nrow(newdata[newdata[, i] %in% new.levels, ])
                 newdata[newdata[, i] %in% new.levels, ] <- NA
-                if (new.level.rows > 0 & !predicting.training)
+                if (new.level.rows > 0)
                     warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected.",
                                     names(training[i]), new.levels, new.level.rows))
             }
