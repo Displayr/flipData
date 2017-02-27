@@ -140,7 +140,9 @@ CheckPredictionVariables <- function(object, newdata)
     newdata <- newdata[, names(training), drop = FALSE]
     prediction.levels <- lapply(newdata, levels)
 
-    warning(sprintf("Trained factors are %s, Prediction factors are %s", train.levels, prediction.levels))
+    #train.list <- paste(train.levels, collapse = " ")
+    #prediction.list <- paste(prediction.levels, collapse = " ")
+    #warning(sprintf("Trained factors are %s, Prediction factors are %s", train.list, prediction.list))
 
     for (i in 1:length(train.levels))
     {
@@ -159,7 +161,8 @@ CheckPredictionVariables <- function(object, newdata)
             }
             # Set prediction levels to those used for training
             newdata[, i] <- droplevels(newdata[, i])
-            warning(sprintf("Trained levels are %s, Prediction levels are %s", train.levels[[i]], levels(newdata[, i])))
+            #warning(sprintf("%d : Trained levels are %s, Prediction levels are %s",
+            #                i, paste(train.levels[[i]], collapse = " "), paste(levels(newdata[, i]), collapse = " ")))
             levels(newdata[, i]) <- train.levels[[i]]
         }
     }
