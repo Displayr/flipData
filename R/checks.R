@@ -157,6 +157,7 @@ CheckPredictionVariables <- function(object, newdata)
             }
             # Set prediction levels to those used for training
             newdata[, i] <- droplevels(newdata[, i])
+            warning(sprintf("Trained levels are %s, Prediction levels are %s", train.levels[[i]], levels(newdata[, i])))
             levels(newdata[, i]) <- train.levels[[i]]
         }
     }
