@@ -33,3 +33,17 @@ test_that("CheckForUniqueVariableNames",
      expect_error(CheckForUniqueVariableNames(z$y ~ z$x), NA)
 })
 
+data(hbatwithsplits, package = "flipExampleData")
+#library(flipMultivariates)
+test_that("CheckPredictionVariables",
+{
+    # Warning - not all levels are present in training data
+    #expect_warning(z <- RandomForest(x3 ~ x1 + x2 + x6, data = hbatwithsplits, subset = !(x1 %in% "Less than 1 year")), "Some categories*")
+    # Error - predicting based on fewer variables than used to fit model
+    #expect_error(predict(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attmpting to predict*")
+    # Warning - more levels in prediction data than fitted
+    #expect_error(predict(z, newdata = hbatwithsplits), "Prediction variable x1*")
+    # No error - fewer levels in prediction data than fitted
+    # TO DO
+    # expect_error(****, NA)
+})

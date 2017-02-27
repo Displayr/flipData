@@ -111,7 +111,7 @@ CheckForUniqueVariableNames <- function(formula)
 #' superset of the variables used to fit the model or an error results. If a factor variable of
 #' newdata contains fewer levels than the factor used for fitting, the levels are expanded.  If a factor
 #' variable contains more levels than the factor used for fitting, a warning is given.  Returns newdata
-#' with potentially expanded factor levels and 'new.level.flags' indicating which instances have new levels.
+#' with factor levels set to those those used for fitting and NA for new levels.
 #' @param object A \code{SupportVectorMachine} object.
 #' @param newdata Optionally, a data frame including the variables used to fit the model.
 #' If omitted, the actual data used to fit the model is used (before any filtering).
@@ -126,11 +126,11 @@ CheckPredictionVariables <- function(object, newdata)
     else
         predicting.training <- FALSE
 
-    # EstimationData removes unused levels from training data (after filter and removing NA). svm.predict() binary
-    # encodes factor variables according to the number of their levels and will fail if newdata contains
+    # EstimationData removes unused levels from training data (after filter and removing NA). Models binary
+    # encode factor variables according to the number of their levels and may fail if newdata contains
     # a different number of levels from training data (even if no instances have the unused levels).
     # Hence we filter out instances of newdata with new levels (predicting NA), and add back to newdata any
-    # levels not present but were in training data.  Thus droplevels(newdata) is aligned with fitted levels.
+    # levels not present but were in training data.
 
     training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
     train.levels <- lapply(droplevels(training), levels)
@@ -140,9 +140,6 @@ CheckPredictionVariables <- function(object, newdata)
     newdata <- newdata[, names(training)]
     prediction.levels <- lapply(newdata, levels)
 
-    new.level.flags <- rep(FALSE, nrow(newdata))
-    nb.flags <- 0
-
     for (i in 1:length(train.levels))
     {
         if (!is.null(train.levels[[i]]))    # factor variables only
@@ -151,18 +148,16 @@ CheckPredictionVariables <- function(object, newdata)
             new.levels <- setdiff(prediction.levels[[i]], train.levels[[i]])
             if (!identical(new.levels, character(0)))
             {
-                # set flags to TRUE for any newdata row with a new factor level
-                new.level.flags[newdata[, i] %in% new.levels] <- TRUE
-                updated.nb.flags <- sum(new.level.flags[new.level.flags == TRUE])
-                if ((updated.nb.flags - nb.flags) > 0 & !predicting.training)
+                # set all new factor levels to NA
+                new.level.rows <- nrow(newdata[newdata[, i] %in% new.levels, ])
+                newdata[newdata[, i] %in% new.levels, ] <- NA
+                if (new.level.rows > 0 & !predicting.training)
                     warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected.",
-                                    names(training[i]), new.levels, updated.nb.flags - nb.flags))
-                nb.flags <- updated.nb.flags
+                                    names(training[i]), new.levels, new.level.rows))
             }
-            # if train has any levels not in prediction, then add those levels to prediction
-            if (!identical(setdiff(train.levels[[i]], prediction.levels[[i]]), character(0)))
-                levels(newdata[, i]) <- train.levels[[i]]
+            # Set prediction levels to those used for training
+            levels(newdata[, i]) <- train.levels[[i]]
         }
     }
-    return(list(newdata = newdata, new.level.flags = new.level.flags))
+    return(newdata)
 }

@@ -17,6 +17,6 @@ Verifies that newdata is consistent with data used to used to fit a model.  newd
 superset of the variables used to fit the model or an error results. If a factor variable of
 newdata contains fewer levels than the factor used for fitting, the levels are expanded.  If a factor
 variable contains more levels than the factor used for fitting, a warning is given.  Returns newdata
-with potentially expanded factor levels and 'new.level.flags' indicating which instances have new levels.
+with factor levels set to those those used for fitting and NA for new levels.
 }
 
