@@ -112,7 +112,7 @@ CheckForUniqueVariableNames <- function(formula)
 #' more levels than the factor used for fitting, a warning is given and instances with such new factor
 #' levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
 #' of the fitted model.
-#' @param object A \code{SupportVectorMachine} object.
+#' @param object A model object for which prediction is desired.
 #' @param newdata Optionally, a data frame including the variables used to fit the model.
 #' If omitted, the actual data used to fit the model is used (before any filtering).
 #' @export
