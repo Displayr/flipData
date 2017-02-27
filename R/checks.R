@@ -137,7 +137,7 @@ CheckPredictionVariables <- function(object, newdata)
 
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
         stop("Attempting to predict based on fewer variables than those used to train the model.")
-    newdata <- newdata[, names(training)]
+    newdata <- newdata[, names(training), drop = FALSE]
     prediction.levels <- lapply(newdata, levels)
 
     for (i in 1:length(train.levels))
