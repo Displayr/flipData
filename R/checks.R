@@ -140,6 +140,8 @@ CheckPredictionVariables <- function(object, newdata)
     newdata <- newdata[, names(training), drop = FALSE]
     prediction.levels <- lapply(newdata, levels)
 
+    warning(sprintf("Trained factors are %s, Prediction factors are %s", train.levels, prediction.levels))
+
     for (i in 1:length(train.levels))
     {
         if (!is.null(train.levels[[i]]))    # factor variables only
