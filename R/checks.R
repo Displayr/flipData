@@ -108,10 +108,10 @@ CheckForUniqueVariableNames <- function(formula)
 #' \code{CheckPredictionVariables}
 #'
 #' Verifies that newdata is consistent with data used to used to fit a model.  newdata must contain a
-#' superset of the variables used to fit the model or an error results. If a factor variable of
-#' newdata contains fewer levels than the factor used for fitting, the levels are expanded.  If a factor
-#' variable contains more levels than the factor used for fitting, a warning is given.  Returns newdata
-#' with factor levels set to those those used for fitting and NA for new levels.
+#' superset of the variables used to fit the model or an error results. If a factor variable contains
+#' more levels than the factor used for fitting, a warning is given and instances with such new factor
+#' levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
+#' of the fitted model.
 #' @param object A \code{SupportVectorMachine} object.
 #' @param newdata Optionally, a data frame including the variables used to fit the model.
 #' If omitted, the actual data used to fit the model is used (before any filtering).
@@ -156,6 +156,7 @@ CheckPredictionVariables <- function(object, newdata)
                                     names(training[i]), new.levels, new.level.rows))
             }
             # Set prediction levels to those used for training
+            newdata[, i] <- droplevels(newdata[, i])
             levels(newdata[, i]) <- train.levels[[i]]
         }
     }

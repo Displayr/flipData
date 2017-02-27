@@ -33,17 +33,17 @@ test_that("CheckForUniqueVariableNames",
      expect_error(CheckForUniqueVariableNames(z$y ~ z$x), NA)
 })
 
+
 data(hbatwithsplits, package = "flipExampleData")
-#library(flipMultivariates)
 test_that("CheckPredictionVariables",
 {
-    # Warning - not all levels are present in training data
-    #expect_warning(z <- RandomForest(x3 ~ x1 + x2 + x6, data = hbatwithsplits, subset = !(x1 %in% "Less than 1 year")), "Some categories*")
+    data <- GetData(x3 ~ x1 + x2 + x6, hbatwithsplits, auxiliary.data = NULL)
+    z <- list(model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year"))
     # Error - predicting based on fewer variables than used to fit model
-    #expect_error(predict(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attmpting to predict*")
+    expect_error(CheckPredictionVariables(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attempting to predict*")
     # Warning - more levels in prediction data than fitted
-    #expect_error(predict(z, newdata = hbatwithsplits), "Prediction variable x1*")
-    # No error - fewer levels in prediction data than fitted
-    # TO DO
-    # expect_error(****, NA)
+    expect_warning(CheckPredictionVariables(z, newdata = hbatwithsplits), "Prediction variable x1*")
+    # Prediction levels reset to those used for fitting
+    expect_equal(length(levels(CheckPredictionVariables(z, newdata = droplevels(hbatwithsplits[1, ]))$x1)), 2)
 })
+
