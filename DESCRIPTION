@@ -2,7 +2,7 @@ Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
 Version: 0.1.0
-Author: Displayr
+Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and environments, and for describing data, for addressing missing data, and for setting up data in a neat format for other analyses.
 License: GPL-3
