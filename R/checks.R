@@ -118,6 +118,8 @@ CheckForUniqueVariableNames <- function(formula)
 CheckPredictionVariables <- function(object, newdata)
 {
     training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
+    if (ncol(training) == 0)
+        return(newdata)
     train.levels <- lapply(droplevels(training), levels)
 
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
