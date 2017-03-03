@@ -141,7 +141,7 @@ CheckPredictionVariables <- function(object, newdata)
             {
                 # set all new factor levels to NA
                 new.level.rows <- nrow(newdata[newdata[, i] %in% new.levels, ])
-                newdata[newdata[, i] %in% new.levels, ] <- NA
+                newdata[newdata[, i] %in% new.levels, i] <- NA
                 if (new.level.rows > 0)
                     warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected.",
                                     names(training[i]), new.levels, new.level.rows))
