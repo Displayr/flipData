@@ -42,3 +42,9 @@ test_that("GetTidyTwoDimensionalArray",
               expect_error(suppressWarnings(GetTidyTwoDimensionalArray(z)), NA)
           })
 
+test_that("DataFormula",
+          {
+              # R studio code editor complains about an unexpected token in the formula even though the syntax is valid
+              expect_equal(DataFormula(`Profit Estimation.sav`$Variables$q1 ~ `Profit Estimation.sav`$Variables$q11),
+                           `\`Profit Estimation.sav\`$Variables$q1` ~ `\`Profit Estimation.sav\`$Variables$q11`)
+          })
