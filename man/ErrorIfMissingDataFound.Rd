@@ -15,4 +15,3 @@ ErrorIfMissingDataFound(data)
 \description{
 This is a wrapper for \code{\link{na.fail}}
 }
-

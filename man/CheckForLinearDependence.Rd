@@ -17,4 +17,3 @@ CheckForLinearDependence(x, variable.names = colnames(x),
 \description{
 Throws an error if there is linear dependence amongst the variables.
 }
-

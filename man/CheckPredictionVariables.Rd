@@ -18,4 +18,3 @@ more levels than the factor used for fitting, a warning is given and instances w
 levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
 of the fitted model.
 }
-

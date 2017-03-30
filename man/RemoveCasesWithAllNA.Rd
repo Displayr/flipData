@@ -12,4 +12,3 @@ RemoveCasesWithAllNA(x)
 \description{
 Remove rows which are all NA.
 }
-

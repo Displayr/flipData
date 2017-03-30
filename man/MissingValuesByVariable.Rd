@@ -12,4 +12,3 @@ MissingValuesByVariable(data)
 \description{
 Computes the number of missing values by variable.
 }
-

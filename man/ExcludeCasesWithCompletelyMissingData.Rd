@@ -17,4 +17,3 @@ are removed.
 my.df <- data.frame("A" = c(1, 2, 3, 4, NA), "B" = c(NA, 1, 2, 3, NA), "C" = c(NA, NA, 1, 2, NA))
 ExcludeCasesWithCompletelyMissingData(my.df)
 }
-

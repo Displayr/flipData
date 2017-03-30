@@ -14,4 +14,3 @@ CheckForPositiveVariance(x, variable.names = names(x))
 \description{
 Throws an error if any variables cotnain a standard deviation of 0.
 }
-

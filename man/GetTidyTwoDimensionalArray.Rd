@@ -17,4 +17,3 @@ GetTidyTwoDimensionalArray(x, row.names.to.remove = NULL,
 \description{
 Checks that an array is two dimensional and tidies if appropriate (assuming it is a Q table).
 }
-

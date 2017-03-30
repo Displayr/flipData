@@ -14,4 +14,3 @@ WeightedSurveyDesign(data, weights)
 \description{
 weightedSurveyDesign
 }
-

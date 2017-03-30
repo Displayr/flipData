@@ -18,4 +18,3 @@ Probabilities
 \code{Probabilities} A generic function used to extract one or more
 variables containing probabilities relating to cases (e.g., segment membership).
 }
-

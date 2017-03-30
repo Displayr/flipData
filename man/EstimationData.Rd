@@ -42,4 +42,3 @@ Conducts imputation if necessary.
 \details{
 Removes any empty levels from factors.
 }
-

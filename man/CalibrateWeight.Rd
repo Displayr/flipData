@@ -17,4 +17,3 @@ vector
 \description{
 Calibrates a weight to sum to the Effective Sample Size.
 }
-

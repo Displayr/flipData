@@ -14,4 +14,3 @@ CheckCorrelationMatrix(correlations, variable.names = colnames(correlations))
 \description{
 Throws an error if there is linear dependence, or NAs, or 1s in the correlation matrix.
 }
-

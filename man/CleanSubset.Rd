@@ -16,4 +16,3 @@ CleanSubset(subset, n.total)
 \code{CleanSubset}
 Takes a QSubset variable and turns it into a logical vector with no missing values
 }
-

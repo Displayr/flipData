@@ -62,9 +62,13 @@ DataFormula <- function(formula)
 {
     formula.str <- paste(deparse(formula), collapse = "")
     var.names <- AllVariablesNames(formula)
-    for (i in 1:length(var.names))
+
+    # We sort names from longest to shortest since we will be substituting by name
+    sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
+    sorted.names <- var.names[sorted.indices]
+
+    for (name in sorted.names)
     {
-        name <- var.names[i]
         if (indexOfUnescapedCharacter(name, "$") > -1)
         {
             new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")

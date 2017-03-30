@@ -15,4 +15,3 @@ or \code{QPopulationWeight}).}
 \code{CleanWeights}
 Takes a QSubset variable and turns it into a logical vector with no missing values
 }
-

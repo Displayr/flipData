@@ -12,4 +12,3 @@ CheckForUniqueVariableNames(formula)
 \description{
 Checks that the same variable name is not used twice in a formula.
 }
-

@@ -18,4 +18,3 @@ Uses Kish's formula for computing an effective sample size.
 \references{
 Kish, Leslie (1965). Survey Sampling. New York: Wiley.
 }
-
