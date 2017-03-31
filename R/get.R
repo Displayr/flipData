@@ -147,3 +147,24 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
     }
     x
 }
+
+#' @title ProcessQVariables
+#' @description Performs tasks such as converting date variables to be categorical
+#' based on their period.
+#' @param x A Q variable or a data frame containing Q variables.
+#' @importFrom flipU CopyAttributes
+#' @export
+ProcessQVariables <- function(x)
+{
+    .processQVariable <- function(v)
+    {
+        if ("QDate" %in% class(v))
+            CopyAttributes(attr(v, "QDate"), v)
+        else
+            v
+    }
+    if (is.data.frame(x))
+         data.frame(lapply(x, function(v) .processQVariable(v)))
+    else
+        .processQVariable(x)
+}
