@@ -48,7 +48,7 @@ GetData <- function(formula, data, auxiliary.data)
             data <- cbind(data, auxiliary.data)
         }
     }
-    data
+    ProcessQVariables(data)
 }
 
 #' \code{DataFormula}
@@ -149,8 +149,8 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
 }
 
 #' @title ProcessQVariables
-#' @description Performs tasks such as converting date variables to be categorical
-#' based on their period.
+#' @description Processes Q variables, e.g.: converting date variables to be categorical
+#' based on their period. This function should be called to process Q variables before they are used.
 #' @param x A Q variable or a data frame containing Q variables.
 #' @importFrom flipU CopyAttributes
 #' @export
