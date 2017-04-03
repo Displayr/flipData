@@ -163,7 +163,10 @@ ProcessQVariables <- function(x)
         else
             v
     }
-    if (is.data.frame(x))
+
+    if (is.null(x))
+        NULL
+    else if (is.data.frame(x))
          data.frame(lapply(x, function(v) .processQVariable(v)), check.names = FALSE,
                     stringsAsFactors = FALSE)
     else
