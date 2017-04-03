@@ -10,6 +10,6 @@ ProcessQVariables(x)
 \item{x}{A Q variable or a data frame containing Q variables.}
 }
 \description{
-Performs tasks such as converting date variables to be categorical
-based on their period.
+Processes Q variables, e.g.: converting date variables to be categorical
+based on their period. This function should be called to process Q variables before they are used.
 }

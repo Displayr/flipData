@@ -164,7 +164,8 @@ ProcessQVariables <- function(x)
             v
     }
     if (is.data.frame(x))
-         data.frame(lapply(x, function(v) .processQVariable(v)))
+         data.frame(lapply(x, function(v) .processQVariable(v)), check.names = FALSE,
+                    stringsAsFactors = FALSE)
     else
         .processQVariable(x)
 }
