@@ -6,6 +6,7 @@
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
 #' @importFrom flipU AllVariablesNames
+#' @importFrom flipTransformations ProcessQVariables
 #' @export
 GetData <- function(formula, data, auxiliary.data)
 {
@@ -146,29 +147,4 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
         x <- RemoveRowsAndOrColumns(x, row.names.to.remove, column.names.to.remove)
     }
     x
-}
-
-#' @title ProcessQVariables
-#' @description Processes Q variables, e.g.: converting date variables to be categorical
-#' based on their period. This function should be called to process Q variables before they are used.
-#' @param x A Q variable or a data frame containing Q variables.
-#' @importFrom flipU CopyAttributes
-#' @export
-ProcessQVariables <- function(x)
-{
-    .processQVariable <- function(v)
-    {
-        if ("QDate" %in% class(v))
-            CopyAttributes(attr(v, "QDate"), v)
-        else
-            v
-    }
-
-    if (is.null(x))
-        NULL
-    else if (is.data.frame(x))
-         data.frame(lapply(x, function(v) .processQVariable(v)), check.names = FALSE,
-                    stringsAsFactors = FALSE)
-    else
-        .processQVariable(x)
 }
