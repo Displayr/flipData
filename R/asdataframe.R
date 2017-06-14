@@ -7,14 +7,14 @@
 #' \code{\link{list}} of \code{\link{vector}}s.
 #' @param ignore.columns A list of names of columns to ignore. When \code{input.data}
 #' is a \code{\link{matrix}}, rows are also ignored.
-#' @importFrom flipFormat ExtractCommonPrefix Labels
+#' @importFrom flipFormat ExtractCommonPrefix Labels Names
 #' @importFrom flipTransformations AsNumeric QuestionListToDataFrame
 #' @export
 AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
 {
     dat <- if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame
         input.data <- data.frame(input.data)
-        input.data <- input.data[, !(tolower(names(input.data)) %in% tolower(ignore.columns))]
+        colnames(input.data) <- Names(input.data)
         var.dat <- AsNumeric(ProcessQVariables(input.data), binary = FALSE)
         # Changing names to labels.
         if (!use.names)
