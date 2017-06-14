@@ -10,7 +10,8 @@ AsDataFrame(input.data, use.names = FALSE, ignore.columns = "")
 \item{input.data}{Either a \code{\link{data.frame}}, a \code{\link{list}} of
 \code{\link{data.frame}}s and/or \code{\link{vector}}s, or a \code{\link{matrix}}.}
 
-\item{use.names}{Whether to use names in place of labels.}
+\item{use.names}{Whether to use names in place of labels, used only for a
+\code{\link{list}} of \code{\link{vector}}s.}
 
 \item{ignore.columns}{A list of names of columns to ignore. When \code{input.data}
 is a \code{\link{matrix}}, rows are also ignored.}
