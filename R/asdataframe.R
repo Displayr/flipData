@@ -12,7 +12,11 @@
 #' @export
 AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
 {
-    dat <- if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame
+    dat <- if (is.matrix(input.data)) {
+        mat <- GetTidyTwoDimensionalArray(input.data, ignore.columns, ignore.columns)
+        AsNumeric(data.frame(mat, check.names = FALSE))
+
+    } else if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame
         input.data <- data.frame(input.data)
         colnames(input.data) <- Names(input.data)
         var.dat <- AsNumeric(ProcessQVariables(input.data), binary = FALSE)
@@ -28,6 +32,7 @@ AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
     } else if (is.matrix(input.data)) {
         mat <- GetTidyTwoDimensionalArray(input.data, ignore.columns, ignore.columns)
         AsNumeric(data.frame(mat, check.names = FALSE))
+
     } else
         stop(paste("input.data must be a data.frame, list of data.frames/vectors or a matrix."))
 
