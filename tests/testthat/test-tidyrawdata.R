@@ -27,6 +27,15 @@ test_that("TidyRawData",
                 # binary
                 x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE, as.binary = TRUE))
                 expect_equal(ncol(x1), 36)
+                # Checking labels
+                library(flipFormat)
+                original.labels = flipFormat::Labels(x)
+                x1 <- suppressWarnings(TidyRawData(x, as.numeric = FALSE))
+                expect_equal(original.labels, Labels(x1))
+                x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = FALSE))
+                expect_equal(original.labels, Labels(x1))
+                x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
+                expect_equal(original.labels, Labels(x1))
 
           })
 

@@ -92,6 +92,7 @@ EstimationData <- function(formula = NULL,
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
                    stop(paste("Unknown 'missing' method:", missing)))
+        data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
         levels.pre <- sapply(data.for.estimation, nlevels)
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
         levels.post <- sapply(data.for.estimation, nlevels)
