@@ -49,7 +49,7 @@ EstimationData <- function(formula = NULL,
     n.subset <- attr(subset, "n.subset")
     if (weighted <- !is.null(weights))
     {
-        weights <- CleanWeights(weights)
+        weights <- CleanWeights(weights)  # convert NA and negative weights to 0
         weight.label <- Labels(weights)
     }
     unfiltered.weights <- weights
@@ -59,8 +59,8 @@ EstimationData <- function(formula = NULL,
     # Removing cases with entirely missing data
     some.data <- !apply(is.na(data[, variable.names, drop = FALSE]), 1, all)
     # Filtering the data
-    filter.ewerrfdfdsrew045 <- if (weighted) subset & weights > 0 & some.data else subset & some.data #Name to avoid bug in subset.data.frame
-    data.subset <- subset(data, filter.ewerrfdfdsrew045)
+    .filter <- if (weighted) subset & weights > 0 & some.data else subset & some.data  # Name to avoid bug in subset.data.frame
+    data.subset <- subset(data, .filter)
     data.subset <- CopyAttributes(data.subset, data)
     # Imputation
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
@@ -74,9 +74,9 @@ EstimationData <- function(formula = NULL,
         data.for.estimation = Imputation(data.subset, formula, m = m, seed = seed)
         imputation.label <- attr(data.for.estimation[[1]], "imputation.method")
         # Filtering for the whole data set (as if using only the non-filter, the sample may be too small)
-        data$filter.ewerrfdfdsrew045 <- as.integer(filter.ewerrfdfdsrew045) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
+        data$.filter <- as.integer(.filter) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
         # Removing the variables not in the model.
-        for (i in 1:m)
+        for (i in seq_len(m))
         {
             est.data <- data.for.estimation[[i]]
             est.data <- est.data[, variable.names, drop = FALSE]
