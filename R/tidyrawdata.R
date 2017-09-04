@@ -109,6 +109,11 @@ TidyRawData <- function(data,
                                      weights = weights,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
+
+    if (!is.na(labs$common.prefix))
+        attr(data, "label.prefix") <- labs$common.prefix
+    colnames(data) <- labs$shortened.labels
+
     attr(data, "weights") <- processed.data$weights
     data
 }
