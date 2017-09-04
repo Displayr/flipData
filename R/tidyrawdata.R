@@ -41,28 +41,55 @@ TidyRawData <- function(data,
                         subset = NULL,
                         weights = NULL,
                         missing = "Exclude cases with missing data",
-                        error.if.insufficient.obs = TRUE)
+                        error.if.insufficient.obs = TRUE,
+                        extract.common.lab.prefix = FALSE)
 {
-    data <- ProcessQVariables(data.frame(data))
+
+    ## Search for common prefix for labels
+    labs <- flipFormat::ExtractCommonPrefix(colnames(data))
+
+    ## handle variables of QDate class
+    ## data.frame ensures ProcessQVariables also returns a data.frame
+    data <- flipTransformations::ProcessQVariables(data.frame(data))  # can't have check.names = FALSE
+
     partial <- missing == "Use partial data"
-    if (as.numeric)
-        data <- AsNumeric(data, binary = as.binary, remove.first = FALSE)
+
+    ## convert factor columns to matrix of indicators if as.binary is TRUE
+    ##  else unclass factors and remove levels attribute
+    if (as.numeric){
+        ## if wanted to suppress just the one warning when converting:
+        ## w <- function(e)
+        ##     if (any(grepl("Data has been automatically been converted to being numeric", e$message)))
+        ##         invokeRestart("muffleWarning")
+        ## data <- withCallingHandlers(flipTransformations::AsNumeric(data, binary = as.binary,
+        ##                                                            remove.first = FALSE),
+        ##                             warning = w)
+        data <- flipTransformations::AsNumeric(data, binary = as.binary,
+                                               remove.first = FALSE)
+    }
+
     n.total <- nrow(data)
+
+    ## Deal with subset
     if (has.subset  <- !is.null(subset) && length(subset) != 1)
     {
         subset <- eval(substitute(subset), data, parent.frame())
-        subset.description <- if (is.null(substitute(subset))) NULL else deparse(substitute(subset))
-        if (!is.null(subset.description))
-            attr(subset, "description") <- subset.description
-        if (length(subset) > 1 & length(subset) != nrow(data))
-            stop("'subset' and 'data' are required to have the same number of observations. They do not.")
-        if (partial)
-        {
-            subset <- CleanSubset(subset, n.total)
-            n.subset <- attr(subset, "n.subset")
-            original.subset <- subset
-        }
+        ## subset.description <- if (is.null(substitute(subset))) NULL else deparse(substitute(subset))
+        ## if (!is.null(subset.description))
+        ##     attr(subset, "description") <- subset.description
+        attr(subset, "description") <- if (!is.null(substitute(subset)))
+                                           deparse(substitute(subset))  # else NULL
+        if (length(subset) > 1 && length(subset) != nrow(data))
+            stop("'subset' and 'data' are required to have the same number of observations. They do not")
+        ## if (partial)
+        ## {
+        ##     subset <- CleanSubset(subset, n.total)  # handle missing values in subset
+        ##     n.subset <- attr(subset, "n.subset")
+        ##     original.subset <- subset
+        ## }
     }
+
+    ## Deal with weights
     weighted <- !is.null(weights)
     if(weighted)
     {
@@ -72,7 +99,8 @@ TidyRawData <- function(data,
         if (length(weights) != nrow(data))
             stop("'weights' and 'data' are required to have the same number of observations. They do not.")
     }
-    # Filtering the data (if required)
+
+    ## Filter and impute missing values in the data (if required)
     input.formula <- as.formula(paste0("~", paste(names(data), collapse = "+")))
     processed.data <- EstimationData(input.formula,
                                      data = data,
