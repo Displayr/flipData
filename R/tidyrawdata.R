@@ -1,21 +1,37 @@
-#' TidyRawData
+#' Tidy Data From Displayr
 #'
-#' Gets the raw data, tidies subset and weights, and applies the subset, dealing with any missing values along the way.
+#' Gets the raw data, tidies subset and weights, and applies the
+#' subset, dealing with any missing values along the way.
 #'
 #' @param data A \code{data.frame}.
 #' @param as.numeric If TRUE, converts factors into numeric variables.
-#' @param as.binary If \code{TRUE}, unordered factors are represented as dummy variables.
-#' Otherwise, they are represented as sequential integers. Only applied if \code{as.numeric == TRUE}.
-#' @param subset An optional vector specifying a subset of observations to be
-#'   used in the fitting process, or, the name of a variable in \code{data}. It
-#'   may not be an expression. \code{subset} may not
-#' @param weights An optional vector of sampling weights, or, the name or, the
-#'   name of a variable in \code{data}. It may not be an expression.
-#' @param missing \code{"Error if missing data"}, \code{"Exclude cases with missing
-#'   data"} (the default, which is equivalent to 'complete.cases'), and \code{"Use partial data"}, which removes no data.
-#' @param error.if.insufficient.obs Throw an error if there are more variables than observations.
-#' @return A \code{data.frame} containing the filtered raw data, which has an attribute called
-#' \code{weights}, containing the (filtered) vector of weights.
+#' @param as.binary If \code{TRUE}, unordered factors are represented
+#'     as dummy variables.  Otherwise, they are represented as
+#'     sequential integers. Only applied if \code{as.numeric == TRUE}.
+#' @param subset An optional vector specifying a subset of
+#'     observations to be used in the fitting process, or, the name of
+#'     a variable in \code{data}. It may not be an expression.
+#' @param weights An optional vector of sampling weights, or, the name
+#'     of a variable in \code{data}. It may not be an expression.
+#' @param missing character; One of \code{"Error if missing data"},
+#'     \code{"Exclude cases with missing data"} (the default, which is
+#'     equivalent to 'complete.cases'), and \code{"Use partial data"},
+#'     which removes no data.
+#' @param error.if.insufficient.obs Throw an error if there are more
+#'     variables than observations.
+#' @param extract.common.lab.prefix logical; if true,
+#'     \code{\link[flipFormat]{ExtractCommonPrefix}} will be used to
+#'     attempt to extract the common prefix from the data labels, and
+#'     if one exists, the shortened variable names without the prefix
+#'     will be used for names in the returned data.frame.
+#' @return A \code{data.frame} containing the filtered raw data, which
+#'     has an attribute called \code{"weights"}, containing the
+#'     (filtered) vector of weights.  If
+#'     \code{extract.common.lab.prefix} is \code{TRUE} and a common
+#'     label prefix is found, it will be return in an attribute called
+#'     \code{"label.prefix"}.
+#' @seealso \code{\link[flipFormat]{ExtractCommonPrefix}
+#' @importFrom flipFormat ExtractCommonPrefix
 #' @importFrom flipTransformations ProcessQVariables AsNumeric
 #' @importFrom stats as.formula
 #' @export
