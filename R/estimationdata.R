@@ -23,6 +23,15 @@
 #' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
+#' @return A list with components
+#' \itemize{
+#' \item \code{estimation.data} - tidied
+#' \item \code{weights},
+#' \item \code[unfiltered.weights}
+#' \item \code{post.missing.data.estimation.sample}
+#' \item \code{data}
+#' \item \code{description}
+#' }
 #' @export
 EstimationData <- function(formula = NULL,
                            data = NULL,
