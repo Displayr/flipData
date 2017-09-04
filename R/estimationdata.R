@@ -108,8 +108,13 @@ EstimationData <- function(formula = NULL,
         if (any(levels.pre > levels.post))
         {
             labls <- paste(labels[levels.pre > levels.post], collapse = ", ")
-            warning(paste0("Some categories do not appear in the data: ", labls, ". This may be because they are empty in the raw data, or because they are empty after any weights, filters/subsets, or missing data settings are applied. ",
-                            "This may cause an error. It is recommended that you merge categories prior to estimating the model, use an alternative missing data method, filter the data, or make the data numeric."))
+            warning("Some categories do not appear in the data: ", labls,
+                    ". This may be because they are empty in the raw data, or ",
+                    "because they are empty after any weights, filters/subsets, ",
+                    "or missing data settings are applied. This may cause an error. ",
+                    "It is recommended that you merge categories prior to estimating",
+                    " the model, use an alternative missing data method, filter the ",
+                    "data, or make the data numeric.")
         }
         estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
     }
@@ -118,10 +123,12 @@ EstimationData <- function(formula = NULL,
     # Reporting.
     n.estimation <- sum(estimation.sample)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
-        stop(paste0("There are fewer observations (", n.estimation,
-                   ") than there are variables (", length(variable.names), ")."))
+        stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
+                   " than there are variables ", length(variable.names)))
     description <- SampleDescription(n.total, n.subset, n.estimation,
-        Labels(subset), weighted, weight.label, missing, imputation.label, m, if(HasOutcome(formula)) "predictor" else "")
+                                     Labels(subset), weighted, weight.label, missing, imputation.label, m,
+                                     if(HasOutcome(formula)) "predictor" else "")
+
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,
