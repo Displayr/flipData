@@ -45,6 +45,8 @@ TidyRawData <- function(data,
                         extract.common.lab.prefix = FALSE)
 {
 
+    if (missing(data) || !length(data))
+        stop("No data supplied")
     ## Search for common prefix for labels
     labs <- flipFormat::ExtractCommonPrefix(colnames(data))
 
