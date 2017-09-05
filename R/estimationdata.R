@@ -65,16 +65,18 @@ EstimationData <- function(formula = NULL,
     .filter <- if (weighted) subset & weights > 0 & some.data else subset & some.data  # Name to avoid bug in subset.data.frame
     data.subset <- subset(data, .filter)
     data.subset <- CopyAttributes(data.subset, data)
-    # Imputation
+
+    ##############
+    ## Imputation
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
     if (single.imputation | missing ==  "Multiple imputation")
     {
         if (single.imputation)
             m = 1
-        # Imputation is performed only using the subset, as otherwise probelms can occurif the subset
+        # Imputation is performed only using the subset, as otherwise problems can occur if the subset
         # is based on a range of values of a variable, and the imputation causes values outside this
         # range to be imputed.
-        data.for.estimation = Imputation(data.subset, formula, m = m, seed = seed)
+        data.for.estimation <- Imputation(data.subset, formula, m = m, seed = seed)
         imputation.label <- attr(data.for.estimation[[1]], "imputation.method")
         # Filtering for the whole data set (as if using only the non-filter, the sample may be too small)
         data$.filter <- as.integer(.filter) # Adding the filter as a variable to assist the imputation (name is to avoid duplicates).
@@ -84,20 +86,22 @@ EstimationData <- function(formula = NULL,
             est.data <- data.for.estimation[[i]]
             est.data <- est.data[, variable.names, drop = FALSE]
             est.data <- RemoveMissingLevelsFromFactors(est.data)
-            data.for.estimation[[i]] <- est.data#CopyAttributes(est.data, data.for.estimation[[i]])
+            data.for.estimation[[i]] <- est.data  # CopyAttributes(est.data, data.for.estimation[[i]])
 
         }
-        # Imputing for the entire data set for prediction purposes.
-        data = Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
-        estimation.sample <- row.names(data) %in% rownames(data.for.estimation[[1]])
-        data[estimation.sample, ] = data.for.estimation[[1]]
-        #data <- CopyAttributes(data, data.for.estimation[[1]])
         if (single.imputation)
             data.for.estimation = data.for.estimation[[1]]
+        ## Imputing for the entire data set for prediction purposes.
+        data <- Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
+
+        ## for portion of data in subset, use values from imputing on the subset only
+        estimation.sample <- rownames(data) %in% rownames(data.for.estimation[[1]])
+        data[estimation.sample, ] = data.for.estimation[[1]]
+        ## data <- CopyAttributes(data, data.for.estimation[[1]])
     }
     else
-    {
-        data.subset <- data.subset[ ,variable.names, drop = FALSE]
+    {  # handle missing values without imputation
+        data.subset <- data.subset[, variable.names, drop = FALSE]
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
                    "Assign partial data to clusters" = RemoveCasesWithAnyNA(data.subset),
@@ -119,10 +123,12 @@ EstimationData <- function(formula = NULL,
                     " the model, use an alternative missing data method, filter the ",
                     "data, or make the data numeric.")
         }
-        estimation.sample <- row.names(data) %in% rownames(data.for.estimation)
+        estimation.sample <- rownames(data) %in% rownames(data.for.estimation)  # row.names is S3 generic
     }
+
     if (weighted)
         weights <- weights[estimation.sample]
+
     # Reporting.
     n.estimation <- sum(estimation.sample)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
