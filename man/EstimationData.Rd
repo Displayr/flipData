@@ -7,7 +7,8 @@ Conducts imputation if necessary.}
 \usage{
 EstimationData(formula = NULL, data = NULL, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data", m = 10,
-  seed = 12321, error.if.insufficient.obs = TRUE)
+  seed = sample.int(.Machine$integer.max, 1),
+  error.if.insufficient.obs = TRUE)
 }
 \arguments{
 \item{formula}{An object of class \code{\link{formula}} (or one that can be
@@ -35,10 +36,26 @@ estimates)"}, and  \code{"Multiple imputation"}.}
 
 \item{error.if.insufficient.obs}{Throw an error if there are more variables than observations.}
 }
+\value{
+A list with components
+\itemize{
+\item \code{estimation.data} - tidied (filtered/subsetted and NA-free) \code{data.frame}
+\item \code{weights} - the cleaned weights with any filters applied(i.e. the weights with NA and negative weights set to 0),
+\item \code{unfiltered.weights} - the cleaned weights from the complete data (i.e. with no filter applied)
+\item \code{post.missing.data.estimation.sample} - logical vector with length equal to the number of rows of \code{data}
+with a \code{TRUE} value in position \code{i} indicating that the \code{i}th row of \code{data} appears in the
+tidied data \code{estimation.data}
+\item \code{data} - original \code{data} (without subset applied), but with imputation performed (if requested)
+\item \code{description} - character; description of the data; see \code{\link[flipFormat]{SampleDescription}}
+}
+}
 \description{
 \code{EstimationData} Selects the data from a data frame for estimation.
 Conducts imputation if necessary.
 }
 \details{
 Removes any empty levels from factors.
+}
+\seealso{
+\code{\link{flipImputation}{Imputation}}, \code{\link[flipFormat]{SampleDescription}}
 }

@@ -23,14 +23,17 @@
 #' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
+#' @seealso \code{\link{flipImputation}{Imputation}}, \code{\link[flipFormat]{SampleDescription}}
 #' @return A list with components
 #' \itemize{
-#' \item \code{estimation.data} - tidied
-#' \item \code{weights},
-#' \item \code[unfiltered.weights}
-#' \item \code{post.missing.data.estimation.sample}
-#' \item \code{data}
-#' \item \code{description}
+#' \item \code{estimation.data} - tidied (filtered/subsetted and NA-free) \code{data.frame}
+#' \item \code{weights} - the cleaned weights with any filters applied(i.e. the weights with NA and negative weights set to 0),
+#' \item \code{unfiltered.weights} - the cleaned weights from the complete data (i.e. with no filter applied)
+#' \item \code{post.missing.data.estimation.sample} - logical vector with length equal to the number of rows of \code{data}
+#' with a \code{TRUE} value in position \code{i} indicating that the \code{i}th row of \code{data} appears in the
+#' tidied data \code{estimation.data}
+#' \item \code{data} - original \code{data} (without subset applied), but with imputation performed (if requested)
+#' \item \code{description} - character; description of the data; see \code{\link[flipFormat]{SampleDescription}}
 #' }
 #' @export
 EstimationData <- function(formula = NULL,
