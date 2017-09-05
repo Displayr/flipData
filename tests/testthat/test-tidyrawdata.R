@@ -20,9 +20,10 @@ test_that("TidyRawData: fails when weights or subset wrong length",
         expect_error(TidyRawData(x, subset = wgt > 5))
     })
 
+wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
+
 test_that("TidyRawData:  missing values in weights cause data to be filtered",
     {
-        wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
         out <- suppressWarnings(TidyRawData(x, weights = wgt))
         expect_equal(nrow(out), 100)
         expect_equivalent(out, x[!is.na(wgt) & wgt, ])  # expect_equivalent(out, x[3:102, ])
@@ -37,10 +38,10 @@ test_that("TidyRawData: subset deals with NAs appropriable",
         # factor
         expect_true(is.factor(x1[,1]))
         # numeric
-        x1 <- (TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
+        x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
         expect_true(!is.factor(x1[,1]))
         # binary
-        x1 <- (TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE, as.binary = TRUE))
+        x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE, as.binary = TRUE))
         expect_equal(ncol(x1), 36)
     })
 
@@ -55,11 +56,11 @@ test_that("TidyRawData: formatted labels are correct",
     {
         original.labels = flipFormat::Labels(x)
         x1 <- (TidyRawData(x, as.numeric = FALSE))
-        expect_equal(original.labels, Labels(x1))
+        expect_equal(original.labels, flipFormat::Labels(x1))
         x1 <- (TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = FALSE))
-        expect_equal(original.labels, Labels(x1))
-        x1 <- (TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
-        expect_equal(original.labels, Labels(x1))
+        expect_equal(original.labels, flipFormat::Labels(x1))
+        x1 <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
+        expect_equal(original.labels, flipFormat::Labels(x1))
 
 
     })
@@ -73,14 +74,15 @@ test_that("TidyRawData: extracts label prefix",
     })
 
 
-test_that("TidyRawData: NULL input",
+test_that("TidyRawData: error if NULL input",
           {
-
+              expect_error(TidyRawData(NULL))
           })
 
 test_that("TidyRawData: single numeric input",
           {
-
+              ddf <- c(varname = 1:100)
+              df <- TidyRawData(df)
 
           })
 
