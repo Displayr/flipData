@@ -20,9 +20,10 @@ test_that("TidyRawData: fails when weights or subset wrong length",
         expect_error(TidyRawData(x, subset = wgt > 5))
     })
 
+wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
+
 test_that("TidyRawData:  missing values in weights cause data to be filtered",
     {
-        wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
         out <- suppressWarnings(TidyRawData(x, weights = wgt))
         expect_equal(nrow(out), 100)
         expect_equivalent(out, x[!is.na(wgt) & wgt, ])  # expect_equivalent(out, x[3:102, ])
