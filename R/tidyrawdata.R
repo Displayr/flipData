@@ -30,7 +30,7 @@
 #'     \code{extract.common.lab.prefix} is \code{TRUE} and a common
 #'     label prefix is found, it will be return in an attribute called
 #'     \code{"label.prefix"}.
-#' @seealso \code{\link[flipFormat]{ExtractCommonPrefix}
+#' @seealso \code{\link[flipFormat]{ExtractCommonPrefix}}
 #' @importFrom flipFormat ExtractCommonPrefix
 #' @importFrom flipTransformations ProcessQVariables AsNumeric
 #' @importFrom stats as.formula

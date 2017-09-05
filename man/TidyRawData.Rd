@@ -2,36 +2,54 @@
 % Please edit documentation in R/tidyrawdata.R
 \name{TidyRawData}
 \alias{TidyRawData}
-\title{TidyRawData}
+\title{Tidy Data From Displayr}
 \usage{
 TidyRawData(data, as.numeric = FALSE, as.binary = FALSE, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data",
-  error.if.insufficient.obs = TRUE)
+  error.if.insufficient.obs = TRUE, extract.common.lab.prefix = FALSE)
 }
 \arguments{
 \item{data}{A \code{data.frame}.}
 
 \item{as.numeric}{If TRUE, converts factors into numeric variables.}
 
-\item{as.binary}{If \code{TRUE}, unordered factors are represented as dummy variables.
-Otherwise, they are represented as sequential integers. Only applied if \code{as.numeric == TRUE}.}
+\item{as.binary}{If \code{TRUE}, unordered factors are represented
+as dummy variables.  Otherwise, they are represented as
+sequential integers. Only applied if \code{as.numeric == TRUE}.}
 
-\item{subset}{An optional vector specifying a subset of observations to be
-used in the fitting process, or, the name of a variable in \code{data}. It
-may not be an expression. \code{subset} may not}
+\item{subset}{An optional vector specifying a subset of
+observations to be used in the fitting process, or, the name of
+a variable in \code{data}. It may not be an expression.}
 
-\item{weights}{An optional vector of sampling weights, or, the name or, the
-name of a variable in \code{data}. It may not be an expression.}
+\item{weights}{An optional vector of sampling weights, or, the name
+of a variable in \code{data}. It may not be an expression.}
 
-\item{missing}{\code{"Error if missing data"}, \code{"Exclude cases with missing
-data"} (the default, which is equivalent to 'complete.cases'), and \code{"Use partial data"}, which removes no data.}
+\item{missing}{character; One of \code{"Error if missing data"},
+\code{"Exclude cases with missing data"} (the default, which is
+equivalent to 'complete.cases'), and \code{"Use partial data"},
+which removes no data.}
 
-\item{error.if.insufficient.obs}{Throw an error if there are more variables than observations.}
+\item{error.if.insufficient.obs}{Throw an error if there are more
+variables than observations.}
+
+\item{extract.common.lab.prefix}{logical; if true,
+\code{\link[flipFormat]{ExtractCommonPrefix}} will be used to
+attempt to extract the common prefix from the data labels, and
+if one exists, the shortened variable names without the prefix
+will be used for names in the returned data.frame.}
 }
 \value{
-A \code{data.frame} containing the filtered raw data, which has an attribute called
-\code{weights}, containing the (filtered) vector of weights.
+A \code{data.frame} containing the filtered raw data, which
+    has an attribute called \code{"weights"}, containing the
+    (filtered) vector of weights.  If
+    \code{extract.common.lab.prefix} is \code{TRUE} and a common
+    label prefix is found, it will be return in an attribute called
+    \code{"label.prefix"}.
 }
 \description{
-Gets the raw data, tidies subset and weights, and applies the subset, dealing with any missing values along the way.
+Gets the raw data, tidies subset and weights, and applies the
+subset, dealing with any missing values along the way.
+}
+\seealso{
+\code{\link[flipFormat]{ExtractCommonPrefix}}
 }
