@@ -109,9 +109,9 @@ EstimationData <- function(formula = NULL,
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
                    stop(paste("Unknown 'missing' method:", missing)))
         data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
-        levels.pre <- sapply(data.for.estimation, nlevels)
+        levels.pre <- vapply(data.for.estimation, nlevels, 0L)
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
-        levels.post <- sapply(data.for.estimation, nlevels)
+        levels.post <- vapply(data.for.estimation, nlevels, 0L)
         if (any(levels.pre > levels.post))
         {
             labls <- paste(labels[levels.pre > levels.post], collapse = ", ")
