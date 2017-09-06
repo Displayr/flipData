@@ -39,7 +39,7 @@ EstimationData <- function(formula = NULL,
                            weights = NULL,
                            missing = "Exclude cases with missing data",
                            m = 10,
-                           seed = sample.int(.Machine$integer.max, 1),
+                           seed = 12321,
                            error.if.insufficient.obs = TRUE)
 {
     # Cleaning weights and subsets.
