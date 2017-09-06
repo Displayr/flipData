@@ -110,7 +110,7 @@ EstimationData <- function(formula = NULL,
         }
         ## Imputing for the entire data set for prediction purposes.
         if (impute.full.data)
-            data <- Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
+            data <- Imputation(data, m = 1L)[[1]][, variable.names, drop = FALSE]
 
         ## for portion of data in subset, use values from imputing on the subset only
         estimation.sample <- rownames(data) %in% rownames(data.for.estimation[[1]])
