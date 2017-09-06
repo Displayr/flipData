@@ -11,8 +11,7 @@
 #'     a variable in \code{data}. It may not be an
 #'     expression. \code{subset} may not
 #' @param weights An optional vector of sampling weights, or, the name
-#'     or, the name of a variable in \code{data}. It may not be an
-#'     expression.
+#'     of a variable in \code{data}. It may not be an expression.
 #' @param missing How missing data is to be treated in the
 #'     regression. Options are: \code{"Error if missing data"},
 #'     \code{"Exclude cases with missing data"},
@@ -24,8 +23,8 @@
 #' @param seed The random number seed used in the imputation.
 #' @param error.if.insufficient.obs Throw an error if there are more
 #'     variables than observations.
-#' @param impute.full.data logical; if \code{TRUE} and \code{missing} is
-#'     either
+#' @param impute.full.data logical; if \code{TRUE} and \code{missing}
+#'     is either
 #'     \code{"Imputation (replace missing values with estimates)"} or
 #'     \code{"Multiple imputation"}, imputation is performed on both
 #'     the full \code{data} and on the requested subset of
@@ -154,7 +153,8 @@ EstimationData <- function(formula = NULL,
     n.estimation <- sum(estimation.sample)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
         stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
-                   " than there are variables ", length(variable.names)))
+                      " than there are variables ", length(variable.names)))
+
     description <- SampleDescription(n.total, n.subset, n.estimation,
                                      Labels(subset), weighted, weight.label, missing, imputation.label, m,
                                      if(HasOutcome(formula)) "predictor" else "")

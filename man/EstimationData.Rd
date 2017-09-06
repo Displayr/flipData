@@ -23,8 +23,7 @@ a variable in \code{data}. It may not be an
 expression. \code{subset} may not}
 
 \item{weights}{An optional vector of sampling weights, or, the name
-or, the name of a variable in \code{data}. It may not be an
-expression.}
+of a variable in \code{data}. It may not be an expression.}
 
 \item{missing}{How missing data is to be treated in the
 regression. Options are: \code{"Error if missing data"},
@@ -41,8 +40,8 @@ and \code{"Multiple imputation"}.}
 \item{error.if.insufficient.obs}{Throw an error if there are more
 variables than observations.}
 
-\item{impute.full.data}{logical; if \code{TRUE} and \code{missing} is
-either
+\item{impute.full.data}{logical; if \code{TRUE} and \code{missing}
+is either
 \code{"Imputation (replace missing values with estimates)"} or
 \code{"Multiple imputation"}, imputation is performed on both
 the full \code{data} and on the requested subset of
