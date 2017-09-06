@@ -1,40 +1,58 @@
 
-#' \code{EstimationData} Selects the data from a data frame for estimation.
-#' Conducts imputation if necessary.
-#' @param formula An object of class \code{\link{formula}} (or one that can be
-#'   coerced to that class): a symbolic description of the model to be fitted.
-#'   The details of type specification are given under \sQuote{Details}.
+#' \code{EstimationData} Selects the data from a data frame for
+#' estimation.  Conducts imputation if necessary.
+#' @param formula An object of class \code{\link{formula}} (or one
+#'     that can be coerced to that class): a symbolic description of
+#'     the model to be fitted.  The details of type specification are
+#'     given under \sQuote{Details}.
 #' @param data A \code{\link{data.frame}}.
-#' @param subset An optional vector specifying a subset of observations to be
-#'   used in the fitting process, or, the name of a variable in \code{data}. It
-#'   may not be an expression. \code{subset} may not
-#' @param weights An optional vector of sampling weights, or, the name or, the
-#'   name of a variable in \code{data}. It may not be an expression.
-#' @param missing How missing data is to be treated in the regression. Options
-#'   are: \code{"Error if missing data"}, \code{"Exclude cases with missing
-#'   data"}, \code{"Use partial data"}, \code{"Use partial data (pairwise
-#'   correlations)"}, \code{"Imputation (replace missing values with
-#'   estimates)"}, and  \code{"Multiple imputation"}.
+#' @param subset An optional vector specifying a subset of
+#'     observations to be used in the fitting process, or, the name of
+#'     a variable in \code{data}. It may not be an
+#'     expression. \code{subset} may not
+#' @param weights An optional vector of sampling weights, or, the name
+#'     or, the name of a variable in \code{data}. It may not be an
+#'     expression.
+#' @param missing How missing data is to be treated in the
+#'     regression. Options are: \code{"Error if missing data"},
+#'     \code{"Exclude cases with missing data"},
+#'     \code{"Use partial data"},
+#'     \code{"Use partial data (pairwise correlations)"},
+#'     \code{"Imputation (replace missing values with estimates)"},
+#'     and \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
 #' @param seed The random number seed used in the imputation.
-#' @param error.if.insufficient.obs Throw an error if there are more variables than observations.
+#' @param error.if.insufficient.obs Throw an error if there are more
+#'     variables than observations.
+#' @param impute.full.data logical; if \code{TRUE} and \code{missing} is
+#'     either
+#'     \code{"Imputation (replace missing values with estimates)"} or
+#'     \code{"Multiple imputation"}, imputation is performed on both
+#'     the full \code{data} and on the requested subset of
+#'     \code{data}; otherwise, imputation is only performed on the
+#'     subset.  Ignored for other options of \code{missing}.
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
 #' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
-#' @seealso \code{\link{flipImputation}{Imputation}}, \code{\link[flipFormat]{SampleDescription}}
-#' @return A list with components
-#' \itemize{
-#' \item \code{estimation.data} - tidied (filtered/subsetted and NA-free) \code{data.frame}
-#' \item \code{weights} - the cleaned weights with any filters applied(i.e. the weights with NA and negative weights set to 0),
-#' \item \code{unfiltered.weights} - the cleaned weights from the complete data (i.e. with no filter applied)
-#' \item \code{post.missing.data.estimation.sample} - logical vector with length equal to the number of rows of \code{data}
-#' with a \code{TRUE} value in position \code{i} indicating that the \code{i}th row of \code{data} appears in the
-#' tidied data \code{estimation.data}
-#' \item \code{data} - original \code{data} (without subset applied), but with imputation performed (if requested)
-#' \item \code{description} - character; description of the data; see \code{\link[flipFormat]{SampleDescription}}
-#' }
+#' @seealso \code{\link{flipImputation}{Imputation}},
+#'     \code{\link[flipFormat]{SampleDescription}}
+#' @return A list with components \itemize{ \item
+#'     \code{estimation.data} - tidied (filtered/subsetted and
+#'     NA-free) \code{data.frame} \item \code{weights} - the cleaned
+#'     weights with any filters applied(i.e. the weights with NA and
+#'     negative weights set to 0), \item \code{unfiltered.weights} -
+#'     the cleaned weights from the complete data (i.e. with no filter
+#'     applied) \item \code{post.missing.data.estimation.sample} -
+#'     logical vector with length equal to the number of rows of
+#'     \code{data} with a \code{TRUE} value in position \code{i}
+#'     indicating that the \code{i}th row of \code{data} appears in
+#'     the tidied data \code{estimation.data} \item \code{data} -
+#'     original \code{data} (without subset applied), but with
+#'     imputation performed (if requested) \item \code{description} -
+#'     character; description of the data; see
+#'     \code{\link[flipFormat]{SampleDescription}} }
 #' @export
 EstimationData <- function(formula = NULL,
                            data = NULL,
@@ -43,7 +61,8 @@ EstimationData <- function(formula = NULL,
                            missing = "Exclude cases with missing data",
                            m = 10,
                            seed = 12321,
-                           error.if.insufficient.obs = TRUE)
+                           error.if.insufficient.obs = TRUE,
+                           impute.full.data = TRUE)
 {
     # Cleaning weights and subsets.
     n.total <- nrow(data)
@@ -90,7 +109,8 @@ EstimationData <- function(formula = NULL,
 
         }
         ## Imputing for the entire data set for prediction purposes.
-        data <- Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
+        if (impute.full.data)
+            data <- Imputation(data, m = m)[[1]][, variable.names, drop = FALSE]
 
         ## for portion of data in subset, use values from imputing on the subset only
         estimation.sample <- rownames(data) %in% rownames(data.for.estimation[[1]])

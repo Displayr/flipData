@@ -2,60 +2,78 @@
 % Please edit documentation in R/estimationdata.R
 \name{EstimationData}
 \alias{EstimationData}
-\title{\code{EstimationData} Selects the data from a data frame for estimation.
-Conducts imputation if necessary.}
+\title{\code{EstimationData} Selects the data from a data frame for
+estimation.  Conducts imputation if necessary.}
 \usage{
 EstimationData(formula = NULL, data = NULL, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data", m = 10,
-  seed = sample.int(.Machine$integer.max, 1),
-  error.if.insufficient.obs = TRUE)
+  seed = 12321, error.if.insufficient.obs = TRUE, impute.full.data = TRUE)
 }
 \arguments{
-\item{formula}{An object of class \code{\link{formula}} (or one that can be
-coerced to that class): a symbolic description of the model to be fitted.
-The details of type specification are given under \sQuote{Details}.}
+\item{formula}{An object of class \code{\link{formula}} (or one
+that can be coerced to that class): a symbolic description of
+the model to be fitted.  The details of type specification are
+given under \sQuote{Details}.}
 
 \item{data}{A \code{\link{data.frame}}.}
 
-\item{subset}{An optional vector specifying a subset of observations to be
-used in the fitting process, or, the name of a variable in \code{data}. It
-may not be an expression. \code{subset} may not}
+\item{subset}{An optional vector specifying a subset of
+observations to be used in the fitting process, or, the name of
+a variable in \code{data}. It may not be an
+expression. \code{subset} may not}
 
-\item{weights}{An optional vector of sampling weights, or, the name or, the
-name of a variable in \code{data}. It may not be an expression.}
+\item{weights}{An optional vector of sampling weights, or, the name
+or, the name of a variable in \code{data}. It may not be an
+expression.}
 
-\item{missing}{How missing data is to be treated in the regression. Options
-are: \code{"Error if missing data"}, \code{"Exclude cases with missing
-data"}, \code{"Use partial data"}, \code{"Use partial data (pairwise
-correlations)"}, \code{"Imputation (replace missing values with
-estimates)"}, and  \code{"Multiple imputation"}.}
+\item{missing}{How missing data is to be treated in the
+regression. Options are: \code{"Error if missing data"},
+\code{"Exclude cases with missing data"},
+\code{"Use partial data"},
+\code{"Use partial data (pairwise correlations)"},
+\code{"Imputation (replace missing values with estimates)"},
+and \code{"Multiple imputation"}.}
 
 \item{m}{Number of imputation samples.}
 
 \item{seed}{The random number seed used in the imputation.}
 
-\item{error.if.insufficient.obs}{Throw an error if there are more variables than observations.}
+\item{error.if.insufficient.obs}{Throw an error if there are more
+variables than observations.}
+
+\item{impute.full.data}{logical; if TRUE and \code{missing} is
+either
+\code{"Imputation (replace missing values with estimates)"} or
+\code{"Multiple imputation"}, imputation is performed on both
+the full \code{data} and on the requested subset of
+\code{data}; otherwise, imputation is only performed on the
+subset.}
 }
 \value{
-A list with components
-\itemize{
-\item \code{estimation.data} - tidied (filtered/subsetted and NA-free) \code{data.frame}
-\item \code{weights} - the cleaned weights with any filters applied(i.e. the weights with NA and negative weights set to 0),
-\item \code{unfiltered.weights} - the cleaned weights from the complete data (i.e. with no filter applied)
-\item \code{post.missing.data.estimation.sample} - logical vector with length equal to the number of rows of \code{data}
-with a \code{TRUE} value in position \code{i} indicating that the \code{i}th row of \code{data} appears in the
-tidied data \code{estimation.data}
-\item \code{data} - original \code{data} (without subset applied), but with imputation performed (if requested)
-\item \code{description} - character; description of the data; see \code{\link[flipFormat]{SampleDescription}}
-}
+A list with components \itemize{ \item
+    \code{estimation.data} - tidied (filtered/subsetted and
+    NA-free) \code{data.frame} \item \code{weights} - the cleaned
+    weights with any filters applied(i.e. the weights with NA and
+    negative weights set to 0), \item \code{unfiltered.weights} -
+    the cleaned weights from the complete data (i.e. with no filter
+    applied) \item \code{post.missing.data.estimation.sample} -
+    logical vector with length equal to the number of rows of
+    \code{data} with a \code{TRUE} value in position \code{i}
+    indicating that the \code{i}th row of \code{data} appears in
+    the tidied data \code{estimation.data} \item \code{data} -
+    original \code{data} (without subset applied), but with
+    imputation performed (if requested) \item \code{description} -
+    character; description of the data; see
+    \code{\link[flipFormat]{SampleDescription}} }
 }
 \description{
-\code{EstimationData} Selects the data from a data frame for estimation.
-Conducts imputation if necessary.
+\code{EstimationData} Selects the data from a data frame for
+estimation.  Conducts imputation if necessary.
 }
 \details{
 Removes any empty levels from factors.
 }
 \seealso{
-\code{\link{flipImputation}{Imputation}}, \code{\link[flipFormat]{SampleDescription}}
+\code{\link{flipImputation}{Imputation}},
+    \code{\link[flipFormat]{SampleDescription}}
 }
