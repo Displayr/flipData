@@ -41,13 +41,13 @@ and \code{"Multiple imputation"}.}
 \item{error.if.insufficient.obs}{Throw an error if there are more
 variables than observations.}
 
-\item{impute.full.data}{logical; if TRUE and \code{missing} is
+\item{impute.full.data}{logical; if \code{TRUE} and \code{missing} is
 either
 \code{"Imputation (replace missing values with estimates)"} or
 \code{"Multiple imputation"}, imputation is performed on both
 the full \code{data} and on the requested subset of
 \code{data}; otherwise, imputation is only performed on the
-subset.}
+subset.  Ignored for other options of \code{missing}.}
 }
 \value{
 A list with components \itemize{ \item
@@ -74,6 +74,6 @@ estimation.  Conducts imputation if necessary.
 Removes any empty levels from factors.
 }
 \seealso{
-\code{\link{flipImputation}{Imputation}},
+\code{\link[flipImputation]{Imputation}},
     \code{\link[flipFormat]{SampleDescription}}
 }

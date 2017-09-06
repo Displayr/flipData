@@ -36,7 +36,7 @@
 #' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
-#' @seealso \code{\link{flipImputation}{Imputation}},
+#' @seealso \code{\link[flipImputation]{Imputation}},
 #'     \code{\link[flipFormat]{SampleDescription}}
 #' @return A list with components \itemize{ \item
 #'     \code{estimation.data} - tidied (filtered/subsetted and
