@@ -114,7 +114,6 @@ TidyRawData <- function(data,
 
     if (!is.na(labs$common.prefix))
         attr(data, "label.prefix") <- labs$common.prefix
-    colnames(data) <- labs$shortened.labels
 
     attr(data, "weights") <- processed.data$weights
     data
