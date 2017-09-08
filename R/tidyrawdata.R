@@ -30,8 +30,8 @@
 #'     \code{extract.common.lab.prefix} is \code{TRUE} and a common
 #'     label prefix is found, it will be return in an attribute called
 #'     \code{"label.prefix"}.
-#' @seealso \code{\link[flipFormat]{ExtractCommonPrefix}}
-#' @importFrom flipFormat ExtractCommonPrefix
+#' @seealso \code{\link[flipFormat]{ExtractCommonPrefixFromLabels}}
+#' @importFrom flipFormat ExtractCommonPrefixFromLabels "Labels<-"
 #' @importFrom flipTransformations ProcessQVariables AsNumeric
 #' @importFrom stats as.formula
 #' @export
@@ -48,11 +48,12 @@ TidyRawData <- function(data,
     if (missing(data) || !length(data))
         stop("No data supplied")
     ## Search for common prefix for labels
-    labs <- flipFormat::ExtractCommonPrefix(colnames(data))
+    if (extract.common.lab.prefix)
+        labs <- ExtractCommonPrefixFromLabels(data, tidy = TRUE)
 
     ## handle variables of QDate class
     ## data.frame ensures ProcessQVariables also returns a data.frame
-    data <- flipTransformations::ProcessQVariables(data.frame(data))  # can't have check.names = FALSE
+    data <- flipTransformations::ProcessQVariables(data.frame(data, check.names = FALSE))  # can't have check.names = FALSE
 
     partial <- missing == "Use partial data"
 
@@ -103,7 +104,7 @@ TidyRawData <- function(data,
     }
 
     ## Filter and impute missing values in the data (if required)
-    input.formula <- as.formula(paste0("~", paste(names(data), collapse = "+")))
+    input.formula <- as.formula(paste0("~`", paste(names(data), collapse = "`+`"), "`"))
     processed.data <- EstimationData(input.formula,
                                      data = data,
                                      subset = subset,
@@ -112,8 +113,11 @@ TidyRawData <- function(data,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
 
-    if (!is.na(labs$common.prefix))
+    ## update labels and add common prefix attribute
+    if (extract.common.lab.prefix && !is.na(labs$common.prefix)){
         attr(data, "label.prefix") <- labs$common.prefix
+        Labels(data) <- labs$shortened.labels
+    }
 
     attr(data, "weights") <- processed.data$weights
     data

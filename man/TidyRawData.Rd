@@ -51,5 +51,5 @@ Gets the raw data, tidies subset and weights, and applies the
 subset, dealing with any missing values along the way.
 }
 \seealso{
-\code{\link[flipFormat]{ExtractCommonPrefix}}
+\code{\link[flipFormat]{ExtractCommonPrefixFromLabels}}
 }
