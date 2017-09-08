@@ -46,25 +46,30 @@ test_that("TidyRawData: single factor input",
 ## labels
 ################################################################################
 
+original.labels = flipFormat::Labels(x)
+
 test_that("TidyRawData: formatted labels are correct",
     {
-        original.labels = flipFormat::Labels(x)
         out <- (TidyRawData(x, as.numeric = FALSE))
         expect_equal(original.labels, flipFormat::Labels(out))
         out <- (TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = FALSE))
         expect_equal(original.labels, flipFormat::Labels(out))
         out <- suppressWarnings(TidyRawData(x, weights = wgt,  subset = wgt > .5, as.numeric = TRUE))
         expect_equal(original.labels, flipFormat::Labels(out))
-
-
     })
 
 test_that("TidyRawData: extracts label prefix and simplifies labels",
     {
-        colnames(x) <- sub("_", ": ", colnames(x))
-        out <- suppressWarnings(TidyRawData(x, as.numeric = FALSE))
-        expect_equal(colnames(out), LETTERS[1:6])
-        expect_equal(attr(out, "label.prefix"), "Q6")
+        short.lab <- sub("^Q6[.] ", "", original.labels)
+        out <- suppressWarnings(TidyRawData(x, as.numeric = FALSE,
+                                            extract.common.lab.prefix = TRUE))
+        expect_equal(flipFormat::Labels(out), short.lab)
+        expect_equal(attr(out, "label.prefix"), "Q6.", check.attributes = FALSE)
+
+        ## Old labels preserved if shortening not requested
+        out <- suppressWarnings(TidyRawData(x, as.numeric = FALSE,
+                                            extract.common.lab.prefix = FALSE))
+        expect_equal(flipFormat::Labels(out), original.labels, check.attributes = FALSE)
     })
 
 ################################################################################
