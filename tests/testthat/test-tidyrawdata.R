@@ -70,6 +70,12 @@ test_that("TidyRawData: extracts label prefix and simplifies labels",
         out <- suppressWarnings(TidyRawData(x, as.numeric = FALSE,
                                             extract.common.lab.prefix = FALSE))
         expect_equal(flipFormat::Labels(out), original.labels, check.attributes = FALSE)
+
+        ## Okay with as.binary = as.numeric = TRUE creating extra vars
+        blabs <- as.vector(sapply(x, function(col) paste0(Labels(col), ": ", levels(col))))
+        out <- suppressWarnings(TidyRawData(x, as.numeric = TRUE, as.binary = TRUE,
+                                            extract.common.lab.prefix = FALSE))
+        expect_equal(flipFormat::Labels(out), blabs, check.attributes = FALSE)
     })
 
 ################################################################################

@@ -47,9 +47,6 @@ TidyRawData <- function(data,
 
     if (missing(data) || !length(data))
         stop("No data supplied")
-    ## Search for common prefix for labels
-    if (extract.common.lab.prefix)
-        labs <- ExtractCommonPrefixFromLabels(data, tidy = TRUE)
 
     ## handle variables of QDate class
     ## data.frame ensures ProcessQVariables also returns a data.frame
@@ -113,10 +110,15 @@ TidyRawData <- function(data,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
 
-    ## update labels and add common prefix attribute
-    if (extract.common.lab.prefix && !is.na(labs$common.prefix)){
-        attr(data, "label.prefix") <- labs$common.prefix
-        Labels(data) <- labs$shortened.labels
+    ## Search for common prefix for labels
+    if (extract.common.lab.prefix)
+    {
+        labs <- ExtractCommonPrefixFromLabels(data, tidy = TRUE)
+        if (!is.na(labs$common.prefix))  ## update labels and add common prefix attribute
+        {
+            attr(data, "label.prefix") <- labs$common.prefix
+            Labels(data) <- labs$shortened.labels
+        }
     }
 
     attr(data, "weights") <- processed.data$weights
