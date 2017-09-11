@@ -113,7 +113,7 @@ TidyRawData <- function(data,
     ## Search for common prefix for labels
     if (extract.common.lab.prefix)
     {
-        labs <- ExtractCommonPrefixFromLabels(data, tidy = TRUE)
+        labs <- ExtractCommonPrefixFromLabels(data, tidy = FALSE)
         if (!is.na(labs$common.prefix))  ## update labels and add common prefix attribute
         {
             attr(data, "label.prefix") <- labs$common.prefix
