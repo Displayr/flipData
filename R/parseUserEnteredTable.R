@@ -67,6 +67,8 @@ isNumericWithPercent <- function(t)
 #' non-empty cell in a character matrix
 #' @param m character matrix
 #' @param drop logical; should output be conver
+#' @noRd
+#' @keywords internal
 removeEmptyRowsAndColumns <- function(m, drop)
 {
     start.row <- 1
@@ -94,6 +96,8 @@ removeEmptyRowsAndColumns <- function(m, drop)
 #' non-empty entry, and if so returns them in a vector
 #' @return NULL if no titles found; otherwise, a length-2
 #' vector containing the titles
+#' @noRd
+#' @keywords internal
 getTableTitles <- function(m)
 {
     if (NROW(m) <= 2 || NCOL(m) <= 2 || m[1, 1] != "")
