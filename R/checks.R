@@ -90,9 +90,12 @@ CheckCorrelationMatrix <- function(correlations, variable.names = colnames(corre
 #' @export
 CheckForUniqueVariableNames <- function(formula)
 {
+    #formula.as.character <- strsplit(toString(formula), "\\,")[[1]]
     formula.as.character <- as.character(formula)
     formula.as.character <- gsub('\\$', '', formula.as.character)
-    dep <- formula.as.character[2]
+    #formula.as.character <- TrimWhitespace(strsplit(formula.as.character, "\\+"))
+    #formula.as.character <- TrimWhitespace(strsplit(formula.as.character, "\\~"))
+    dep <- TrimWhitespace(formula.as.character[2])
     ind <- TrimWhitespace(strsplit(formula.as.character[3], "\\+")[[1]])
     names <- c(dep, ind)
     n.times <- table(names)

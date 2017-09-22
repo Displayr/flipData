@@ -4,10 +4,12 @@
 \alias{DataFormula}
 \title{\code{DataFormula}}
 \usage{
-DataFormula(formula)
+DataFormula(formula, data = NULL)
 }
 \arguments{
 \item{formula}{An object of class \code{\link{formula}}.}
+
+\item{data}{An object of class \code{\link{data.frame}}}
 }
 \description{
 Modifies formula so that any variables that refer to dataframes

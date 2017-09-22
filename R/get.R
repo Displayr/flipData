@@ -12,7 +12,7 @@ GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
     CheckForUniqueVariableNames(formula)
-    variable.names <- AllVariablesNames(formula)
+    variable.names <- AllVariablesNames(formula, data)
     if (!data.provided) # Extracting the data from the environment
     {
         data <- environment(formula)
@@ -57,12 +57,13 @@ GetData <- function(formula, data, auxiliary.data)
 #' with a dollar sign are surrounded by backticks. Any such variables that already
 #' contain backticks will have those backticks escaped.
 #' @param formula An object of class \code{\link{formula}}.
+#' @param data An object of class \code{\link{data.frame}}
 #' @importFrom flipU AllVariablesNames
 #' @export
-DataFormula <- function(formula)
+DataFormula <- function(formula, data = NULL)
 {
     formula.str <- paste(deparse(formula), collapse = "")
-    var.names <- AllVariablesNames(formula)
+    var.names <- AllVariablesNames(formula, data)
 
     # We sort names from longest to shortest since we will be substituting by name
     sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
