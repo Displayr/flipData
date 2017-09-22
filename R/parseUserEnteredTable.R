@@ -5,6 +5,8 @@
 #' numeric matrix.
 #' @param raw.matrix Character matrix
 #' @param warn Whether to show warnings
+#' @param want.data.frame logical; should a \code{data.frame} be returned instead
+#' of a matrix or vector?
 #' @param ... additional arguments passed to \code{\link[flipTransformations]{ParseAsDataFrame}}
 #' @return if \code{want.data.frame == FALSE}, numeric vector or matrix, possibly
 #' with an attribute \code{"statistic"} if row and column names are present; otherwise,
@@ -25,7 +27,7 @@
 #' @noRd
 #' @keywords internal
 #' @importFrom flipTransformations ParseAsDataFrame
-parseUserEnteredTable <- function(raw.matrix, warn = TRUE, ...)
+parseUserEnteredTable <- function(raw.matrix, warn = TRUE, want.data.frame = FALSE, ...)
 {
     if (all(raw.matrix == ""))
         stop("no data has been entered")
