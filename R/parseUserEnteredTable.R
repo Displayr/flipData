@@ -5,8 +5,10 @@
 #' numeric matrix.
 #' @param raw.matrix Character matrix
 #' @param warn Whether to show warnings
-#' @return numeric vector or matrix, possibly with an attribute
-#'     \code{"statistic"} if row and column names are present
+#' @param ... additional arguments passed to \code{\link[flipTransformations]{ParseAsDataFrame}}
+#' @return if \code{want.data.frame == FALSE}, numeric vector or matrix, possibly
+#' with an attribute \code{"statistic"} if row and column names are present; otherwise,
+#' a \code{data.frame}
 #' @details First removes empty rows and columns.  If every entry of
 #'     the resulting matrix (or vector) is numeric, a matrix without
 #'     row or column names is returned.  If the matrix has row and
@@ -23,14 +25,14 @@
 #' @noRd
 #' @keywords internal
 #' @importFrom flipTransformations ParseAsDataFrame
-parseUserEnteredTable <- function(raw.matrix, warn = TRUE)
+parseUserEnteredTable <- function(raw.matrix, warn = TRUE, ...)
 {
     if (all(raw.matrix == ""))
         stop("no data has been entered")
 
     m <- removeEmptyRowsAndColumns(raw.matrix, TRUE)
     if (want.data.frame)
-        ParseAsDataFrame(m, warn, want.factors, want.col.names, want.row.names, us.format)
+        ParseAsDataFrame(m, warn, ...)
     else
         parseAsVectorOrMatrix(m, warn)
 }
