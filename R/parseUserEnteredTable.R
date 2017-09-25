@@ -27,7 +27,8 @@
 #' @noRd
 #' @keywords internal
 #' @importFrom flipTransformations ParseAsDataFrame
-parseUserEnteredTable <- function(raw.matrix, warn = TRUE, want.data.frame = FALSE, ...)
+#' @export
+ParseUserEnteredTable <- function(raw.matrix, warn = TRUE, want.data.frame = FALSE, ...)
 {
     if (all(raw.matrix == ""))
         stop("no data has been entered")
