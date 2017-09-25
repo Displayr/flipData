@@ -13,7 +13,9 @@ Imports:
     flipTransformations,
     flipU,
     stats,
-    survey
+    survey,
+    flipStatistics,
+    flipChartBasics
 RoxygenNote: 6.0.1
 Suggests: 
     testthat,
@@ -22,4 +24,6 @@ Remotes:
     Displayr/flipFormat,
     Displayr/flipImputation,
     Displayr/flipTransformations,
-    Displayr/flipU
+    Displayr/flipU,
+    Displayr/flipStatistics,
+    Displayr/ChartBasics
