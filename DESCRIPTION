@@ -14,6 +14,7 @@ Imports:
     flipImputation,
     flipTransformations,
     flipU,
+    flipTables,
     stats,
     survey
 RoxygenNote: 6.0.1
@@ -24,4 +25,5 @@ Remotes:
     Displayr/flipFormat,
     Displayr/flipImputation,
     Displayr/flipTransformations,
-    Displayr/flipU
+    Displayr/flipU,
+    Displayr/flipTables

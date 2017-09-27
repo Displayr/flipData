@@ -9,14 +9,15 @@
 #' is a \code{\link{matrix}}, rows are also ignored.
 #' @importFrom flipFormat ExtractCommonPrefix Labels Names
 #' @importFrom flipTransformations AsNumeric QuestionListToDataFrame
+#' @importFrom flipTables BasicTable
 #' @export
 AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
 {
     dat <- if (is.matrix(input.data)) {
-        mat <- GetTidyTwoDimensionalArray(input.data, ignore.columns, ignore.columns)
+               mat <- BasicTable(input.data, row.names.to.remove = ignore.columns,
+                                 col.names.to.remove = ignore.columns)
         AsNumeric(data.frame(mat, check.names = FALSE))
-
-    } else if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame
+    }else if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame
         input.data <- data.frame(input.data)
         colnames(input.data) <- Names(input.data)
         var.dat <- AsNumeric(ProcessQVariables(input.data), binary = FALSE)
@@ -29,12 +30,8 @@ AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
         names.to.remove <- trimws(unlist(strsplit(ignore.columns, split = ",")))
         qns.dat <- AsNumeric(QuestionListToDataFrame(input.data, names.to.remove = names.to.remove), binary = FALSE)
 
-    } else if (is.matrix(input.data)) {
-        mat <- GetTidyTwoDimensionalArray(input.data, ignore.columns, ignore.columns)
-        AsNumeric(data.frame(mat, check.names = FALSE))
-
     } else
-        stop(paste("input.data must be a data.frame, list of data.frames/vectors or a matrix."))
+        stop("input.data must be a data.frame, list of data.frames/vectors or a matrix")
 
     return(dat)
 }
