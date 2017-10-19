@@ -9,12 +9,12 @@
 #' is a \code{\link{matrix}}, rows are also ignored.
 #' @importFrom flipFormat ExtractCommonPrefix Labels Names
 #' @importFrom flipTransformations AsNumeric QuestionListToDataFrame
-#' @importFrom flipTables BasicTable
+#' @importFrom flipTables TidyTabularData
 #' @export
 AsDataFrame <- function(input.data, use.names = FALSE, ignore.columns = "")
 {
     dat <- if (is.matrix(input.data)) {
-               mat <- BasicTable(input.data, row.names.to.remove = ignore.columns,
+               mat <- TidyTabularData(input.data, row.names.to.remove = ignore.columns,
                                  col.names.to.remove = ignore.columns)
         AsNumeric(data.frame(mat, check.names = FALSE))
     }else if (is.data.frame(input.data) || !any(sapply(input.data, is.data.frame))) {  # coerce list of variables to data.frame

@@ -1,7 +1,7 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 0.1.0
+Version: 1.0.0
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and environments,
@@ -14,7 +14,7 @@ Imports:
     flipImputation,
     flipTransformations,
     flipU,
-    flipTables,
+    flipTables (>= 2.0.0),
     stats,
     survey
 RoxygenNote: 6.0.1
