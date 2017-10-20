@@ -14,7 +14,7 @@ Imports:
     flipImputation,
     flipTransformations,
     flipU,
-    flipTables (>= 2.0.0),
+    flipTables (>= 2.1.0),
     stats,
     survey
 RoxygenNote: 6.0.1
