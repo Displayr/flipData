@@ -1,6 +1,6 @@
-
-#' \code{EstimationData} Selects the data from a data frame for
-#' estimation.  Conducts imputation if necessary.
+#' Select the data from a data frame for estimation.
+#'
+#' Conducts imputation if necessary.
 #' @param formula An object of class \code{\link{formula}} (or one
 #'     that can be coerced to that class): a symbolic description of
 #'     the model to be fitted.  The details of type specification are
