@@ -2,8 +2,7 @@
 % Please edit documentation in R/estimationdata.R
 \name{EstimationData}
 \alias{EstimationData}
-\title{\code{EstimationData} Selects the data from a data frame for
-estimation.  Conducts imputation if necessary.}
+\title{Select the data from a data frame for estimation.}
 \usage{
 EstimationData(formula = NULL, data = NULL, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data", m = 10,
@@ -66,8 +65,7 @@ A list with components \itemize{ \item
     \code{\link[flipFormat]{SampleDescription}} }
 }
 \description{
-\code{EstimationData} Selects the data from a data frame for
-estimation.  Conducts imputation if necessary.
+Conducts imputation if necessary.
 }
 \details{
 Removes any empty levels from factors.

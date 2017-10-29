@@ -86,7 +86,7 @@ CheckCorrelationMatrix <- function(correlations, variable.names = colnames(corre
 #'
 #' @description Checks that the same variable name is not used twice in a formula.
 #' @param formula A \code{\link{formula}}.
-#' @importFrom flipFormat TrimWhitespace
+#' @importFrom flipU TrimWhitespace
 #' @export
 CheckForUniqueVariableNames <- function(formula)
 {

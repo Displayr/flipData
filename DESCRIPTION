@@ -10,11 +10,11 @@ Description: Functions for extracting data from formulas and environments,
 License: GPL-3
 LazyData: TRUE
 Imports:
-    flipFormat,
+    flipFormat (>= 1.0.0),
     flipImputation,
     flipTransformations,
-    flipU,
-    flipTables (>= 2.1.0),
+    flipU (>= 1.0.2),
+    flipTables (>= 2.2.2),
     stats,
     survey
 RoxygenNote: 6.0.1
