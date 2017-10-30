@@ -118,7 +118,7 @@ indexOfUnescapedCharacter <- function(s, char)
 #' @param x The data that is being analyzed
 #' @param row.names.to.remove A vector of the row labels to remove.
 #' @param column.names.to.remove A vector of the column labels to remove.
-#' @importFrom flipTables RemoveRowsAndOrColumns
+#' @importFrom flipU RemoveAt
 #' @export
 GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.names.to.remove = NULL)
 {

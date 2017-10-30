@@ -1,7 +1,7 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 1.0.0
+Version: 1.1.0
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and environments,
@@ -12,7 +12,7 @@ LazyData: TRUE
 Imports:
     flipFormat (>= 1.0.0),
     flipImputation,
-    flipTransformations,
+    flipTransformations (>= 1.4.0),
     flipU (>= 1.0.2),
     stats,
     survey
