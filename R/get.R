@@ -145,7 +145,7 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
     }
     else
     {
-        x <- RemoveRowsAndOrColumns(x, row.names.to.remove, column.names.to.remove)
+        x <- RemoveAt(x, at = list(row.names.to.remove, column.names.to.remove))
     }
     x
 }
