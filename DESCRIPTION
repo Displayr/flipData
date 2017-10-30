@@ -13,7 +13,6 @@ Imports:
     flipFormat (>= 1.0.0),
     flipImputation,
     flipTransformations,
-    flipTables (>= 2.2.2),
     flipU (>= 1.0.2),
     stats,
     survey
@@ -25,5 +24,4 @@ Remotes:
     Displayr/flipFormat,
     Displayr/flipImputation,
     Displayr/flipTransformations,
-    Displayr/flipTables,
     Displayr/flipU
