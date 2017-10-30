@@ -48,3 +48,12 @@ test_that("DataFormula",
               expect_equal(DataFormula(`Profit Estimation.sav`$Variables$q1 ~ `Profit Estimation.sav`$Variables$q11),
                            `\`Profit Estimation.sav\`$Variables$q1` ~ `\`Profit Estimation.sav\`$Variables$q11`)
           })
+
+
+test_that("GetTidyTwoDimensionalArray",
+          {
+              x <- array(1:4, dim = c(2,2))
+              rownames(x) <- LETTERS[1:2]
+              expect_equal(GetTidyTwoDimensionalArray(x, row.names.to.remove = "A, C"), x[2, , drop = FALSE])
+
+          })
