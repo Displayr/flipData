@@ -10,7 +10,6 @@ Description: Functions for extracting data from formulas and environments,
 License: GPL-3
 LazyData: TRUE
 Imports:
-    flipExampleData,
     flipFormat (>= 1.0.0),
     flipImputation,
     flipTransformations (>= 1.4.0),
