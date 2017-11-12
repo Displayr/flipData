@@ -47,8 +47,8 @@ A \code{data.frame} containing the filtered raw data, which
     \code{"label.prefix"}.
 }
 \description{
-Gets the raw data, tidies subset and weights, and applies the
-subset, dealing with any missing values along the way.
+Tidies a data frame, by applying subets, weights, removing duplicate
+variables, and dealing iwth missing values.
 }
 \seealso{
 \code{\link[flipFormat]{ExtractCommonPrefixFromLabels}}
