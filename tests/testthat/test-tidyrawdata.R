@@ -12,6 +12,17 @@ test_that("TidyRawData: warns when converting factors to numeric",
 wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
 
 
+################################################################################
+## Bug fixes
+################################################################################
+test_that("TidyRawData: provides a warning if a duplicate variable is removed.",
+          {
+              data(colas, package = "flipExampleData")
+            z = colas[, c(1, 1, 1, 1, 1)]
+            names(z) = c("A", "A", "B", "A", "B")
+            expect_warning(TidyRawData(z), "Duplicates of variables removed: A, B.")
+          })
+
 
 
 ################################################################################

@@ -1,7 +1,7 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 1.1.0
+Version: 1.1.1
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and environments,
@@ -10,6 +10,7 @@ Description: Functions for extracting data from formulas and environments,
 License: GPL-3
 LazyData: TRUE
 Imports:
+    flipExampleData,
     flipFormat (>= 1.0.0),
     flipImputation,
     flipTransformations (>= 1.4.0),
@@ -21,6 +22,7 @@ Suggests:
     testthat,
     flipExampleData
 Remotes:
+    Displayr/flipExampleData,
     Displayr/flipFormat,
     Displayr/flipImputation,
     Displayr/flipTransformations,

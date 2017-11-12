@@ -1,7 +1,7 @@
 #' Tidy Data From Displayr
 #'
-#' Gets the raw data, tidies subset and weights, and applies the
-#' subset, dealing with any missing values along the way.
+#' Tidies a data frame, by applying subets, weights, removing duplicate
+#' variables, and dealing iwth missing values.
 #'
 #' @param data A \code{data.frame}.
 #' @param as.numeric If TRUE, converts factors into numeric variables.
@@ -48,6 +48,14 @@ TidyRawData <- function(data,
     if (missing(data) || !length(data))
         stop("No data supplied")
 
+    ## Removing duplicate variables
+    nms <- names(data)
+    if (any(d <- duplicated(nms)))
+    {
+        data <- data[, !d]
+        warning("Duplicates of variables removed: ", paste(sort(unique(nms[d])), collapse = ", "), ".")
+    }
+
     ## handle variables of QDate class
     ## data.frame ensures ProcessQVariables also returns a data.frame
     data <- flipTransformations::ProcessQVariables(data.frame(data, check.names = FALSE))  # can't have check.names = FALSE
@@ -74,19 +82,10 @@ TidyRawData <- function(data,
     if (has.subset  <- !is.null(subset) && length(subset) != 1)
     {
         subset <- eval(substitute(subset), data, parent.frame())
-        ## subset.description <- if (is.null(substitute(subset))) NULL else deparse(substitute(subset))
-        ## if (!is.null(subset.description))
-        ##     attr(subset, "description") <- subset.description
         attr(subset, "description") <- if (!is.null(substitute(subset)))
                                            deparse(substitute(subset))  # else NULL
         if (length(subset) > 1 && length(subset) != nrow(data))
             stop("'subset' and 'data' are required to have the same number of observations. They do not")
-        ## if (partial)
-        ## {
-        ##     subset <- CleanSubset(subset, n.total)  # handle missing values in subset
-        ##     n.subset <- attr(subset, "n.subset")
-        ##     original.subset <- subset
-        ## }
     }
 
     ## Deal with weights
@@ -99,7 +98,6 @@ TidyRawData <- function(data,
         if (length(weights) != nrow(data))
             stop("'weights' and 'data' are required to have the same number of observations. They do not.")
     }
-
     ## Filter and impute missing values in the data (if required)
     input.formula <- as.formula(paste0("~`", paste(names(data), collapse = "`+`"), "`"))
     processed.data <- EstimationData(input.formula,
