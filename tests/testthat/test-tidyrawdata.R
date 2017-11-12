@@ -19,8 +19,10 @@ test_that("TidyRawData: provides a warning if a duplicate variable is removed.",
           {
               data(colas, package = "flipExampleData")
             z = colas[, c(1, 1, 1, 1, 1)]
-            names(z) = c("A", "A", "B", "A", "B")
-            expect_warning(TidyRawData(z), "Duplicates of variables removed: A, B.")
+            nms <- c("A", "A", "B", "A", "B")
+            names(z) = nms
+            expect_warning(zz <- TidyRawData(z), "Duplicated variables: A, B.")
+            expect_equal(names(zz), nms)
           })
 
 

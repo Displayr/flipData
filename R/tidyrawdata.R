@@ -48,12 +48,13 @@ TidyRawData <- function(data,
     if (missing(data) || !length(data))
         stop("No data supplied")
 
-    ## Removing duplicate variables
+    ## Removing duplicate variables (put back in at the end)
     nms <- names(data)
-    if (any(d <- duplicated(nms)))
+    duplicates <- duplicated(nms)
+    if (any(duplicates))
     {
-        data <- data[, !d]
-        warning("Duplicates of variables removed: ", paste(sort(unique(nms[d])), collapse = ", "), ".")
+        data <- data[, !duplicates]
+        warning("Duplicated variables: ", paste(sort(unique(nms[duplicates])), collapse = ", "), ".")
     }
 
     ## handle variables of QDate class
@@ -64,18 +65,9 @@ TidyRawData <- function(data,
 
     ## convert factor columns to matrix of indicators if as.binary is TRUE
     ##  else unclass factors and remove levels attribute
-    if (as.numeric){
-        ## if wanted to suppress just the one warning when converting:
-        ## w <- function(e)
-        ##     if (any(grepl("Data has been automatically been converted to being numeric", e$message)))
-        ##         invokeRestart("muffleWarning")
-        ## data <- withCallingHandlers(flipTransformations::AsNumeric(data, binary = as.binary,
-        ##                                                            remove.first = FALSE),
-        ##                             warning = w)
+    if (as.numeric)
         data <- flipTransformations::AsNumeric(data, binary = as.binary,
                                                remove.first = FALSE)
-    }
-
     n.total <- nrow(data)
 
     ## Deal with subset
@@ -107,6 +99,13 @@ TidyRawData <- function(data,
                                      weights = weights,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
+
+    # Putting duplicates back in.
+    if (any(duplicates))
+    {
+        data <- data[,match(nms, names(data))]
+        names(data) <- nms
+    }
 
     ## Search for common prefix for labels
     if (extract.common.lab.prefix)
