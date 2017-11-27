@@ -48,7 +48,7 @@ A \code{data.frame} containing the filtered raw data, which
 }
 \description{
 Tidies a data frame, by applying subets, weights, removing duplicate
-variables, and dealing iwth missing values.
+variables, and dealing with missing values.
 }
 \seealso{
 \code{\link[flipFormat]{ExtractCommonPrefixFromLabels}}

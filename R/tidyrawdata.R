@@ -1,7 +1,7 @@
 #' Tidy Data From Displayr
 #'
 #' Tidies a data frame, by applying subets, weights, removing duplicate
-#' variables, and dealing iwth missing values.
+#' variables, and dealing with missing values.
 #'
 #' @param data A \code{data.frame}.
 #' @param as.numeric If TRUE, converts factors into numeric variables.
@@ -54,7 +54,7 @@ TidyRawData <- function(data,
     if (any(duplicates))
     {
         data <- data[, !duplicates]
-        warning("Duplicated variables: ", paste(sort(unique(nms[duplicates])), collapse = ", "), ".")
+        warning("Variables containing duplicated variable names have been removed (give the variables unique names if you do not want this to happen): ", paste(sort(unique(nms[duplicates])), collapse = ", "), ".")
     }
 
     ## handle variables of QDate class
@@ -99,13 +99,6 @@ TidyRawData <- function(data,
                                      weights = weights,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
-
-    # Putting duplicates back in.
-    if (any(duplicates))
-    {
-        data <- data[,match(nms, names(data))]
-        names(data) <- nms
-    }
 
     ## Search for common prefix for labels
     if (extract.common.lab.prefix)

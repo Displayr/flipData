@@ -15,14 +15,16 @@ wgt = c(NA, 0, rep(1, 100), rep(NA, 225))
 ################################################################################
 ## Bug fixes
 ################################################################################
-test_that("TidyRawData: provides a warning if a duplicate variable is removed.",
+test_that("DS-1644: TidyRawData: provides a warning if a duplicate variable is removed.",
           {
               data(colas, package = "flipExampleData")
-            z = colas[, c(1, 1, 1, 1, 1)]
+            z = colas[, c(1:5)]
             nms <- c("A", "A", "B", "A", "B")
             names(z) = nms
-            expect_warning(zz <- TidyRawData(z), "Duplicated variables: A, B.")
-            expect_equal(names(zz), nms)
+            expect_warning(TidyRawData(z),
+                "Variables containing duplicated variable names have been removed (give the variables unique names if you do not want this to happen): A, B.",
+                fixed = TRUE)
+            expect_equal(suppressWarnings(names(TidyRawData(z))), c("A", "B"))
           })
 
 
