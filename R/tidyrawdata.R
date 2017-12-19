@@ -53,7 +53,8 @@ TidyRawData <- function(data,
     duplicates <- duplicated(nms)
     if (any(duplicates))
     {
-        data <- data[, !duplicates]
+        data <- data[, !duplicates, drop = FALSE]
+        names(data) <- nms[!duplicates]
         warning("Variables containing duplicated variable names have been removed (give the variables unique names if you do not want this to happen): ", paste(sort(unique(nms[duplicates])), collapse = ", "), ".")
     }
 
