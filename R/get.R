@@ -28,7 +28,7 @@ GetData <- function(formula, data, auxiliary.data)
                 }
             }
         ))
-        names(data) <- RemoveBackticks(variable.names)
+        names(data) <- variable.names
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
