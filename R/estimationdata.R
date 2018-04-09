@@ -76,8 +76,7 @@ EstimationData <- function(formula = NULL,
     unfiltered.weights <- weights
     ## Selecting the relevant variables from the data frame (unless imputation is being used).
     ## Remove backticks if present
-    ## DS-1769 causes the nasty setting of the perl argument depending on platform.
-    variable.names <- sub("^[`]([[:print:]]*)[`]$", "\\1", AllVariablesNames(formula, data), perl = (Sys.info()["sysname"] == "Windows"))
+    variable.names <- RemoveBackticks(AllVariablesNames(formula, data))
     labels <- Labels(data[, variable.names], show.name = TRUE)
     # Removing cases with entirely missing data
     some.data <- !apply(is.na(data[, variable.names, drop = FALSE]), 1, all)

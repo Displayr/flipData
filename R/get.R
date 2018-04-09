@@ -20,7 +20,7 @@ GetData <- function(formula, data, auxiliary.data)
             {
                 i <- indexOfUnescapedCharacter(x, "$")
                 if (i == -1)
-                    get(CleanBackticks(x), data)
+                    get(RemoveBackticks(x), data)
                 else
                 {
                     v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
@@ -28,7 +28,7 @@ GetData <- function(formula, data, auxiliary.data)
                 }
             }
         ))
-        names(data) <- variable.names
+        names(data) <- RemoveBackticks(variable.names)
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
@@ -95,6 +95,18 @@ CleanBackticks <- function(nms)
             nm
     } , USE.NAMES = FALSE)
 }
+
+
+#' \code{RemoveBackticks}
+#' @description Removes backticks surrounding variable names.
+#' @param nms Vector of variable names.
+#' @export
+RemoveBackticks <- function(nms)
+{
+    ## DS-1769 causes the nasty setting of the perl argument depending on platform.
+    sub("^[`]([[:print:]]*)[`]$", "\\1", nms, perl = (Sys.info()["sysname"] == "Windows"))
+}
+
 
 indexOfUnescapedCharacter <- function(s, char)
 {
