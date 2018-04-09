@@ -57,3 +57,10 @@ test_that("GetTidyTwoDimensionalArray",
               expect_equal(GetTidyTwoDimensionalArray(x, row.names.to.remove = "A, C"), x[2, , drop = FALSE])
 
           })
+
+test_that("GetData DS-",
+          {
+              `a$b` <- runif(100)
+              c <- runif(100)
+              expect_error(GetData(`a$b` ~ c, NULL, NULL), NA)
+          })

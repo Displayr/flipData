@@ -20,7 +20,7 @@ GetData <- function(formula, data, auxiliary.data)
             {
                 i <- indexOfUnescapedCharacter(x, "$")
                 if (i == -1)
-                    get(x, data)
+                    get(CleanBackticks(x), data)
                 else
                 {
                     v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
