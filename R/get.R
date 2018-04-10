@@ -67,7 +67,7 @@ GetData <- function(formula, data, auxiliary.data)
 DataFormula <- function(formula, data = NULL)
 {
     formula.str <- paste(deparse(formula), collapse = "")
-    var.names <- AllVariablesNames(formula, data)
+    var.names <- AllVariablesNames(formula, data, remove.backticks = FALSE)
 
     # We sort names from longest to shortest since we will be substituting by name
     sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
