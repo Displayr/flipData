@@ -5,22 +5,26 @@
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
-#' @importFrom flipU AllVariablesNames
+#' @importFrom flipU AllVariablesNames RemoveBackticks
 #' @importFrom flipTransformations ProcessQVariables
 #' @export
 GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
     CheckForUniqueVariableNames(formula)
-    variable.names <- AllVariablesNames(formula, data)
+    variable.names <- AllVariablesNames(formula, data) # final names will have backticks removed
+
     if (!data.provided) # Extracting the data from the environment
     {
+        # Do not remove backticks initially because a dollar sign without backticks is used to identify
+        # an element to be extracted, or else '$' is just treated as any other character.
+        names.with.backticks <- AllVariablesNames(formula, data, remove.backticks = FALSE)
         data <- environment(formula)
-        data <- as.data.frame(lapply(variable.names, function(x)
+        data <- as.data.frame(lapply(names.with.backticks, function(x)
             {
                 i <- indexOfUnescapedCharacter(x, "$")
                 if (i == -1)
-                    get(RemoveBackticks(x), data)
+                    get(RemoveBackticks(x), data) # variables in environment have backticks removed
                 else
                 {
                     v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
@@ -28,7 +32,7 @@ GetData <- function(formula, data, auxiliary.data)
                 }
             }
         ))
-        names(data) <- variable.names
+        names(data) <- RemoveBackticks(names.with.backticks) # remove backticks to match environment
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
@@ -94,17 +98,6 @@ CleanBackticks <- function(nms)
         else
             nm
     } , USE.NAMES = FALSE)
-}
-
-
-#' \code{RemoveBackticks}
-#' @description Removes backticks surrounding variable names.
-#' @param nms Vector of variable names.
-#' @export
-RemoveBackticks <- function(nms)
-{
-    ## DS-1769 causes the nasty setting of the perl argument depending on platform.
-    sub("^[`]([[:print:]]*)[`]$", "\\1", nms, perl = (Sys.info()["sysname"] == "Windows"))
 }
 
 
