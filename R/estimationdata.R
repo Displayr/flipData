@@ -75,8 +75,7 @@ EstimationData <- function(formula = NULL,
     }
     unfiltered.weights <- weights
     ## Selecting the relevant variables from the data frame (unless imputation is being used).
-    ## NB backticks are removed if present
-    variable.names <- AllVariablesNames(formula, data)
+    variable.names <- RemoveBackticks(AllVariablesNames(formula, data))
     labels <- Labels(data[, variable.names], show.name = TRUE)
     # Removing cases with entirely missing data
     some.data <- !apply(is.na(data[, variable.names, drop = FALSE]), 1, all)

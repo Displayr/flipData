@@ -5,34 +5,30 @@
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
-#' @importFrom flipU AllVariablesNames RemoveBackticks
+#' @importFrom flipU AllVariablesNames
 #' @importFrom flipTransformations ProcessQVariables
 #' @export
 GetData <- function(formula, data, auxiliary.data)
 {
     data.provided <- !is.null(data)
     CheckForUniqueVariableNames(formula)
-    variable.names <- AllVariablesNames(formula, data) # final names will have backticks removed
-
+    variable.names <- AllVariablesNames(formula, data)
     if (!data.provided) # Extracting the data from the environment
     {
-        # Do not remove backticks initially because a dollar sign without backticks is used to identify
-        # an element to be extracted, or else '$' is just treated as any other character.
-        names.with.backticks <- AllVariablesNames(formula, data, remove.backticks = FALSE)
         data <- environment(formula)
-        data <- as.data.frame(lapply(names.with.backticks, function(x)
+        data <- as.data.frame(lapply(variable.names, function(x)
+        {
+            i <- indexOfUnescapedCharacter(x, "$")
+            if (i == -1)
+                get(RemoveBackticks(x), data)
+            else
             {
-                i <- indexOfUnescapedCharacter(x, "$")
-                if (i == -1)
-                    get(RemoveBackticks(x), data) # variables in environment have backticks removed
-                else
-                {
-                    v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
-                    eval(parse(text = paste("v", substr(x, i, nchar(x)))))
-                }
+                v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
+                eval(parse(text = paste("v", substr(x, i, nchar(x)))))
             }
+        }
         ))
-        names(data) <- RemoveBackticks(names.with.backticks) # remove backticks to match environment
+        names(data) <- variable.names
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
@@ -67,7 +63,7 @@ GetData <- function(formula, data, auxiliary.data)
 DataFormula <- function(formula, data = NULL)
 {
     formula.str <- paste(deparse(formula), collapse = "")
-    var.names <- AllVariablesNames(formula, data, remove.backticks = FALSE)
+    var.names <- AllVariablesNames(formula, data)
 
     # We sort names from longest to shortest since we will be substituting by name
     sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
@@ -100,6 +96,15 @@ CleanBackticks <- function(nms)
     } , USE.NAMES = FALSE)
 }
 
+#' \code{RemoveBackticks}
+#' @description Removes backticks surrounding variable names.
+#' @param nms Vector of variable names.
+#' @export
+RemoveBackticks <- function(nms)
+{
+    ## DS-1769 causes the nasty setting of the perl argument depending on platform.
+    sub("^[`]([[:print:]]*)[`]$", "\\1", nms, perl = (Sys.info()["sysname"] == "Windows"))
+}
 
 indexOfUnescapedCharacter <- function(s, char)
 {
