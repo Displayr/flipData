@@ -20,7 +20,7 @@ GetData <- function(formula, data, auxiliary.data)
         {
             i <- indexOfUnescapedCharacter(x, "$")
             if (i == -1)
-                get(RemoveBackticks(x), data)
+                get(RemoveBackticks(x), data) # variable names in environment do not have surrounding backticks
             else
             {
                 v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
@@ -54,7 +54,7 @@ GetData <- function(formula, data, auxiliary.data)
 
 #' \code{DataFormula}
 #' @description Modifies formula so that any variables that refer to dataframes
-#' with a dollar sign are surrounded by backticks. Any such variables that already
+#' with a dollar sign are surrounded by backticks. Any variables that already
 #' contain backticks will have those backticks escaped.
 #' @param formula An object of class \code{\link{formula}}.
 #' @param data An object of class \code{\link{data.frame}}
@@ -71,7 +71,7 @@ DataFormula <- function(formula, data = NULL)
 
     for (name in sorted.names)
     {
-        if (indexOfUnescapedCharacter(name, "$") > -1)
+        if (indexOfUnescapedCharacter(name, "$") > -1 || grepl("`", name))
         {
             new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
             formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
@@ -97,7 +97,7 @@ CleanBackticks <- function(nms)
 }
 
 #' \code{RemoveBackticks}
-#' @description Removes backticks surrounding variable names.
+#' @description Removes backticks surrounding variable names (first and last character).
 #' @param nms Vector of variable names.
 #' @export
 RemoveBackticks <- function(nms)

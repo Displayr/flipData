@@ -10,5 +10,5 @@ RemoveBackticks(nms)
 \item{nms}{Vector of variable names.}
 }
 \description{
-Removes backticks surrounding variable names.
+Removes backticks surrounding variable names (first and last character).
 }
