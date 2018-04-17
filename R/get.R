@@ -85,15 +85,24 @@ DataFormula <- function(formula, data = NULL)
 #' @description Removes extra backticks and unescapes original backticks
 #' in variable names due to usage of DataFormula.
 #' @param nms Vector of variable names.
+#' @importFrom stringr str_match
 #' @export
 CleanBackticks <- function(nms)
 {
-    sapply(nms, function(nm) {
+    # temporarily remove integer suffix (added to distinguish factor levels)
+    suffix <- str_match(nms, "([0-9]+$)")[, 2]
+    nms <- sub("([0-9]+$)", "", nms)
+
+    nms <- sapply(nms, function(nm) {
         if (length(grep("$", nms, fixed = TRUE)) > 0)
             gsub("\\`" , "`", gsub("(^`|`$)", "", nm), fixed = TRUE)
         else
             nm
     } , USE.NAMES = FALSE)
+
+    # add back suffix
+    nms <- paste0(nms, suffix)
+    return(nms)
 }
 
 #' \code{RemoveBackticks}
