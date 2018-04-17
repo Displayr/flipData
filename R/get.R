@@ -101,6 +101,7 @@ CleanBackticks <- function(nms)
     } , USE.NAMES = FALSE)
 
     # add back suffix
+    suffix[is.na(suffix)] <- ""
     nms <- paste0(nms, suffix)
     return(nms)
 }
