@@ -1,6 +1,6 @@
-#' \code{GetData}
-#' @description Extracts data from the environment of the formula, if it has not
+#' Extracts data from the environment of the formula, if it has not
 #' been provided as an argument.
+#'
 #' @param formula A \code{\link{formula}}.
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).

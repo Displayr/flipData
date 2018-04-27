@@ -58,9 +58,12 @@ test_that("GetTidyTwoDimensionalArray",
 
           })
 
-test_that("GetData DS-",
+test_that("GetData",
           {
               `a$b` <- runif(100)
               c <- runif(100)
-              expect_error(GetData(`a$b` ~ c, NULL, NULL), NA)
+              expect_equal(colnames(GetData(`a$b` ~ c, NULL, NULL)), c("`a$b`", "c"))
+
+              df <- data.frame("a$b" = 1:3, c = 4:6, check.names = FALSE)
+              expect_equal(colnames(GetData(c ~ `a$b`, df, NULL)), c("c", "a$b"))
           })
