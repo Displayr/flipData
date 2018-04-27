@@ -33,7 +33,7 @@ GetData <- function(formula, data, auxiliary.data)
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
     else  # Extracting the variables from the data.frame.
-        data <- data[, variable.names, drop = FALSE]
+        data <- data[, RemoveBackticks(variable.names), drop = FALSE]
     if (!is.null(auxiliary.data) & length(auxiliary.data) > 0)
     {
         if (!is.data.frame(auxiliary.data))

@@ -13,7 +13,7 @@ Imports:
     flipFormat (>= 1.0.0),
     flipImputation,
     flipTransformations (>= 1.4.0),
-    flipU (>= 1.2.3),
+    flipU (>= 1.0.2),
     stats,
     stringr,
     survey
