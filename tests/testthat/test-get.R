@@ -58,7 +58,7 @@ test_that("GetTidyTwoDimensionalArray",
 
           })
 
-test_that("GetData",
+test_that("GetData DS-1505",
           {
               `a$b` <- runif(100)
               c <- runif(100)
