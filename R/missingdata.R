@@ -30,7 +30,7 @@ ExcludeCasesWithAnyMissingData <- function(data)
 {
     result <- na.omit(data)
     if(nrow(result) == 0)
-        noData()
+        NoData()
     result
 }
 
@@ -47,7 +47,7 @@ ExcludeCasesWithCompletelyMissingData <- function(data)
     result <- data[rowSums(is.na(data)) < ncol(data), ]
     if (nrow(result) == 0)
     {
-        noData()
+        NoData()
     }
     return(result)
 }
@@ -62,26 +62,35 @@ ExcludeCasesWithCompletelyMissingData <- function(data)
 ErrorIfMissingDataFound <- function(data)
 {
     if (any(is.na(data)))
-        missingDataFail()
+        MissingDataFail()
     data
 }
-
 
 notAvailable <- function(unavailable.function.name)
 {
     stop(paste(unavailable.function.name,"is not available for this analysis. Please contact support if you believe this option should be available."))
 }
 
-noData <- function()
+#' \code{NoData}
+#' @description Error thrown when all cases contain missing data and no data is
+#'     available for use as the "Exclude cases with missing data" option was
+#'     selected.
+#' @export
+NoData <- function()
 {
-    stop("All observations contains some missing data, so an analysis is not possible. Check to see if there are any 'missing' options that can be used.")
+    stop("All observations contain some missing data, so an analysis is not ",
+         "possible. Check to see if there are any 'missing' options that can ",
+         "be used.")
 }
 
-missingDataFail <- function()
+#' \code{MissingDataFail}
+#' @description Error thrown when missing values are present and the
+#'     "Error if missing data" option was selected.
+#' @export
+MissingDataFail <- function()
 {
     stop("The data contains missing values. Change the 'missing' option to run the analysis.")
 }
-
 
 #' \code{MissingValuesByVariable}
 #' @description Computes the number of missing values by variable.
