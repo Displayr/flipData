@@ -117,6 +117,7 @@ CheckForUniqueVariableNames <- function(formula)
 #' of the fitted model.
 #' @param object A model object for which prediction is desired.
 #' @param newdata A data frame including the variables used to fit the model.
+#' @importFrom flipU CopyAttributes
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
@@ -129,10 +130,6 @@ CheckPredictionVariables <- function(object, newdata)
         stop("Attempting to predict based on fewer variables than those used to train the model.")
     newdata <- newdata[, names(training), drop = FALSE]
     prediction.levels <- lapply(newdata, levels)
-
-    #train.list <- paste(train.levels, collapse = " ")
-    #prediction.list <- paste(prediction.levels, collapse = " ")
-    #warning(sprintf("Trained factors are %s, Prediction factors are %s", train.list, prediction.list))
 
     for (i in 1:length(train.levels))
     {
@@ -150,10 +147,10 @@ CheckPredictionVariables <- function(object, newdata)
                                     names(training[i]), new.levels, new.level.rows))
             }
             # Set prediction levels to those used for training
+            saved.atrributes <- newdata[, i]
             newdata[, i] <- droplevels(newdata[, i])
-            #warning(sprintf("%d : Trained levels are %s, Prediction levels are %s",
-            #                i, paste(train.levels[[i]], collapse = " "), paste(levels(newdata[, i]), collapse = " ")))
             levels(newdata[, i]) <- train.levels[[i]]
+            newdata[, i] <- CopyAttributes(newdata[, i], saved.atrributes)
         }
     }
     return(newdata)
