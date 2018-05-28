@@ -187,7 +187,10 @@ z <- data.frame(numeric = as.character(1:100),
 
 test_that("TidyRawData: auto.correct.class works",
           {
+              out <- TidyRawData(z, missing = "Use partial data", auto.correct.class = TRUE)
+              expect_equal(nrow(out), 100)
               out <- TidyRawData(z, auto.correct.class = TRUE)
+              expect_equal(nrow(out), 80)
               cls <- lapply(out, "class")
               expect_equal(cls$numeric, "numeric")
               expect_equal(cls$character, "character")
