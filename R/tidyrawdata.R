@@ -98,7 +98,10 @@ TidyRawData <- function(data,
             stop("'weights' and 'data' are required to have the same number of observations. They do not.")
     }
     ## Filter and impute missing values in the data (if required)
-    input.formula <- as.formula(paste0("~`", paste(names(data), collapse = "`+`"), "`"))
+    names.without.backticks <- names(data)
+    input.formula <- as.formula(paste0("~`", paste(names.without.backticks, collapse = "`+`"), "`"))
+    # EstimationData requires colnames of data match formaula names including backticks
+    names(data) <- AllVariablesNames(input.formula)
     processed.data <- EstimationData(input.formula,
                                      data = data,
                                      subset = subset,
@@ -106,6 +109,7 @@ TidyRawData <- function(data,
                                      weights = weights,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
+    names(data) <- names.without.backticks
 
     ## Search for common prefix for labels
     if (extract.common.lab.prefix)

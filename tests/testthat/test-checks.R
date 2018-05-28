@@ -42,7 +42,10 @@ test_that("CheckPredictionVariables",
     # Error - predicting based on fewer variables than used to fit model
     expect_error(CheckPredictionVariables(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attempting to predict*")
     # Warning - more levels in prediction data than fitted
-    expect_warning(CheckPredictionVariables(z, newdata = hbatwithsplits), "Prediction variable x1*")
+    newdata <- hbatwithsplits
+    attr(newdata$x1, "Label") <- "something"
+    expect_warning(checked <- CheckPredictionVariables(z, newdata = newdata), "Prediction variable x1*")
+    expect_equal(attr(checked$x1, "Label"), "something")
     # Prediction levels reset to those used for fitting
     expect_equal(length(levels(CheckPredictionVariables(z, newdata = droplevels(hbatwithsplits[1, ]))$x1)), 2)
 })

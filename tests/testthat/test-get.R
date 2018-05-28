@@ -57,3 +57,13 @@ test_that("GetTidyTwoDimensionalArray",
               expect_equal(GetTidyTwoDimensionalArray(x, row.names.to.remove = "A, C"), x[2, , drop = FALSE])
 
           })
+
+test_that("GetData",
+          {
+              `a$b` <- runif(100)
+              c <- runif(100)
+              expect_equal(colnames(GetData(`a$b` ~ c, NULL, NULL)), c("`a$b`", "c"))
+
+              df <- data.frame("a$b" = 1:3, c = 4:6, check.names = FALSE)
+              expect_equal(colnames(GetData(c ~ `a$b`, df, NULL)), c("c", "a$b"))
+          })

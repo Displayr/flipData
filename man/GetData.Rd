@@ -2,7 +2,8 @@
 % Please edit documentation in R/get.R
 \name{GetData}
 \alias{GetData}
-\title{\code{GetData}}
+\title{Extracts data from the environment of the formula, if it has not
+been provided as an argument.}
 \usage{
 GetData(formula, data, auxiliary.data)
 }

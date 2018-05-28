@@ -1,6 +1,6 @@
-#' \code{GetData}
-#' @description Extracts data from the environment of the formula, if it has not
+#' Extracts data from the environment of the formula, if it has not
 #' been provided as an argument.
+#'
 #' @param formula A \code{\link{formula}}.
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
@@ -17,23 +17,23 @@ GetData <- function(formula, data, auxiliary.data)
     {
         data <- environment(formula)
         data <- as.data.frame(lapply(variable.names, function(x)
+        {
+            i <- indexOfUnescapedCharacter(x, "$")
+            if (i == -1)
+                get(RemoveBackticks(x), data) # variable names in environment do not have surrounding backticks
+            else
             {
-                i <- indexOfUnescapedCharacter(x, "$")
-                if (i == -1)
-                    get(x, data)
-                else
-                {
-                    v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
-                    eval(parse(text = paste("v", substr(x, i, nchar(x)))))
-                }
+                v <- get(gsub("`", "", substr(x, 1, i - 1), fixed = TRUE), data)
+                eval(parse(text = paste("v", substr(x, i, nchar(x)))))
             }
+        }
         ))
         names(data) <- variable.names
     }
     else if (!is.data.frame(data))
         stop("'data' must be a 'data.frame'.")
     else  # Extracting the variables from the data.frame.
-        data <- data[, variable.names, drop = FALSE]
+        data <- data[, RemoveBackticks(variable.names), drop = FALSE]
     if (!is.null(auxiliary.data) & length(auxiliary.data) > 0)
     {
         if (!is.data.frame(auxiliary.data))
@@ -54,7 +54,7 @@ GetData <- function(formula, data, auxiliary.data)
 
 #' \code{DataFormula}
 #' @description Modifies formula so that any variables that refer to dataframes
-#' with a dollar sign are surrounded by backticks. Any such variables that already
+#' with a dollar sign are surrounded by backticks. Any variables that already
 #' contain backticks will have those backticks escaped.
 #' @param formula An object of class \code{\link{formula}}.
 #' @param data An object of class \code{\link{data.frame}}
@@ -71,7 +71,7 @@ DataFormula <- function(formula, data = NULL)
 
     for (name in sorted.names)
     {
-        if (indexOfUnescapedCharacter(name, "$") > -1)
+        if (indexOfUnescapedCharacter(name, "$") > -1 || grepl("`", name))
         {
             new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
             formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
@@ -85,15 +85,35 @@ DataFormula <- function(formula, data = NULL)
 #' @description Removes extra backticks and unescapes original backticks
 #' in variable names due to usage of DataFormula.
 #' @param nms Vector of variable names.
+#' @importFrom stringr str_match
 #' @export
 CleanBackticks <- function(nms)
 {
-    sapply(nms, function(nm) {
+    # temporarily remove integer suffix (added to distinguish factor levels)
+    suffix <- str_match(nms, "([0-9]+$)")[, 2]
+    nms <- sub("([0-9]+$)", "", nms)
+
+    nms <- sapply(nms, function(nm) {
         if (length(grep("$", nms, fixed = TRUE)) > 0)
             gsub("\\`" , "`", gsub("(^`|`$)", "", nm), fixed = TRUE)
         else
             nm
     } , USE.NAMES = FALSE)
+
+    # add back suffix
+    suffix[is.na(suffix)] <- ""
+    nms <- paste0(nms, suffix)
+    return(nms)
+}
+
+#' \code{RemoveBackticks}
+#' @description Removes backticks surrounding variable names (first and last character).
+#' @param nms Vector of variable names.
+#' @export
+RemoveBackticks <- function(nms)
+{
+    ## DS-1769 causes the nasty setting of the perl argument depending on platform.
+    sub("^[`]([[:print:]]*)[`]$", "\\1", nms, perl = (Sys.info()["sysname"] == "Windows"))
 }
 
 indexOfUnescapedCharacter <- function(s, char)
