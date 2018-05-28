@@ -19,11 +19,8 @@ export(ExcludeCasesWithAnyMissingData)
 export(ExcludeCasesWithCompletelyMissingData)
 export(GetData)
 export(GetTidyTwoDimensionalArray)
-<<<<<<< HEAD
 export(IsMissing)
-=======
 export(MissingDataFail)
->>>>>>> origin/master
 export(MissingValuesByVariable)
 export(NoData)
 export(Observed)
