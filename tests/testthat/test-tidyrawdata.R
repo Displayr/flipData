@@ -173,3 +173,26 @@ test_that("TidyRawData: error if remove so much NA data that more variables than
               x1$x[1:99] <- NA
               expect_error(TidyRawData(x1, missing = "Exclude cases with missing data"))
           })
+
+
+################################################################################
+## Coercing type
+################################################################################
+
+z <- data.frame(numeric = as.character(1:100),
+                character = factor(paste0(1:100,LETTERS[1:10])),
+                factor = LETTERS[1:4],
+                POSIXct = "2017/01/01",
+                logical = c("T", "T", "F", "F", "na"))
+
+test_that("TidyRawData: auto.correct.class works",
+          {
+              out <- TidyRawData(z, auto.correct.class = TRUE)
+              cls <- lapply(out, "class")
+              expect_equal(cls$numeric, "numeric")
+              expect_equal(cls$character, "character")
+              expect_equal(cls$factor, "factor")
+              expect_equal(cls$POSIXct, c("POSIXct", "POSIXt"))
+              expect_equal(cls$logical, "logical")
+          })
+

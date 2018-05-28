@@ -24,6 +24,8 @@
 #'     attempt to extract the common prefix from the data labels, and
 #'     if one exists, the shortened variable names without the prefix
 #'     will be used for names in the returned data.frame.
+#' @param auto.correct.class If \code{TRUE}, the class of each variable
+#'     is automatically inferred and corrected if required.
 #' @return A \code{data.frame} containing the filtered raw data, which
 #'     has an attribute called \code{"weights"}, containing the
 #'     (filtered) vector of weights.  If
@@ -42,11 +44,15 @@ TidyRawData <- function(data,
                         weights = NULL,
                         missing = "Exclude cases with missing data",
                         error.if.insufficient.obs = TRUE,
-                        extract.common.lab.prefix = FALSE)
+                        extract.common.lab.prefix = FALSE,
+                        auto.correct.class = FALSE)
 {
 
     if (missing(data) || !length(data))
         stop("No data supplied")
+    if (auto.correct.class)
+        for (i in seq_along(data))
+            data[[i]] <- AutoCoerceClass(data[[i]])
 
     ## Removing duplicate variables (put back in at the end)
     nms <- names(data)

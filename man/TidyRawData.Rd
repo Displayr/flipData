@@ -6,7 +6,8 @@
 \usage{
 TidyRawData(data, as.numeric = FALSE, as.binary = FALSE, subset = NULL,
   weights = NULL, missing = "Exclude cases with missing data",
-  error.if.insufficient.obs = TRUE, extract.common.lab.prefix = FALSE)
+  error.if.insufficient.obs = TRUE, extract.common.lab.prefix = FALSE,
+  auto.correct.class = FALSE)
 }
 \arguments{
 \item{data}{A \code{data.frame}.}
@@ -37,6 +38,9 @@ variables than observations.}
 attempt to extract the common prefix from the data labels, and
 if one exists, the shortened variable names without the prefix
 will be used for names in the returned data.frame.}
+
+\item{auto.correct.class}{If \code{TRUE}, the class of each variable
+is automatically inferred and corrected if required.}
 }
 \value{
 A \code{data.frame} containing the filtered raw data, which
