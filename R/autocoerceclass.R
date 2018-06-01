@@ -25,7 +25,6 @@ AutoCoerceClass <- function(x, stringsAsFactors = TRUE, max.value.labels = 12)
     missing <- IsMissing(x)
     if (all(missing))
         return(out)
-
     # Converting everything else to character
     x.original <- x
     x <- as.character(x)
@@ -50,8 +49,7 @@ AutoCoerceClass <- function(x, stringsAsFactors = TRUE, max.value.labels = 12)
 
     # Dates and times
     ## This first bit will be deprecated soon via DS-1992
-    if (any(!is.na(grep(".000Z", x))))
-    {
+    if (all(stringr::str_count(x.not.missing, "-") == 2 & stringr::str_count(x.not.missing, ":") == 2 & stringr::str_count(x.not.missing, "T") == 1))        {
         dts <- suppressWarnings(AsDateTime(gsub(".000Z", "", x.not.missing), on.parse.failure = "warn"))
         out[!missing] <- dts
         class(out) <- class(dts)
