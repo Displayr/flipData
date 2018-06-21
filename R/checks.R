@@ -135,16 +135,22 @@ CheckPredictionVariables <- function(object, newdata)
     {
         if (!is.null(train.levels[[i]]))    # factor variables only
         {
-            # if there are any prediction levels that have not been used to train
+            # find newdata levels that have not been used to train
             new.levels <- setdiff(prediction.levels[[i]], train.levels[[i]])
+
             if (!identical(new.levels, character(0)))
             {
-                # set all new factor levels to NA
-                new.level.rows <- nrow(newdata[newdata[, i] %in% new.levels, ])
-                newdata[newdata[, i] %in% new.levels, i] <- NA
-                if (!is.null(new.level.rows))
+                level.counts <- table(newdata[, i])
+                level.counts <- level.counts[new.levels]
+                level.counts <- level.counts[level.counts != 0]
+
+                if (length(level.counts != 0)) # some newdata instances have new levels
+                {
+                    # set all new factor levels to NA
+                    newdata[newdata[, i] %in% new.levels, i] <- NA
                     warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected.",
-                                    names(training[i]), new.levels, new.level.rows))
+                                    names(training[i]), names(level.counts), level.counts))
+                }
             }
             # Set prediction levels to those used for training
             saved.atrributes <- newdata[, i]
