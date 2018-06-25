@@ -128,7 +128,9 @@ CheckPredictionVariables <- function(object, newdata)
         stop("Attempting to predict based on fewer variables than those used to train the model.")
 
     train.levels <- lapply(droplevels(training), levels)
-    #train.levels <- if (!is.null(attr(object, "xlevels"))) attr(object, "xlevels") else lapply(droplevels(training), levels)
+    att.levels <- attr(object, "xlevels") # use xlevels attribute with training levels if available
+    if (!is.null(att.levels) && length(att.levels) != 0)
+        train.levels <- att.levels
 
     newdata <- newdata[, names(training), drop = FALSE]
     prediction.levels <- lapply(newdata, levels)
@@ -146,11 +148,11 @@ CheckPredictionVariables <- function(object, newdata)
                 level.counts <- level.counts[new.levels]
                 level.counts <- level.counts[level.counts != 0]
 
-                if (length(level.counts != 0)) # some newdata instances have new levels
+                if (length(level.counts) != 0) # some newdata instances have new levels
                 {
                     # set all new factor levels to NA
                     newdata[newdata[, i] %in% new.levels, i] <- NA
-                    warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected.",
+                    warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected. ",
                                     names(training[i]), names(level.counts), level.counts))
                 }
             }
