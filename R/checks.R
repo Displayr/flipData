@@ -138,31 +138,34 @@ CheckPredictionVariables <- function(object, newdata)
     prediction.levels <- lapply(newdata, levels)
     prediction.levels <- prediction.levels[!sapply(prediction.levels, is.null)]
 
-    for (i in 1:length(train.levels))
+    if (length(train.levels) > 0)
     {
-        factor.name <- names(train.levels)[[i]]
-        # find newdata levels that have not been used to train
-        new.levels <- setdiff(prediction.levels[[i]], train.levels[[i]])
-
-        if (!identical(new.levels, character(0)))
+        for (i in 1:length(train.levels))
         {
-            level.counts <- table(newdata[, factor.name])
-            level.counts <- level.counts[new.levels]
-            level.counts <- level.counts[level.counts != 0]
+            factor.name <- names(train.levels)[[i]]
+            # find newdata levels that have not been used to train
+            new.levels <- setdiff(prediction.levels[[i]], train.levels[[i]])
 
-            if (length(level.counts) != 0) # some newdata instances have new levels
+            if (!identical(new.levels, character(0)))
             {
-                # set all new factor levels to NA
-                newdata[newdata[, factor.name] %in% new.levels, factor.name] <- NA
-                warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected. ",
-                                factor.name, names(level.counts), level.counts))
+                level.counts <- table(newdata[, factor.name])
+                level.counts <- level.counts[new.levels]
+                level.counts <- level.counts[level.counts != 0]
+
+                if (length(level.counts) != 0) # some newdata instances have new levels
+                {
+                    # set all new factor levels to NA
+                    newdata[newdata[, factor.name] %in% new.levels, factor.name] <- NA
+                    warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected. ",
+                                    factor.name, names(level.counts), level.counts))
+                }
             }
+            # Set prediction levels to those used for training
+            saved.atrributes <- newdata[, factor.name]
+            newdata[, factor.name] <- droplevels(newdata[, factor.name])
+            levels(newdata[, factor.name]) <- train.levels[[i]]
+            newdata[, factor.name] <- CopyAttributes(newdata[, factor.name], saved.atrributes)
         }
-        # Set prediction levels to those used for training
-        saved.atrributes <- newdata[, factor.name]
-        newdata[, factor.name] <- droplevels(newdata[, factor.name])
-        levels(newdata[, factor.name]) <- train.levels[[i]]
-        newdata[, factor.name] <- CopyAttributes(newdata[, factor.name], saved.atrributes)
     }
     return(newdata)
 }
