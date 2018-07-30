@@ -67,3 +67,10 @@ test_that("GetData DS-1505",
               df <- data.frame("a$b" = 1:3, c = 4:6, check.names = FALSE)
               expect_equal(colnames(GetData(c ~ `a$b`, df, NULL)), c("c", "a$b"))
           })
+
+test_that("GetData missing variable",
+          {
+              x <- data.frame(a = seq(3), b = seq(3))
+              expect_error(GetData(c ~ ., data = x), "Variable.")
+
+          })
