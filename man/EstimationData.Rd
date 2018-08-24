@@ -5,8 +5,9 @@
 \title{Select the data from a data frame for estimation.}
 \usage{
 EstimationData(formula = NULL, data = NULL, subset = NULL,
-  weights = NULL, missing = "Exclude cases with missing data", m = 10,
-  seed = 12321, error.if.insufficient.obs = TRUE, impute.full.data = TRUE)
+  weights = NULL, missing = "Exclude cases with missing data",
+  m = 10, seed = 12321, error.if.insufficient.obs = TRUE,
+  impute.full.data = TRUE)
 }
 \arguments{
 \item{formula}{An object of class \code{\link{formula}} (or one

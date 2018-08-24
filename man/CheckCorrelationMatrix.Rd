@@ -4,7 +4,8 @@
 \alias{CheckCorrelationMatrix}
 \title{CheckCorrelationMatrix}
 \usage{
-CheckCorrelationMatrix(correlations, variable.names = colnames(correlations))
+CheckCorrelationMatrix(correlations,
+  variable.names = colnames(correlations))
 }
 \arguments{
 \item{correlations}{A correlation matrix.}

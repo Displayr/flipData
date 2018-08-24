@@ -3,23 +3,28 @@
 \name{Observed}
 \alias{Observed}
 \alias{Observed.default}
-\title{\code{observed} The variable used as the outcome when fitting a model. .}
+\alias{Observed.MachineLearningEnsemble}
+\title{\code{Observed}}
 \usage{
 Observed(x)
 
 \method{Observed}{default}(x)
+
+\method{Observed}{MachineLearningEnsemble}(x)
 }
 \arguments{
 \item{x}{A model.}
 }
 \description{
-\code{observed} The variable used as the outcome when fitting a model. .
+Returns the variable used as the outcome when fitting a model.
 }
 \details{
 Extracted for the entire data set (i.e., not just the specific values used in the fitting).
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Exctracts the dependant variable from an object from its formula.
+\item \code{default}: Extracts the dependant variable from an object from its formula.
+
+\item \code{MachineLearningEnsemble}: Extracts the dependant variable directly from an object.
 }}
 
