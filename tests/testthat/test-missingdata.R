@@ -16,3 +16,16 @@ test_that("Missing options",
     expect_equal(823, nrow(EstimationData(Overall ~ Branch, bank, missing = "Use partial data (pairwise correlations)")$estimation.data))
 })
 
+test_that("Infinity",
+{
+    expect_error(ErrorIfInfinity(bank), NA)
+    expect_error(ErrorIfInfinity(dat), NA)
+    dat$a[10] <- Inf
+    dat$b[10] <- -Inf
+    expect_error(ErrorIfInfinity(dat),
+                 "Variable(s) a, b contain infinite values. Either recode the infinities to finite values or set them as missing data.",
+                 fixed = TRUE)
+
+})
+
+

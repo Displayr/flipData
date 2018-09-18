@@ -149,7 +149,6 @@ CleanSubset <- function(subset, n.total)
 #' @param weights A weights variable from Displayr or Q (i.e., \code{QcalibratedWeight}
 #' or \code{QPopulationWeight}).
 #' @export
-
 CleanWeights <- function(weights)
 {
     if (is.null(weights))
@@ -157,4 +156,21 @@ CleanWeights <- function(weights)
     weights[is.na(weights) | weights < 0] <- 0
     weights
 }
+
+
+#' Returns an error if any column(s) contain +/- ininity.
+#'
+#' @param data A \code{data.frame}.
+#' @export
+ErrorIfInfinity <- function(data)
+{
+    infinite.cols <- sapply(data, function(x) any(is.infinite(x)))
+    if (any(infinite.cols))
+    {
+        infinite.vars <- paste(names(infinite.cols)[infinite.cols], collapse = ", ")
+        stop("Variable(s) ", infinite.vars, " contain infinite values.",
+             " Either recode the infinities to finite values or set them as missing data.")
+    }
+}
+
 
