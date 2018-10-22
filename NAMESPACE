@@ -2,6 +2,7 @@
 
 S3method(Observed,MachineLearningEnsemble)
 S3method(Observed,default)
+export(AddFormulaBars)
 export(AutoCoerceClass)
 export(CalibrateWeight)
 export(CheckCorrelationMatrix)
