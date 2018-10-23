@@ -9,12 +9,13 @@ CheckPredictionVariables(object, newdata)
 \arguments{
 \item{object}{A model object for which prediction is desired.}
 
-\item{newdata}{A data frame including the variables used to fit the model.}
+\item{newdata}{A \code{data.frame} including the variables used to fit the model.}
 }
 \description{
-Verifies that newdata is consistent with data used to used to fit a model.  newdata must contain a
-superset of the variables used to fit the model or an error results. If a factor variable contains
-more levels than the factor used for fitting, a warning is given and instances with such new factor
-levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
-of the fitted model.
+Verifies that \code{newdata} is consistent with data used to used to fit a model.
+The \code{newdata} must contain a superset of the variables used to fit the model or an error results.
+Variables that are factors in the training data are coerced to factors in \code{newdata}.
+If a factor variable in \code{newdata} contains additional levels than the factor used for fitting,
+a warning is given and instances with such additional levels are set to NA in the returned data.
+The levels of the returned data frame are set to those of the fitted model.
 }

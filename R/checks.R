@@ -110,61 +110,68 @@ CheckForUniqueVariableNames <- function(formula)
 
 #' \code{CheckPredictionVariables}
 #'
-#' Verifies that newdata is consistent with data used to used to fit a model.  newdata must contain a
-#' superset of the variables used to fit the model or an error results. If a factor variable contains
-#' more levels than the factor used for fitting, a warning is given and instances with such new factor
-#' levels are set to NA in the returned data frame.  The levels of the returned data frame are set to those
-#' of the fitted model.
+#' Verifies that \code{newdata} is consistent with data used to used to fit a model.
+#' The \code{newdata} must contain a superset of the variables used to fit the model or an error results.
+#' Variables that are factors in the training data are coerced to factors in \code{newdata}.
+#' If a factor variable in \code{newdata} contains additional levels than the factor used for fitting,
+#' a warning is given and instances with such additional levels are set to NA in the returned data.
+#' The levels of the returned data frame are set to those of the fitted model.
+#'
 #' @param object A model object for which prediction is desired.
-#' @param newdata A data frame including the variables used to fit the model.
+#' @param newdata A \code{data.frame} including the variables used to fit the model.
 #' @importFrom flipU CopyAttributes
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
+    # Check that newdata contains all training variables
     training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
     if (ncol(training) == 0)
         return(newdata)
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
         stop("Attempting to predict based on fewer variables than those used to train the model.")
 
+    # Identify training factors
     train.levels <- lapply(droplevels(training), levels)
-    train.levels <- train.levels[!sapply(train.levels, is.null)]  # keep only factor variables
+    train.levels <- train.levels[!sapply(train.levels, is.null)]
 
-    att.levels <- attr(object, "xlevels") # use xlevels attribute with training levels if available
+    # Use xlevels attribute with training levels if available
+    att.levels <- attr(object, "xlevels")
     if (!is.null(att.levels) && length(att.levels) != 0)
         train.levels <- att.levels
 
+    # Remove unused new variables and ensure training factors are factors
     newdata <- newdata[, names(training), drop = FALSE]
+    newdata[, names(train.levels)] <- lapply(newdata[, names(train.levels)], as.factor)
     prediction.levels <- lapply(newdata, levels)
     prediction.levels <- prediction.levels[!sapply(prediction.levels, is.null)]
 
+    # For each training factor, identify whether any prediction levels have not been used for training.
     if (length(train.levels) > 0)
     {
-        for (i in 1:length(train.levels))
+        for (train.factor in names(train.levels))
         {
-            factor.name <- names(train.levels)[[i]]
-            # find newdata levels that have not been used to train
-            new.levels <- setdiff(prediction.levels[[i]], train.levels[[i]])
+            # Find newdata levels that have not been used to train
+            new.levels <- setdiff(prediction.levels[[train.factor]], train.levels[[train.factor]])
 
             if (!identical(new.levels, character(0)))
             {
-                level.counts <- table(newdata[, factor.name])
+                level.counts <- table(newdata[, train.factor])
                 level.counts <- level.counts[new.levels]
                 level.counts <- level.counts[level.counts != 0]
 
                 if (length(level.counts) != 0) # some newdata instances have new levels
                 {
-                    # set all new factor levels to NA
-                    newdata[newdata[, factor.name] %in% new.levels, factor.name] <- NA
+                    # Set all new factor levels to NA
+                    newdata[newdata[, train.factor] %in% new.levels, train.factor] <- NA
                     warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected. ",
-                                    factor.name, names(level.counts), level.counts))
+                                    train.factor, names(level.counts), level.counts))
                 }
             }
             # Set prediction levels to those used for training
-            saved.atrributes <- newdata[, factor.name]
-            newdata[, factor.name] <- droplevels(newdata[, factor.name])
-            levels(newdata[, factor.name]) <- train.levels[[i]]
-            newdata[, factor.name] <- CopyAttributes(newdata[, factor.name], saved.atrributes)
+            saved.atrributes <- newdata[, train.factor]
+            newdata[, train.factor] <- droplevels(newdata[, train.factor])
+            newdata[, train.factor] <- factor(as.character(newdata[, train.factor]), levels = train.levels[[train.factor]])
+            newdata[, train.factor] <- CopyAttributes(newdata[, train.factor], saved.atrributes)
         }
     }
     return(newdata)
