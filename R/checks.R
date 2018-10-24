@@ -141,7 +141,7 @@ CheckPredictionVariables <- function(object, newdata)
 
     # Remove unused new variables and ensure training factors are factors
     newdata <- newdata[, names(training), drop = FALSE]
-    newdata[, names(train.levels)] <- lapply(newdata[, names(train.levels)], as.factor)
+    newdata[, names(train.levels)] <- lapply(newdata[, names(train.levels), drop = FALSE], as.factor)
     prediction.levels <- lapply(newdata, levels)
     prediction.levels <- prediction.levels[!sapply(prediction.levels, is.null)]
 
