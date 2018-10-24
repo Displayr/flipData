@@ -170,7 +170,9 @@ CheckPredictionVariables <- function(object, newdata)
             # Set prediction levels to those used for training
             saved.atrributes <- newdata[, train.factor]
             newdata[, train.factor] <- droplevels(newdata[, train.factor])
-            newdata[, train.factor] <- factor(as.character(newdata[, train.factor]), levels = train.levels[[train.factor]])
+            newdata[, train.factor] <- factor(as.character(newdata[, train.factor]),
+                                              levels = train.levels[[train.factor]],
+                                              ordered = is.ordered(training[, train.factor]))
             newdata[, train.factor] <- CopyAttributes(newdata[, train.factor], saved.atrributes)
         }
     }
