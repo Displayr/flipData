@@ -2,7 +2,7 @@
 
 
 #' \code{Calibrate}
-#' @description Performs calibration and reweighting for a sample set according to one or more categorical/numeric variables.\
+#' @description Performs calibration and reweighting for a sample set according to one or more categorical/numeric variables.
 #' @param formCategorical Zero or more categorical sample vectors that are to be used to weight the data
 #' @param categorical.targets The target probabilities for each category listed in formCategorical
 #' @param formNumeric the numeric variables associated with each sample that are to be used to create the output weights
@@ -12,7 +12,7 @@
 #' @param input.weight The sample size
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
 #' @return numeric A vector of weights
-#' @importFrom icarus
+#' @importFrom icarus calibration
 #' @export
 Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric.targets, lower, upper, input.weight, trim.iterations)
 {
@@ -195,15 +195,16 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
     result
 }
 
-#' \code{Calibrate.print}
+#' \code{print.Calibrate}
 #' @description Print method for calibrate weights
-#' @param weights A vector of weights.
+#' @param x A vector of weights.
+#' @param ... Other ignored parameters
 #' @return character string
 #' @method print Calibrate
 #' @export
-print.Calibrate <- function (weight, ...) {
+print.Calibrate <- function (x, ...) {
 
-    ess = flipData::EffectiveSampleSize(weight)
-    ess.percent = round(ess / length(weight) * 100)
+    ess = flipData::EffectiveSampleSize(x)
+    ess.percent = round(ess / length(x) * 100)
     paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)")
 }
