@@ -1,3 +1,18 @@
+
+
+
+#' \code{Calibrate}
+#' @description Performs calibration and reweighting for a sample set according to one or more categorical/numeric variables.\
+#' @param formCategorical Zero or more categorical sample vectors that are to be used to weight the data
+#' @param categorical.targets The target probabilities for each category listed in formCategorical
+#' @param formNumeric the numeric variables associated with each sample that are to be used to create the output weights
+#' @param numeric.targets the target probabilities for each numeric variable in formNumeric
+#' @param lower The lower bound for weighting of an individual sample
+#' @param upper The upper bound for weighting of an individual sample
+#' @param input.weight The sample size
+#' @param trim.iterations The number of times to run the trim loop over the final weightings
+#' @return numeric A vector of weights
+#' @export
 Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric.targets, lower, upper, input.weight, trim.iterations)
 {
     # The functions defined inside here should be moreved to separate functions when included in the R package
@@ -83,9 +98,9 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
         tgts = matrix("0", n.vars, max.cats)
         for (i in 1 : n.vars)
         {
-            if (i <= n.categorical)
-            tgts[i, 1 : n.cats[i]] = targets[[i]]
-            else {
+            if (i <= n.categorical) {
+                tgts[i, 1 : n.cats[i]] = targets[[i]]
+            } else {
                 tgts[i, 1] = targets[[i]] * n # Sums rather than averages in icarus
                 n.cats[i] = 0 # icarus assumes 0 in this field for numeric variables
             }
@@ -156,7 +171,7 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
     if (! is.null(formNumeric))
     {
         num.adjustment.variables = convertToDataFrame(formNumeric)
-        adjustment.variables = if (is.null(formCategorical))num.adjustment.variables else cbind(adjustment.variables, num.adjustment.variables)
+        adjustment.variables = if (is.null(formCategorical)) num.adjustment.variables else cbind(adjustment.variables, num.adjustment.variables)
         targets = numericTargets(targets, adjustment.variables, numeric.targets)
     }
 
@@ -170,16 +185,20 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
         upper = Inf
 
     # Adding the weight variable or a proxy (and normalizing to a mean of 1)
-    weight = if (is.null(input.weight))1 else input.weight / mean(input.weight)
+    weight = if (is.null(input.weight)) 1 else input.weight / mean(input.weight)
 
     # Calculating/updating the weight
     trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
-    #weight = trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
+}
 
-    # The weight should be returned as a single vector, and the print statement should return
-    # what is currently beint returned.
-    # Effective sample size
-    #ess = flipData::EffectiveSampleSize(weight)
-    #ess.percent = round(ess / length(weight) * 100)
-    #paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)")
+#' \code{Calibrate.print}
+#' @description Print method for calibrate weights
+#' @param weights A vector of weights.
+#' @return character string
+#' @export
+Calibrate.print <- function (weight, ...) {
+
+    ess = flipData::EffectiveSampleSize(weight)
+    ess.percent = round(ess / length(weight) * 100)
+    paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)")
 }
