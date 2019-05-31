@@ -12,6 +12,7 @@
 #' @param input.weight The sample size
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
 #' @return numeric A vector of weights
+#' @importFrom icarus
 #' @export
 Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric.targets, lower, upper, input.weight, trim.iterations)
 {
@@ -195,8 +196,9 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
 #' @description Print method for calibrate weights
 #' @param weights A vector of weights.
 #' @return character string
+#' @method print Calibrate
 #' @export
-Calibrate.print <- function (weight, ...) {
+print.Calibrate <- function (weight, ...) {
 
     ess = flipData::EffectiveSampleSize(weight)
     ess.percent = round(ess / length(weight) * 100)

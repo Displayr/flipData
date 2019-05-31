@@ -2,10 +2,10 @@
 
 S3method(Observed,MachineLearningEnsemble)
 S3method(Observed,default)
+S3method(print,Calibrate)
 export(AddFormulaBars)
 export(AutoCoerceClass)
 export(Calibrate)
-export(Calibrate.print)
 export(CalibrateWeight)
 export(CheckCorrelationMatrix)
 export(CheckForLinearDependence)
