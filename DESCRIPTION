@@ -19,7 +19,7 @@ Imports:
     stats,
     stringr,
     survey
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Suggests: 
     testthat,
     flipExampleData
