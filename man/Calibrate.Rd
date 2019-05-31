@@ -28,5 +28,5 @@ Calibrate(formCategorical, categorical.targets, formNumeric,
 numeric A vector of weights
 }
 \description{
-\code{Calibrate}
+Performs calibration and reweighting for a sample set according to one or more categorical/numeric variables.
 }

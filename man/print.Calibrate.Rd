@@ -4,10 +4,12 @@
 \alias{print.Calibrate}
 \title{\code{Calibrate.print}}
 \usage{
-\method{print}{Calibrate}(weight, ...)
+\method{print}{Calibrate}(x, ...)
 }
 \arguments{
-\item{weights}{A vector of weights.}
+\item{x}{A vector of weights.}
+
+\item{...}{Other ignored parameters}
 }
 \value{
 character string
