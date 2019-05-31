@@ -189,7 +189,10 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
     weight = if (is.null(input.weight)) 1 else input.weight / mean(input.weight)
 
     # Calculating/updating the weight
-    trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
+    result <- trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
+
+    class(result) <- "Calibrate"
+    result
 }
 
 #' \code{Calibrate.print}
