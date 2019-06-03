@@ -206,5 +206,6 @@ print.Calibrate <- function (x, ...) {
 
     ess = flipData::EffectiveSampleSize(x)
     ess.percent = round(ess / length(x) * 100)
-    paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)")
+    result <- paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)")
+    cat(result)
 }
