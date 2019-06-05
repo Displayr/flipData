@@ -35,6 +35,9 @@ Calibrate <- function(formCategorical = NULL, categorical.targets = NULL, formNu
     {
         targets = list()
         n.categorical = length(adjustment.variables)
+        if (n.categorical != length(categorical.targets)) {
+            stop("Argument length mismatch: formCategorical must be the same length as categorical.targets")
+        }
         for (i in 1 : n.categorical)
         {
             tgt = categorical.targets[[i]]
@@ -71,6 +74,9 @@ Calibrate <- function(formCategorical = NULL, categorical.targets = NULL, formNu
     {
         n.categorical = length(targets)
         n = NROW(adjustment.variables)
+        if (length(formNumeric) != length(numeric.targets)) {
+            stop("Argument length mismatch: formNumeric must be the same length as numeric.targets")
+        }
         for (i in 1 : (length(formNumeric)))
         {
             numvar = formNumeric[[i]]
@@ -169,6 +175,7 @@ Calibrate <- function(formCategorical = NULL, categorical.targets = NULL, formNu
     if (! is.null(formCategorical))
     {
         adjustment.variables = convertToDataFrame(formCategorical)
+        categorical.targets = if (is.null(categorical.targets) || is.list(categorical.targets)) categorical.targets else list(categorical.targets)
         targets = categoricalTargets(adjustment.variables, categorical.targets)
     }
     n.categorical = length(targets)

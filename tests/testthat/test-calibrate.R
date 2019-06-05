@@ -1265,7 +1265,7 @@ test_that("Multiple Categorical inputs", {
 })
 
 test_that("Single Categorical input", {
-    actual <- Calibrate(input.age, list(variable.targets.age))
+    actual <- Calibrate(input.age, variable.targets.age)
 
     actual.weighted.means <- tapply(actual, input.age, sum) / length(input.age)
 
@@ -1285,7 +1285,7 @@ test_that("Numeric input", {
 test_that("Categorical and Numeric input", {
     actual <- Calibrate(
         formCategorical=input.age,
-        categorical.targets=list(variable.targets.age),
+        categorical.targets=variable.targets.age,
         formNumeric=list(input.race.white, input.race.black, input.race.hispanic),
         numeric.targets=variable.targets.race
     )
@@ -1313,20 +1313,21 @@ test_that("Min/Max weights", {
 
 test_that("Invalid inputs", {
     expect_error(Calibrate(), "Nothing to do")
-    expect_error(Calibrate(input.age), "No targets have been provided")
-    expect_error(Calibrate(input.age, list(variable.targets.age[-2,])), "No targets.*30-44")
+    expect_error(Calibrate(input.age), "Argument length mismatch")
+    expect_error(Calibrate(formNumeric=list(input.race.white, input.race.black, input.race.hispanic)), "Argument length mismatch")
+    expect_error(Calibrate(input.age, variable.targets.age[-2,]), "No targets.*30-44")
 
     variable.targets.age.errored = variable.targets.age
     variable.targets.age.errored[6] = .6
-    expect_error(Calibrate(input.age, list(variable.targets.age.errored)), "add up to exactly 1")
+    expect_error(Calibrate(input.age, variable.targets.age.errored), "add up to exactly 1")
 
     variable.targets.age.errored[6] = NA
-    expect_error(Calibrate(input.age, list(variable.targets.age.errored)), "missing")
+    expect_error(Calibrate(input.age, variable.targets.age.errored), "missing")
 
 
 
     variable.targets.age.errored = structure(c("18-29", "30-44", "45-64", "65+", "should be dead already", ".20", ".20",
                                        ".20", ".20", ".20"), .Dim = c(5L, 2L))
-    expect_error(Calibrate(input.age, list(variable.targets.age.errored)), "does not appear in variable")
+    expect_error(Calibrate(input.age, variable.targets.age.errored), "does not appear in variable")
 
 })
