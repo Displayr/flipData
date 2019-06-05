@@ -14,7 +14,7 @@
 #' @return numeric A vector of weights
 #' @importFrom icarus calibration
 #' @export
-Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric.targets, lower, upper, input.weight, trim.iterations)
+Calibrate <- function(formCategorical = NULL, categorical.targets = NULL, formNumeric = NULL, numeric.targets = NULL, lower = NA, upper = NA, input.weight = NULL, trim.iterations = 20)
 {
     # The functions defined inside here should be moreved to separate functions when included in the R package
     # Converts a list into a data frame and throws an error if it contains any missing values
@@ -160,6 +160,11 @@ Calibrate <- function(formCategorical, categorical.targets, formNumeric, numeric
     # Preparing inputs
     adjustment.variables = NULL
     targets = list()
+
+    if ( (is.null(formCategorical) || length(formCategorical) == 0) && (is.null(formNumeric) || length(formNumeric) == 0)) {
+        stop("Nothing to do! At least one categorical OR numeric variable required.")
+    }
+
     # Categorical inputs
     if (! is.null(formCategorical))
     {
