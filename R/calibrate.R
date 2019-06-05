@@ -145,7 +145,7 @@ Calibrate <- function(formCategorical = NULL, categorical.targets = NULL, formNu
             dif > 0.000001 &
             dif < prev_diff)
         {
-            cat("Difference between bounds and weight: ", dif, "\n")
+            #cat("Difference between bounds and weight: ", dif, "\n")
             trims = trims + 1
             weight = trim(weight, lower, upper)
             weight = calibrate(adjustment.variables, margins, weight)
