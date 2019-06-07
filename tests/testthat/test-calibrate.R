@@ -1329,10 +1329,31 @@ test_that("Invalid inputs", {
 
 })
 
-
 # test_that("Print function (depends on file: helper-globalVars.R)", {
 #     out = capture.output(print(Calibrate(input.age, variable.targets.age)))
 #     expect_equal(out[1], "Effective sample size: 1,775 (91%)")
 #     expect_equal(out[3], "To save the variable, click Automate > Browse Online Library > Weighting > Save Variable")
 # })
 #
+
+test_that("Subset",
+{
+    no.subset.weight = Calibrate(input.age, variable.targets.age, subset = TRUE)
+
+    # Explicitly passing in subset as NULL
+    expect_equal(Calibrate(input.age, variable.targets.age, subset = NULL), no.subset.weight)
+
+    # Passing in subset as TRUE (Displayr's value when no filter is provided)
+    expect_equal(Calibrate(input.age, variable.targets.age, subset = rep(TRUE, length(input.age))), no.subset.weight)
+
+    # Passing in subset with random values
+    set.seed(1223)
+    sbst = runif(length(input.age)) > .5
+    wgt = Calibrate(input.age, variable.targets.age, subset = sbst)
+    # Checking that weights are provided for the subsetted values
+    expect_true(all(sbst == !is.na(wgt)))
+
+    # Checking that the weighted proportion matches the target
+    expect_equivalent(sum(wgt[input.age == '18-29'], na.rm = TRUE) / sum(wgt, na.rm = TRUE), as.numeric(variable.targets.age[1, 2]))
+})
+

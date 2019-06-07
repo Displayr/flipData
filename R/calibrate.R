@@ -60,11 +60,24 @@ Calibrate <- function(categorical.variables = NULL,
         upper = Inf
 
     # Adding the weight variable or a proxy (and normalizing to a mean of 1)
-    weight = if (is.null(input.weight)) 1 else input.weight / mean(input.weight)
-
+    n = NROW(adjustment.variables)
+    weight = if (is.null(input.weight)) rep(1, n) else input.weight / mean(input.weight)
+    # Filtering data if required
+    if (!is.null(subset) & length(subset) > 1)
+    {
+        filter.lookup = which(subset)
+        adjustment.variables = adjustment.variables[filter.lookup, , drop = FALSE]
+        weight = weight[filter.lookup]
+    }
     # Calculating/updating the weight
     result <- trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
 
+    if (length(result) < n)
+    {
+        out = rep(NA, length(subset))
+        out[filter.lookup] = result
+        result = out
+    }
     class(result) <- "Calibrate"
     result
 }
@@ -227,6 +240,7 @@ diffCalculation = function(weight, lower, upper)
 #' @export
 print.Calibrate <- function (x, ...)
 {
+    x = x[!is.na(x)]
     instruction.for.getting.variable = ""
     product = get0("productName")
     if (!is.null(product))
