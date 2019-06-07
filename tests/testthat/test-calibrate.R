@@ -1249,9 +1249,8 @@ variable.targets.region = structure(c("Midwest", "Northeast + DC", "South", "Wes
 
 test_that("Multiple Categorical inputs", {
 
-    actual <- Calibrate(formCategorical=list(input.age, input.gender, input.region),
-                        categorical.targets=list(variable.targets.age2, variable.targets.gender, variable.targets.region)
-    )
+    actual <- Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
+                        categorical.targets=list(variable.targets.age2, variable.targets.gender, variable.targets.region))
 
     actual.weighted.means <- tapply(actual, input.region, sum) / length(input.region)
     expect_equivalent(actual.weighted.means, as.numeric(variable.targets.region[5:8]))
@@ -1274,7 +1273,7 @@ test_that("Single Categorical input", {
 
 test_that("Numeric input", {
     actual <- Calibrate(
-        formNumeric=list(input.race.white, input.race.black, input.race.hispanic),
+        numeric.variables = list(input.race.white, input.race.black, input.race.hispanic),
         numeric.targets=variable.targets.race
     )
 
@@ -1284,9 +1283,9 @@ test_that("Numeric input", {
 
 test_that("Categorical and Numeric input", {
     actual <- Calibrate(
-        formCategorical=input.age,
+        categorical.variables=input.age,
         categorical.targets=variable.targets.age,
-        formNumeric=list(input.race.white, input.race.black, input.race.hispanic),
+        numeric.variables = data.frame(input.race.white, input.race.black, input.race.hispanic),
         numeric.targets=variable.targets.race
     )
 
@@ -1300,9 +1299,9 @@ test_that("Categorical and Numeric input", {
 })
 
 test_that("Min/Max weights", {
-    unbounded <- Calibrate(formNumeric=list(input.race.white, input.race.black, input.race.hispanic),
-                           numeric.targets=variable.targets.race)
-    actual <- Calibrate(formNumeric=list(input.race.white, input.race.black, input.race.hispanic),
+    unbounded <- Calibrate(numeric.variables = list(input.race.white, input.race.black, input.race.hispanic),
+                           numeric.targets = variable.targets.race)
+    actual <- Calibrate(numeric.variables = list(input.race.white, input.race.black, input.race.hispanic),
                         numeric.targets=variable.targets.race,
                         lower=0.8,
                         upper=1.4
@@ -1313,8 +1312,8 @@ test_that("Min/Max weights", {
 
 test_that("Invalid inputs", {
     expect_error(Calibrate(), "Nothing to do")
-    expect_error(Calibrate(input.age), "Argument length mismatch")
-    expect_error(Calibrate(formNumeric=list(input.race.white, input.race.black, input.race.hispanic)), "Argument length mismatch")
+    expect_error(Calibrate(input.age), "The number of")
+    expect_error(Calibrate(numeric.variables = list(input.race.white, input.race.black, input.race.hispanic)), "The number of ")
     expect_error(Calibrate(input.age, variable.targets.age[-2,]), "No targets.*30-44")
 
     variable.targets.age.errored = variable.targets.age
