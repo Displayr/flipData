@@ -225,8 +225,20 @@ diffCalculation = function(weight, lower, upper)
 #' @export
 print.Calibrate <- function (x, ...) {
 
-    get0("productName")
+
+    instruction.for.getting.variable = ""
+    product = get0("productName")
+    if (!is.null(product))
+    {
+        instruction.for.getting.variable = if(product == "Q")
+            "\n\nTo save the variable, click Automate > Browse Online Library > Weighting > Save Variable"
+        else "\n\nTo save the variable, click Insert > More > Weighting > Save Variable"
+    }
     ess = EffectiveSampleSize(x)
     ess.percent = round(ess / length(x) * 100)
-    cat(paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)"))
+    cat(paste0("Effective sample size: ",
+               flipFormat::FormatAsReal(ess, decimals = 0),
+               " (",
+               ess.percent, "%)",
+               instruction.for.getting.variable))
 }
