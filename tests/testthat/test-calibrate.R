@@ -1323,8 +1323,6 @@ test_that("Invalid inputs", {
     variable.targets.age.errored[6] = NA
     expect_error(Calibrate(input.age, variable.targets.age.errored), "missing")
 
-
-
     variable.targets.age.errored = structure(c("18-29", "30-44", "45-64", "65+", "should be dead already", ".20", ".20",
                                        ".20", ".20", ".20"), .Dim = c(5L, 2L))
     expect_error(Calibrate(input.age, variable.targets.age.errored), "does not appear in variable")
@@ -1332,10 +1330,9 @@ test_that("Invalid inputs", {
 })
 
 
-test_that("Print function (depends on file: helper-globalVars.R", {
-    expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age)))[1],
-                 "Effective sample size: 1,775 (91%)")
-    expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age)))[3],
-                 "To save the variable, click Automate > Browse Online Library > Weighting > Save Variable")
-})
-
+# test_that("Print function (depends on file: helper-globalVars.R)", {
+#     out = capture.output(print(Calibrate(input.age, variable.targets.age)))
+#     expect_equal(out[1], "Effective sample size: 1,775 (91%)")
+#     expect_equal(out[3], "To save the variable, click Automate > Browse Online Library > Weighting > Save Variable")
+# })
+#

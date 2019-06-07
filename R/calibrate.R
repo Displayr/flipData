@@ -6,10 +6,10 @@
 #' @param numeric.targets the target mean for each numeric variable in numeric.variables
 #' @param lower A lower bound weight value (not guaranteed to be achieved).
 #' @param upper An upper bound weight value (not guaranteed to be achieved).
-#' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
-#' to this input.weight as possible
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
 #' @param subset A logical vector indicating which subset of cases should be used to create the weight
+#' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
+#' to this input.weight as possible
 #' @return numeric A vector of weights
 #' @importFrom icarus calibration
 #' @export
@@ -19,8 +19,9 @@ Calibrate <- function(categorical.variables = NULL,
                       numeric.targets = NULL,
                       lower = NA,
                       upper = NA,
-                      input.weight = NULL,
-                      trim.iterations = 20)
+                      trim.iterations = 20,
+                      subset = NULL,
+                      input.weight = NULL)
 {
     # Extract and checks the targets for categorical adjustment variables
 
@@ -82,7 +83,7 @@ convertToDataFrame <- function(x)
     x
 }
 
-#
+# Checks and tidies categorical targets
 categoricalTargets <- function(adjustment.variables, categorical.targets)
 {
     targets = list()
@@ -224,9 +225,8 @@ diffCalculation = function(weight, lower, upper)
 #' @return character string
 #' @method print Calibrate
 #' @export
-print.Calibrate <- function (x, ...) {
-
-
+print.Calibrate <- function (x, ...)
+{
     instruction.for.getting.variable = ""
     product = get0("productName")
     if (!is.null(product))
