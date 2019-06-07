@@ -1332,14 +1332,10 @@ test_that("Invalid inputs", {
 })
 
 
-test_that("Print function", {
-    expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age))),
+test_that("Print function (depends on file: helper-globalVars.R", {
+    expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age)))[1],
                  "Effective sample size: 1,775 (91%)")
-    # productName = "Q"
-    # expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age))),
-    #              "To save the variable, click Automate > Browse Online Library > Weighting > Save Variable")
-    # productName = "Displayr"
-    # expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age))),
-    #              "To save the variable, click Insert > More > Weighting > Save Variable")
+    expect_equal(capture.output(print(Calibrate(input.age, variable.targets.age)))[3],
+                 "To save the variable, click Automate > Browse Online Library > Weighting > Save Variable")
 })
 

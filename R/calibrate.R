@@ -9,6 +9,7 @@
 #' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
 #' to this input.weight as possible
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
+#' @param subset A logical vector indicating which subset of cases should be used to create the weight
 #' @return numeric A vector of weights
 #' @importFrom icarus calibration
 #' @export
