@@ -1373,3 +1373,46 @@ test_that("input.weight",
               expect_equivalent(sum(wgt.with.input.weight[input.age == '18-29'], na.rm = TRUE) / sum(wgt.with.input.weight, na.rm = TRUE),
                                 as.numeric(variable.targets.age[1, 2]))
           })
+
+test_that("trimming",
+          {
+              # Checking that un-trimmed average is o
+              wgt = Calibrate(input.age, variable.targets.age)
+              rng = diff(range(wgt))
+              expect_equal(mean(wgt), 1)
+
+              # Checking that average remaines 0
+              wgt = Calibrate(input.age, variable.targets.age, lower = 0.7, upper = 1.5)
+              expect_equal(mean(wgt), 1)
+
+              # Checking that trimming reduces the range
+              expect_true(diff(range(wgt)) < rng)
+
+
+              # Checking that trim.iterations does something
+              wgt = Calibrate(input.age, variable.targets.age, lower = 0.7, upper = 1.5, trim.iterations = 0)
+              rng = diff(range(wgt))
+              expect_true(diff(range(wgt)) == rng)
+
+              # Checking that trimming works with subset
+              set.seed(1225)
+              sbst = runif(length(input.age)) > .5
+
+              # Checking that un-trimmed average is o
+              wgt = Calibrate(input.age, variable.targets.age, subset = sbst)
+              rng = diff(range(wgt, na.rm = TRUE))
+              expect_equal(mean(wgt, na.rm = TRUE), 1)
+
+              # Checking that average remaines 0
+              wgt = Calibrate(input.age, variable.targets.age, lower = 0.7, upper = 1.5, subset = sbst)
+              expect_equal(mean(wgt, na.rm = TRUE), 1)
+
+              # Checking that trimming reduces the range
+              expect_true(diff(range(wgt, na.rm = TRUE)) < rng)
+
+              # Checking that trim.iterations does something
+              wgt = Calibrate(input.age, variable.targets.age, lower = 0.7, upper = 1.5, trim.iterations = 0, subset = sbst)
+              rng = diff(range(wgt, na.rm = TRUE))
+              expect_true(diff(range(wgt, na.rm = TRUE)) == rng)
+
+})
