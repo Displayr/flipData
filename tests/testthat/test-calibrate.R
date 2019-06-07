@@ -1357,3 +1357,19 @@ test_that("Subset",
     expect_equivalent(sum(wgt[input.age == '18-29'], na.rm = TRUE) / sum(wgt, na.rm = TRUE), as.numeric(variable.targets.age[1, 2]))
 })
 
+test_that("input.weight",
+          {
+              # Checking that when input.weight is supplied, the resulting weight is more correlated with it than otherwise
+              wgt = Calibrate(input.age, variable.targets.age)
+              wgt.with.input.weight = Calibrate(input.age, variable.targets.age, input.weight = input.weight)
+              expect_true(cor(input.weight, wgt) < cor(input.weight, wgt.with.input.weight))
+
+              # Checking that input.weight works with subsetting
+              set.seed(1224)
+              sbst = runif(length(input.age)) > .5
+              wgt = Calibrate(input.age, variable.targets.age, subset = sbst)
+              wgt.with.input.weight = Calibrate(input.age, variable.targets.age, input.weight = input.weight, subset = sbst)
+              expect_true(cor(input.weight, wgt, use = "pairwise.complete.obs") < cor(input.weight, wgt.with.input.weight, use = "pairwise.complete.obs"))
+              expect_equivalent(sum(wgt.with.input.weight[input.age == '18-29'], na.rm = TRUE) / sum(wgt.with.input.weight, na.rm = TRUE),
+                                as.numeric(variable.targets.age[1, 2]))
+          })
