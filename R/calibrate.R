@@ -225,7 +225,8 @@ diffCalculation = function(weight, lower, upper)
 #' @export
 print.Calibrate <- function (x, ...) {
 
-    ess = flipData::EffectiveSampleSize(x)
+    get0("productName")
+    ess = EffectiveSampleSize(x)
     ess.percent = round(ess / length(x) * 100)
     cat(paste0("Effective sample size: ", flipFormat::FormatAsReal(ess, decimals = 0), " (", ess.percent, "%)"))
 }
