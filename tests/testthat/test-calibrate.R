@@ -1330,3 +1330,9 @@ test_that("Invalid inputs", {
     expect_error(Calibrate(input.age, variable.targets.age.errored), "does not appear in variable")
 
 })
+
+
+test_that("Print function", {
+    actual <- Calibrate(input.age, variable.targets.age)
+
+})
