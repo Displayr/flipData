@@ -7,10 +7,13 @@
 #' @param lower A lower bound weight value (not guaranteed to be achieved).
 #' @param upper An upper bound weight value (not guaranteed to be achieved).
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
-#' @param always.calibrate If \code{FALSE}, problems with only categorical adjustment variables are solved via
+#' @param always.calibrate If \code{FALSE}, whcih is the default,
+#' problems with only categorical adjustment variables are solved via
 #' iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.
-#' @param package The R package used to calibrate the model. Defaults to \code{survey}. Other option
-#' is \code{icarus}.
+#' @param package The R package used to calibrate the model when raking is not conducted.
+#' Defaults to \code{CVXR} (see https://cvxr.rbind.io/cvxr_examples/cvxr_survey_calibration/). Other options
+#' are \code{icarus} and \code{survey}. .
+#' Use icarus with care, as sometimes target categories can be switched around
 #' @param subset A logical vector indicating which subset of cases should be used to create the weight
 #' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
 #' to this input.weight as possible
@@ -24,7 +27,7 @@ Calibrate <- function(categorical.variables = NULL,
                       lower = NA,
                       upper = NA,
                       trim.iterations = 20,
-                      package = c("survey", "icarus")[1],
+                      package = c("CVXR", "survey", "icarus")[1],
                       always.calibrate = FALSE,
                       subset = NULL,
                       input.weight = NULL)
@@ -188,8 +191,6 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
     # Creating the targets in the required format
     if (raking) # Iterative post-stratification
     {
-        if (package != "survey")
-            warning("package '", package, "' does not support raking; calibration used instead")
         margins = list()
         for (i in seq_along(adjustment.variables))
         {
@@ -233,54 +234,49 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
     margins
 }
 # Calibration function
+#' @importFrom icarus calibration
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights
-computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, calibrate)
+#' @importFrom CVXR Variable Minimize Problem entr
+computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
-   # Old use of icarus. Deprecated due to not being able to work out reliably order of levels
-   #   adjustment.variables$q_pop_wgt = input.weight
-    # icarus::calibration(data = adjustment.variables,
-    #                     margin = margins,
-    #                     colWeights = "q_pop_wgt",
-    #                     pct = TRUE,
-    #                     popTotal = NROW(adjustment.variables),
-    #                     method = "raking",
-    #                     description = FALSE)
-
-    #
-    #
-
-    # flipData::Calibrate(list(Region = marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c( .25, .25, .25, .24, 0.01))))
-    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c(0.01, .24, .25, .25, .25))))
-    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(0.01, .24, .25, .25, .25))))
-    #
-    # # Situation where filter changes list of
-    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(.01, .24, .25, .25, .25))),
-    #                     subset = marriage$female == "Male")
-    #
-    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("midwest", "northeast", "south", "west"), c(.25, .25, .25, .25))),
-    #                     subset = marriage$female == "Male")
-    #
-    #
-    # # comparison to survey package
-    #
-    design = svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables)
+    if (package == "survey" | raking)
+        design = svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables)
     if (raking)
     {
         sample.margins = lapply(names(adjustment.variables), function(x) as.formula(paste("~", x)))
-        design = rake(design,
+        weights(rake(design,
                       sample.margins,
                       margins,
-                      control = list(maxit = 1000, epsilon = 1e-10))
-    } else {
-        design = calibrate(design,
-                           createFormula(adjustment.variables),
-                           maxit = 1000,
-                           epsilon = 1e-8,
-                           population = margins,
-                           calfun = "raking")
-    }
-    weights(design)
+                      control = list(maxit = 1000, epsilon = 1e-10)))
+    } else switch(package,
+                  icarus = calibration(data = data.frame(adjustment.variables,
+                                                         q_pop_wgt = input.weight),
+                                       marginMatrix = margins,
+                                       colWeights = "q_pop_wgt",
+                                       pct = TRUE,
+                                       popTotal = NROW(adjustment.variables),
+                                       method = "raking",
+                                       description = FALSE),
+                  survey = weights(calibrate(design,
+                                             createFormula(adjustment.variables),
+                                             maxit = 1000,
+                                             epsilon = 1e-8,
+                                             population = margins,
+                                             calfun = "raking")),
+                  CVXR = {
+                      formula = createFormula(adjustment.variables)
+                      X <- model.matrix(object = formula, data = adjustment.variables)
+                      A <- input.weight * X
+                      n <- NROW(X)
+                      g <- Variable(n)
+                      constraints = list(t(A) %*% g == margins)
+                      Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
+                      p = Problem(Phi_R, constraints)
+                      res = solve(p)
+                      as.numeric(input.weight * res$getValue(g))
+                      }
+                  )
 }
 
 # Creating formula as required by survey package

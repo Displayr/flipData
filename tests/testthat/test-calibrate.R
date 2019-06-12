@@ -1,6 +1,9 @@
 library(testthat)
 
 context("Calibrate")
+
+weighted.table = function(weight, variable) { prop.table(tapply(weight, variable, sum)) }
+
 marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
 
 input.weight = marriage$weight
@@ -16,8 +19,6 @@ marriage$region.cat[marriage$region.cat %in% c("DC", "Northeast")] = "Northeast 
 marriage$region.cat = factor(marriage$region.cat)
 input.region = marriage$region.cat
 
-
-
 variable.targets.age = structure(c("18-29", "30-44", "45-64", "65+", ".4", ".3", ".2", ".1"), .Dim = c(4L, 2L))
 variable.targets.race = structure(c(0.8, 0.1, 0.1))
 variable.targets.age2 = structure(c("18-29", "30-44", "45-64", "65+", ".2", ".3",".31", ".19"), .Dim = c(4L, 2L))
@@ -26,31 +27,47 @@ variable.targets.region = structure(c("Midwest", "Northeast + DC", "South", "Wes
 
 test_that("Multiple Categorical inputs", {
 
-    wgt <- Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
+    wgt = Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
                         categorical.targets=list(variable.targets.age2, variable.targets.gender, variable.targets.region))
 
-    expect_equivalent(prop.table(tapply(wgt, input.region, sum)), as.numeric(variable.targets.region[5:8]))
+    expect_equivalent(weighted.table(wgt, input.region), as.numeric(variable.targets.region[5:8]))
 
-    expect_equivalent(prop.table(tapply(wgt, input.age, sum)), as.numeric(variable.targets.age2[5:8]), tol = 0.0000001)
+    expect_equivalent(weighted.table(wgt, input.age), as.numeric(variable.targets.age2[5:8]), tol = 0.0000001)
 
-    expect_equivalent(prop.table(tapply(wgt, input.gender, sum)), as.numeric(variable.targets.gender[3:4]))
+    expect_equivalent(weighted.table(wgt, input.gender), as.numeric(variable.targets.gender[3:4]))
 
 })
 
-test_that("Single Categorical input", {
-    wgt = Calibrate(list(Age = input.age), variable.targets.age)
+# Comparing all algorithms with a single categorical adjustment varibale
+test_that("Single Categorical adjustment varibale", {
 
-    actual.weighted.means = prop.table(tapply(wgt, input.age, sum))
+    # Default: Raking
+    wgt = Calibrate(list(Age = input.age), variable.targets.age, package = "survey", always.calibrate = FALSE)
+    expect_equivalent(weighted.table(wgt, input.age), as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
 
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
+    # Default: icarus
+    wgt = Calibrate(list(Age = input.age), variable.targets.age, package = "icarus", always.calibrate = TRUE)
+    expect_equivalent(weighted.table(wgt, input.age), as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
+
+    # Default: CVXR
+    wgt = Calibrate(list(Age = input.age), variable.targets.age, package = "CVXR", always.calibrate = TRUE)
+    expect_equivalent(weighted.table(wgt, input.age), as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
+
+    # Default: survey calibrate
+    wgt = Calibrate(list(Age = input.age), variable.targets.age, package = "survey", always.calibrate = TRUE)
+    expect_equivalent(weighted.table(wgt, input.age), as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
 })
 
-test_that("Numeric input", {
-    actual <- Calibrate(numeric.variables = list(input.race.white, input.race.black, input.race.hispanic), numeric.targets = variable.targets.race)
 
-    actual.weighted.means <- tapply(actual, input.race, sum) / length(input.race)
-    expect_equivalent(actual.weighted.means, variable.targets.race)
-})
+for (package in c("survey", "icarus"))
+    test_that("Numeric input", {
+        numeric.variables = list(input.race.white, input.race.black, input.race.hispanic)
+        wgt = Calibrate(numeric.variables = numeric.variables,
+                            numeric.targets = variable.targets.race,
+                            package = package)
+        actual.weighted.means <- weighted.table(wgt, input.race)
+        expect_equivalent(actual.weighted.means, variable.targets.race)
+    })
 
 test_that("Categorical and Numeric input", {
     wgt = Calibrate(
@@ -193,10 +210,10 @@ test_that("Ordering of categories in a categorical adjustment variable makes no 
           {
               adj.variable = list(Gender = marriage$female)
               wgt = Calibrate(adj.variable, list(cbind(c("Male", "Female"), c( .75, .25))))
-              expect_equivalent(prop.table(tapply(wgt, adj.variable, sum))["Male"],c("Male" = .75))
+              expect_equivalent(weighted.table(wgt, adj.variable)["Male"],c("Male" = .75))
 
               wgt = Calibrate(adj.variable, list(cbind(c("Female", "Male"), c( .75, .25))))
-              expect_equivalent(prop.table(tapply(wgt, adj.variable, sum))["Female"], c("Female" = .75))
+              expect_equivalent(weighted.table(wgt, adj.variable)["Female"], c("Female" = .75))
 
               wgt = Calibrate(list(Region = marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c( .25, .25, .25, .24, 0.01))))
               wgt1 = Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(0.01, .24, .25, .25, .25))))
@@ -225,12 +242,18 @@ test_that("Problem for which calibration fails (due to poor algorithms)",
               expect_error(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), always.calibrate = FALSE), NA)
 
               # Using calibration
-              expect_error(capture.output(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions))), always.calibrate = TRUE))
+              expect_error(suppressWarnings(capture.output(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)),
+                                          always.calibrate = TRUE,
+                                          package = "survey"))))
 
-              # observed = table(adj.variable[[1]])
-              # targets = target.proportions * sum(observed)
-              # weights = (targets / observed)[adjustment.variable[[1]]]
-              # weighted.total = tapply(weights, adj.variable, sum)
-              #
-              # Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), input.weight = weights)
+              # Using calibration
+              expect_error(capture.output(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)),
+                                          always.calibrate = TRUE,
+                                          package = "icarus")), NA)
+
+              # Using calibration
+              expect_error(capture.output(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)),
+                                          always.calibrate = TRUE,
+                                          package = "CVXR")), NA)
           })
+

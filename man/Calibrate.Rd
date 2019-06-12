@@ -6,7 +6,7 @@
 \usage{
 Calibrate(categorical.variables = NULL, categorical.targets = NULL,
   numeric.variables = NULL, numeric.targets = NULL, lower = NA,
-  upper = NA, trim.iterations = 20, package = c("survey",
+  upper = NA, trim.iterations = 20, package = c("CVXR", "survey",
   "icarus")[1], always.calibrate = FALSE, subset = NULL,
   input.weight = NULL)
 }
@@ -25,10 +25,13 @@ Calibrate(categorical.variables = NULL, categorical.targets = NULL,
 
 \item{trim.iterations}{The number of times to run the trim loop over the final weightings}
 
-\item{package}{The R package used to calibrate the model. Defaults to \code{survey}. Other option
-is \code{icarus}.}
+\item{package}{The R package used to calibrate the model when raking is not conducted.
+Defaults to \code{CVXR} (see https://cvxr.rbind.io/cvxr_examples/cvxr_survey_calibration/). Other options
+are \code{icarus} and \code{survey}. .
+Use icarus with care, as sometimes target categories can be switched around}
 
-\item{always.calibrate}{If \code{FALSE}, problems with only categorical adjustment variables are solved via
+\item{always.calibrate}{If \code{FALSE}, whcih is the default,
+problems with only categorical adjustment variables are solved via
 iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.}
 
 \item{subset}{A logical vector indicating which subset of cases should be used to create the weight}
