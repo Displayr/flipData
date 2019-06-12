@@ -7,6 +7,8 @@
 #' @param lower A lower bound weight value (not guaranteed to be achieved).
 #' @param upper An upper bound weight value (not guaranteed to be achieved).
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
+#' @param always.calibrate If \code{FALSE}, problems with only categorical adjustment variables are solved via
+#' iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.
 #' @param subset A logical vector indicating which subset of cases should be used to create the weight
 #' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
 #' to this input.weight as possible
@@ -20,10 +22,10 @@ Calibrate <- function(categorical.variables = NULL,
                       lower = NA,
                       upper = NA,
                       trim.iterations = 20,
+                      always.calibrate = FALSE,
                       subset = NULL,
                       input.weight = NULL)
 {
-    # Extract and checks the targets for categorical adjustment variables
 
     # Preparing inputs
     adjustment.variables = NULL
@@ -38,7 +40,7 @@ Calibrate <- function(categorical.variables = NULL,
     {
         adjustment.variables = convertToDataFrame(categorical.variables)
         categorical.targets = if (is.null(categorical.targets) || is.list(categorical.targets)) categorical.targets else list(categorical.targets)
-        targets = categoricalTargets(adjustment.variables, categorical.targets)
+        targets = categoricalTargets(adjustment.variables, categorical.targets, subset)
     }
     n.categorical = length(targets)
 
@@ -47,11 +49,8 @@ Calibrate <- function(categorical.variables = NULL,
     {
         num.adjustment.variables = convertToDataFrame(numeric.variables)
         adjustment.variables = if (is.null(categorical.variables)) num.adjustment.variables else cbind(adjustment.variables, num.adjustment.variables)
-        targets = numericTargets(targets, adjustment.variables, numeric.targets)
+        targets = numericTargets(targets, adjustment.variables, numeric.targets, subset)
     }
-
-    # Creating the table of margins
-    marg = margins(targets, adjustment.variables, n.categorical)
 
     # Bounds
     if (is.na(lower))
@@ -62,6 +61,7 @@ Calibrate <- function(categorical.variables = NULL,
     # Adding the weight variable or a proxy (and normalizing to a mean of 1)
     n = NROW(adjustment.variables)
     weight = if (is.null(input.weight)) rep(1, n) else input.weight / mean(input.weight)
+
     # Filtering data if required
     if (!is.null(subset) & length(subset) > 1)
     {
@@ -69,8 +69,18 @@ Calibrate <- function(categorical.variables = NULL,
         adjustment.variables = adjustment.variables[filter.lookup, , drop = FALSE]
         weight = weight[filter.lookup]
     }
+
+    # Removing empty factor levels
+    if (n.categorical > 0)
+        for (i in 1:n.categorical) # ordered = FALSE needed for weirdness in survey package
+            adjustment.variables[[i]] = factor(adjustment.variables[[i]], ordered = FALSE)
+
+    # Creating the table of margins
+    raking = n.categorical == length(adjustment.variables) & !always.calibrate
+    marg = createMargins(targets, adjustment.variables, n.categorical, raking)
+
     # Calculating/updating the weight
-    result <- trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations)
+    result <- trimmedCalibrate(adjustment.variables, marg, weight, lower, upper, trim.iterations, raking)
 
     if (length(result) < n)
     {
@@ -85,7 +95,7 @@ Calibrate <- function(categorical.variables = NULL,
 # Converts lists to data fames, checking the data for errors along the way.
 convertToDataFrame <- function(x)
 {
-    x = as.data.frame(x)
+    x = as.data.frame(x, stringsAsFactors = TRUE)
     # Check that data frame is complete
     var.missing = colSums(is.na(x)) > 0
     if (any(var.missing))
@@ -97,7 +107,7 @@ convertToDataFrame <- function(x)
 }
 
 # Checks and tidies categorical targets
-categoricalTargets <- function(adjustment.variables, categorical.targets)
+categoricalTargets <- function(adjustment.variables, categorical.targets, subset)
 {
     targets = list()
     n.categorical = length(adjustment.variables)
@@ -109,7 +119,8 @@ categoricalTargets <- function(adjustment.variables, categorical.targets)
         tgt = categorical.targets[[i]]
         targets[[i]] = as.numeric(tgt[, 2])
         names(targets[[i]]) = tgt[, 1]
-        adj.unique = unique(adjustment.variables[[i]])
+        adj.variable = if(is.null(subset)) adjustment.variables[[i]] else droplevels(adjustment.variables[[i]][subset])
+        adj.unique = levels(adj.variable)
         missing.targets = ! adj.unique %in% tgt[, 1]
         varname = names(adjustment.variables)[i]
         if (any(missing.targets))
@@ -123,7 +134,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets)
         {
             excess.cats = paste0(tgt[excess.targets, 1], collapse = ", ")
             if (nchar(excess.cats) > 0)
-                stop("Target category that does not appear in variable ", varname, ": ", excess.cats)
+                stop("Target category that does not appear in variable ", varname, ": ", excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
         }
         if ((sm = sum(targets[[i]])) != 1)
         {
@@ -132,15 +143,19 @@ categoricalTargets <- function(adjustment.variables, categorical.targets)
             else
                 stop("Targets for ", varname, " add up to ", sm, "; they need to add up to exactly 1.")
         }
+        # Reordering targets to match order of levels
+        targets[[i]] = targets[[i]][adj.unique]
     }
     targets
 }
+
 # Extract and checks the targets for numeric  adjustment variables
-numericTargets <- function(targets, adjustment.variables, numeric.targets)
+numericTargets <- function(targets, adjustment.variables, numeric.targets, subset)
 {
     n.categorical = length(targets)
     n = NROW(adjustment.variables)
-    if (length(adjustment.variables) - n.categorical != length(numeric.targets)) {
+    if (length(adjustment.variables) - n.categorical != length(numeric.targets))
+    {
         stop("The number of numeric adjustment variables needs to be the same as the number of sets of targets (it isn't)")
     }
     n.numeric = length(adjustment.variables) - n.categorical
@@ -148,6 +163,8 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets)
     {
         i.adjustment.variables = i + n.categorical
         numvar = adjustment.variables[[i.adjustment.variables]]
+        if(!is.null(subset))
+            numvar = numvar[subset]
         varname = names(adjustment.variables)[i.adjustment.variables]
         targets[[i.adjustment.variables]] = tgt = numeric.targets[i]
         if (is.na(tgt))
@@ -155,44 +172,125 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets)
         if (!is.numeric(numvar))
             stop(varname, " is not a numeric variable; numeric adjustment variables must be numeric.")
         if (max(numvar) < tgt)
-            stop("The target for ", varname, " of ", tgt, " is higher than the maximum value of the variable.")
+            stop("The target for ", varname, " of ", tgt, " is higher than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
         if (min(numvar) > tgt)
-            stop("The target for ", varname, " of ", tgt, " is lower than the maximum value of the variable.")
+            stop("The target for ", varname, " of ", tgt, " is lower than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
     }
     targets
 }
 
-# Formats table of margins for input into icarus function
-margins <- function(targets, adjustment.variables, n.categorical)
+# Formats table of margins
+createMargins <- function(targets, adjustment.variables, n.categorical, raking)
 {
+    # # Old icarus code
+    # n = NROW(adjustment.variables)
+    # n.cats = sapply(targets, length)
+    # nms = names(adjustment.variables)
+    # max.cats = max(n.cats)
+    # n.vars = length(adjustment.variables)
+    # tgts = matrix("0", n.vars, max.cats)
+    # for (i in 1 : n.vars)
+    # {
+    #     if (i <= n.categorical) {
+    #         tgts[i, 1 : n.cats[i]] = targets[[i]]
+    #     } else {
+    #         tgts[i, 1] = targets[[i]] * n # Sums rather than averages in icarus
+    #         n.cats[i] = 0 # icarus assumes 0 in this field for numeric variables
+    #     }
+    # }
+    # margins = cbind(nms, n.cats, tgts)
+    # nms = names(adjustment.variables)
+    # max.cats = max(n.cats)
+    # n.vars = length(adjustment.variables)
+    # marginstgts = matrix("0", n.vars, max.cats)
+
+    # Converting targets to sample totals
     n = NROW(adjustment.variables)
-    n.cats = sapply(targets, length)
-    nms = names(adjustment.variables)
-    max.cats = max(n.cats)
-    n.vars = length(adjustment.variables)
-    tgts = matrix("0", n.vars, max.cats)
-    for (i in 1 : n.vars)
+#    n.variables = length(targets)
+#    for (i in 1:n.variables)
+#        targets[[i]] = targets[[i]] * n
+
+    # Creating the targets in the required format
+    if (raking) # Iterative post-stratification
     {
-        if (i <= n.categorical) {
-            tgts[i, 1 : n.cats[i]] = targets[[i]]
-        } else {
-            tgts[i, 1] = targets[[i]] * n # Sums rather than averages in icarus
-            n.cats[i] = 0 # icarus assumes 0 in this field for numeric variables
+        margins = list()
+
+        for (i in seq_along(adjustment.variables))
+        {
+            tgt = targets[[i]]
+            out = data.frame(x = names(tgt), Freq = unname(tgt))
+            names(out)[1] = names(adjustment.variables)[i]
+            margins[[i]] = out
         }
     }
-    margins = cbind(nms, n.cats, tgts)
+    else { # Targets required for calibration
+        margins = c(1)
+        for (i in seq_along(adjustment.variables))
+        {
+            new.margin = if (i <= n.categorical) targets[[i]][-1] else targets[[i]]
+            margins = c(margins, new.margin)
+        }
+        margins = margins * n
+        formula = createFormula(adjustment.variables)
+        names(margins) = colnames(model.matrix(formula, data = adjustment.variables))
+    }
+    margins
 }
 # Calibration function
-calibrate <- function(adjustment.variables, margins, input.weight)
+#' @importFrom survey calibrate rake
+#' @importFrom stats model.matrix weights
+computeCalibrate <- function(adjustment.variables, margins, input.weight, raking)
 {
-    adjustment.variables$q_pop_wgt = input.weight
-    icarus::calibration(data = adjustment.variables,
-                        margin = margins,
-                        colWeights = "q_pop_wgt",
-                        pct = TRUE,
-                        popTotal = NROW(adjustment.variables),
-                        method = "raking",
-                        description = FALSE)
+   # Old use of icarus. Deprecated due to not being able to work out reliably order of levels
+   #   adjustment.variables$q_pop_wgt = input.weight
+    # icarus::calibration(data = adjustment.variables,
+    #                     margin = margins,
+    #                     colWeights = "q_pop_wgt",
+    #                     pct = TRUE,
+    #                     popTotal = NROW(adjustment.variables),
+    #                     method = "raking",
+    #                     description = FALSE)
+
+    #
+    #
+
+    # flipData::Calibrate(list(Region = marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c( .25, .25, .25, .24, 0.01))))
+    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c(0.01, .24, .25, .25, .25))))
+    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(0.01, .24, .25, .25, .25))))
+    #
+    # # Situation where filter changes list of
+    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(.01, .24, .25, .25, .25))),
+    #                     subset = marriage$female == "Male")
+    #
+    # flipData::Calibrate(list(marriage$region_cat), list(cbind(c("midwest", "northeast", "south", "west"), c(.25, .25, .25, .25))),
+    #                     subset = marriage$female == "Male")
+    #
+    #
+    # # comparison to survey package
+    #
+    design = svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables)
+    if (raking)
+    {
+        sample.margins = lapply(names(adjustment.variables), function(x) as.formula(paste("~", x)))
+        design = rake(design,
+                      sample.margins,
+                      margins,
+                      control = list(maxit = 1000, epsilon = 1e-10))
+    } else {
+        design = calibrate(design,
+                           createFormula(adjustment.variables),
+                           maxit = 1000,
+                           epsilon = 1e-8,
+                           population = margins,
+                           calfun = "raking")
+    }
+    weights(design)
+}
+
+# Creating formula as required by survey package
+createFormula = function(adjustment.variables)
+{
+    as.formula(paste("~", paste(names(adjustment.variables), collapse = "+")))
 }
 
 # Trims the weights (not really trimming, but this is the language in the literature
@@ -204,9 +302,9 @@ trimWeight = function(weight, lower, upper)
 }
 
 # Trimming of weight (not really trimming, but this is the language in the literature
-trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower, upper, trim.iterations)
+trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower, upper, trim.iterations, raking)
 {
-    weight = calibrate(adjustment.variables, margins, input.weight)
+    weight = computeCalibrate(adjustment.variables, margins, input.weight, raking)
     trims = 0
     prev_diff = Inf
     dif = diffCalculation(weight, lower, upper)
@@ -217,7 +315,7 @@ trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower,
         #cat("Difference between bounds and weight: ", dif, "\n")
         trims = trims + 1
         weight = trimWeight(weight, lower, upper)
-        weight = calibrate(adjustment.variables, margins, weight)
+        weight = computeCalibrate(adjustment.variables, margins, weight, raking)
         prev_diff = dif
         dif = diffCalculation(weight, lower, upper)
     }
@@ -228,7 +326,7 @@ trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower,
 diffCalculation = function(weight, lower, upper)
 {
     rng = range(weight)
-    max(rng[2] - upper, 0) - min(lower - rng[1], 0)
+    max(rng[2] - upper, 0) - max(lower - rng[1], 0)
 }
 
 #' \code{print.Calibrate}

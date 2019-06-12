@@ -1235,65 +1235,58 @@ input.region = structure(c(3L, 3L, 2L, 3L, 3L, 3L, 3L, 3L, 2L, 2L, 3L, 3L, 1L,
                                                                                                              "Northeast + DC", "South", "West"), questiontype = "PickOne", name = "region.cat", label = "Region", question = "Region")
 
 
-variable.targets.age = structure(c("18-29", "30-44", "45-64", "65+", ".25", ".25",
-                                        ".25", ".25"), .Dim = c(4L, 2L))
+variable.targets.age = structure(c("18-29", "30-44", "45-64", "65+", ".4", ".3",
+                                        ".2", ".1"), .Dim = c(4L, 2L))
 
 variable.targets.race = structure(c(0.8, 0.1, 0.1))
 
-variable.targets.age2 = structure(c("18-29", "30-44", "45-64", "65+", ".200367", ".302520",
-                                    ".310866", ".186247"), .Dim = c(4L, 2L))
+variable.targets.age2 = structure(c("18-29", "30-44", "45-64", "65+", ".2", ".3",".31", ".19"), .Dim = c(4L, 2L))
 
-variable.targets.gender = structure(c("Male", "Female", "0.476514", "0.523486"), .Dim=c(2L, 2L))
+variable.targets.gender = structure(c("Male", "Female", "0.45", "0.55"), .Dim=c(2L, 2L))
 
-variable.targets.region = structure(c("Midwest", "Northeast + DC", "South", "West", "0.238871", "0.195652", "0.359417", "0.206060"), .Dim=c(4L, 2L))
+variable.targets.region = structure(c("Midwest", "Northeast + DC", "South", "West", ".27", "0.26", "0.24", "0.23"), .Dim=c(4L, 2L))
 
 test_that("Multiple Categorical inputs", {
 
-    actual <- Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
+    wgt <- Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
                         categorical.targets=list(variable.targets.age2, variable.targets.gender, variable.targets.region))
 
-    actual.weighted.means <- tapply(actual, input.region, sum) / length(input.region)
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.region[5:8]))
+    expect_equivalent(prop.table(tapply(wgt, input.region, sum)), as.numeric(variable.targets.region[5:8]))
 
-    actual.weighted.means <- tapply(actual, input.age, sum) / length(input.age)
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age2[5:8]))
+    expect_equivalent(prop.table(tapply(wgt, input.age, sum)), as.numeric(variable.targets.age2[5:8]), tol = 0.0000001)
 
-    actual.weighted.means <- tapply(actual, input.gender, sum) / length(input.gender)
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.gender[3:4]))
+    expect_equivalent(prop.table(tapply(wgt, input.gender, sum)), as.numeric(variable.targets.gender[3:4]))
 
 })
 
 test_that("Single Categorical input", {
-    actual <- Calibrate(input.age, variable.targets.age)
+    wgt = Calibrate(list(Age = input.age), variable.targets.age)
 
-    actual.weighted.means <- tapply(actual, input.age, sum) / length(input.age)
+    actual.weighted.means = prop.table(tapply(wgt, input.age, sum))
 
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age[5:8]))
+    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
 })
 
 test_that("Numeric input", {
-    actual <- Calibrate(
-        numeric.variables = list(input.race.white, input.race.black, input.race.hispanic),
-        numeric.targets=variable.targets.race
-    )
+    actual <- Calibrate(numeric.variables = list(input.race.white, input.race.black, input.race.hispanic), numeric.targets = variable.targets.race)
 
     actual.weighted.means <- tapply(actual, input.race, sum) / length(input.race)
     expect_equivalent(actual.weighted.means, variable.targets.race)
 })
 
 test_that("Categorical and Numeric input", {
-    actual <- Calibrate(
+    wgt = Calibrate(
         categorical.variables=input.age,
         categorical.targets=variable.targets.age,
         numeric.variables = data.frame(input.race.white, input.race.black, input.race.hispanic),
         numeric.targets=variable.targets.race
     )
 
-    actual.weighted.means <- tapply(actual, input.race, sum) / length(input.race)
-    expect_equivalent(actual.weighted.means, variable.targets.race)
+    actual.weighted.means <- tapply(wgt, input.race, sum) / length(input.race)
+    expect_equivalent(actual.weighted.means, variable.targets.race, tol = 0.0000001)
 
-    actual.weighted.means <- tapply(actual, input.age, sum) / length(input.age)
-    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age[5:8]))
+    actual.weighted.means <- tapply(wgt, input.age, sum) / length(input.age)
+    expect_equivalent(actual.weighted.means, as.numeric(variable.targets.age[5:8]), tol = 0.0000001)
 
 
 })
@@ -1354,7 +1347,7 @@ test_that("Subset",
     expect_true(all(sbst == !is.na(wgt)))
 
     # Checking that the weighted proportion matches the target
-    expect_equivalent(sum(wgt[input.age == '18-29'], na.rm = TRUE) / sum(wgt, na.rm = TRUE), as.numeric(variable.targets.age[1, 2]))
+    expect_equivalent(sum(wgt[input.age == '18-29'], na.rm = TRUE) / sum(wgt, na.rm = TRUE), as.numeric(variable.targets.age[1, 2]), tol = 0.0000001)
 })
 
 test_that("input.weight",
@@ -1414,5 +1407,53 @@ test_that("trimming",
               wgt = Calibrate(input.age, variable.targets.age, lower = 0.7, upper = 1.5, trim.iterations = 0, subset = sbst)
               rng = diff(range(wgt, na.rm = TRUE))
               expect_true(diff(range(wgt, na.rm = TRUE)) == rng)
-
 })
+
+
+marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
+
+test_that("Ordering of categories in a categorical adjustment variable makes no difference",
+          {
+              adj.variable = list(Gender = marriage$female)
+              wgt = Calibrate(adj.variable, list(cbind(c("Male", "Female"), c( .75, .25))))
+              expect_equivalent(prop.table(tapply(wgt, adj.variable, sum))["Male"],c("Male" = .75))
+
+              wgt = Calibrate(adj.variable, list(cbind(c("Female", "Male"), c( .75, .25))))
+              expect_equivalent(prop.table(tapply(wgt, adj.variable, sum))["Female"], c("Female" = .75))
+
+              wgt = Calibrate(list(Region = marriage$region_cat), list(cbind(c("west", "northeast", "south", "midwest", "dc"), c( .25, .25, .25, .24, 0.01))))
+              wgt1 = Calibrate(list(marriage$region_cat), list(cbind(c("dc", "midwest", "northeast", "south", "west"), c(0.01, .24, .25, .25, .25))))
+              expect_equal(wgt, wgt1)
+          })
+
+
+test_that("Subset that causes a factor level to disappear (i.e., dc)",
+          {
+              adj.variable = list(Region = marriage$region_cat)
+              filt = marriage$female == "Male"
+              wgt = Calibrate(adj.variable, list(cbind(c("midwest", "northeast", "south", "west"), c(.23, .24, .26, .27))),
+                        subset = filt)
+
+              totals = tapply(wgt[filt], list(factor(adj.variable[[1]][filt])), sum)
+              expect_equivalent(prop.table(totals)["south"],c("south" = .26))
+
+          })
+
+test_that("Problem for which calibration fails (due to poor algorithms)",
+          {
+              adjustment.variable = list(Region = marriage$region_cat)
+              category.names = levels(adjustment.variable[[1]])
+              target.proportions = c(.02, 0.24, .24, .25, .25)
+              # Raking - should not have an error
+              expect_error(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), always.calibrate = FALSE), NA)
+
+              # Using calibration
+              expect_error(capture.output(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions))), always.calibrate = TRUE))
+
+              # observed = table(adj.variable[[1]])
+              # targets = target.proportions * sum(observed)
+              # weights = (targets / observed)[adjustment.variable[[1]]]
+              # weighted.total = tapply(weights, adj.variable, sum)
+              #
+              # Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), input.weight = weights)
+          })

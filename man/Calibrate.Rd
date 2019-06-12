@@ -6,8 +6,8 @@
 \usage{
 Calibrate(categorical.variables = NULL, categorical.targets = NULL,
   numeric.variables = NULL, numeric.targets = NULL, lower = NA,
-  upper = NA, trim.iterations = 20, subset = NULL,
-  input.weight = NULL)
+  upper = NA, trim.iterations = 20, always.calibrate = FALSE,
+  subset = NULL, input.weight = NULL)
 }
 \arguments{
 \item{categorical.variables}{An optional list or data frame of categorical adjustment variables.}
@@ -23,6 +23,9 @@ Calibrate(categorical.variables = NULL, categorical.targets = NULL,
 \item{upper}{An upper bound weight value (not guaranteed to be achieved).}
 
 \item{trim.iterations}{The number of times to run the trim loop over the final weightings}
+
+\item{always.calibrate}{If \code{FALSE}, problems with only categorical adjustment variables are solved via
+iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.}
 
 \item{subset}{A logical vector indicating which subset of cases should be used to create the weight}
 

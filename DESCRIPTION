@@ -22,6 +22,7 @@ Imports:
     survey
 RoxygenNote: 6.1.1
 Suggests: 
+    foreign,
     testthat,
     flipExampleData
 Remotes:
