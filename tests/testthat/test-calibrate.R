@@ -1,5 +1,9 @@
 library(testthat)
+
 context("Calibrate")
+marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
+
+
 
 input.weight = structure(c(1.06521737575531, 1.93478262424469, 2.04347825050354,
                            1.76086962223053, 1.95652174949646, 1.52173912525177, 1.36956524848938,
@@ -1410,7 +1414,6 @@ test_that("trimming",
 })
 
 
-marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
 
 test_that("Ordering of categories in a categorical adjustment variable makes no difference",
           {
