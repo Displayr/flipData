@@ -43,5 +43,6 @@ to this input.weight as possible}
 numeric A vector of weights
 }
 \description{
-Creates a sampling weight based on raking/calibration.
+Creates a sampling weight based on raking/calibration. Raking is used if it can be used (i.e.,
+no numeric adjustment variables and \code{always.calibrate} not \code{FALSE})
 }

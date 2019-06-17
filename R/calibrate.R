@@ -1,5 +1,6 @@
 #' \code{Calibrate}
-#' @description Creates a sampling weight based on raking/calibration.
+#' @description Creates a sampling weight based on raking/calibration. Raking is used if it can be used (i.e.,
+#' no numeric adjustment variables and \code{always.calibrate} not \code{FALSE})
 #' @param categorical.variables An optional list or data frame of categorical adjustment variables.
 #' @param categorical.targets The target probabilities for each category listed in \code{categorical.variables}
 #' @param numeric.variables An optional list or data frame of categorical adjustment variables.
@@ -81,8 +82,12 @@ Calibrate <- function(categorical.variables = NULL,
         for (i in 1:n.categorical) # ordered = FALSE needed for weirdness in survey package
             adjustment.variables[[i]] = factor(adjustment.variables[[i]], ordered = FALSE)
 
-    # Creating the table of margins
+    # Working out if to rake
     raking = n.categorical == length(adjustment.variables) & !always.calibrate
+    if (raking & min(sapply(targets, min)) == 0)
+        stop("One of your targets is set to 0. To achieve this, remove this category from the target and instead apply a filter to the weight to remove the category (or, set always.calibrate = TRUE")
+
+    # Creating the table of margins/targets in the desired format
     marg = createMargins(targets, adjustment.variables, n.categorical, raking, package)
 
     # Calculating/updating the weight

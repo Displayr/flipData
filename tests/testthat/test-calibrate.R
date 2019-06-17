@@ -257,3 +257,23 @@ test_that("Problem for which calibration fails (due to poor algorithms)",
                                           package = "CVXR")), NA)
           })
 
+test_that("RS-2527 Targets of 0: automatically switching to calbration",
+          {
+              adjustment.variable = list(Region = marriage$region_cat)
+              category.names = levels(adjustment.variable[[1]])
+              target.proportions = c(.00, 0.26, .24, .25, .25)
+              # Raking - should have an error
+              expect_error(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), always.calibrate = FALSE), "One of your targets")
+
+              # Raking with a filter- should not have an error
+              expect_error(Calibrate(adjustment.variable,
+                                     list(cbind(category.names, target.proportions)[-1, ]),
+                                     always.calibrate = FALSE,
+                                     subset = marriage$region_cat != "dc"), NA)
+
+              # Calibrate - should not have an error
+              expect_error(Calibrate(adjustment.variable, list(cbind(category.names, target.proportions)), always.calibrate = TRUE), NA)
+
+
+          })
+
