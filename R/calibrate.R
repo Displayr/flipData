@@ -233,7 +233,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
             }
             margins = margins * n
             formula = createFormula(adjustment.variables)
-            names(margins) = colnames(model.matrix(formula, data = adjustment.variables))
+            names(margins) = colnames(model.matrix(terms.formula(formula), data = adjustment.variables))
         }
     }
     margins
