@@ -271,7 +271,7 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                                              calfun = "raking")),
                   CVXR = {
                       formula = createFormula(adjustment.variables)
-                      X <- model.matrix(object = formula, data = adjustment.variables)
+                      X <- model.matrix(object = terms.formula(formula), data = adjustment.variables)
                       A <- input.weight * X
                       n <- NROW(X)
                       g <- Variable(n)
