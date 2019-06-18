@@ -271,7 +271,11 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                                              calfun = "raking")),
                   CVXR = {
                       formula = createFormula(adjustment.variables)
-                      X <- model.matrix(object = terms.formula(formula), data = adjustment.variables)
+                      # wrapping formula with terms.formula fixes the
+                      # "argument "frml" is missing, with no default"
+                      # bug on the R server
+                      X <- model.matrix(object = terms.formula(formula),
+                                        data = adjustment.variables)
                       A <- input.weight * X
                       n <- NROW(X)
                       g <- Variable(n)
