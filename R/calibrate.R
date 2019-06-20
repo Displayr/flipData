@@ -332,6 +332,7 @@ diffCalculation = function(weight, lower, upper)
 #' @param ... Other ignored parameters
 #' @return character string
 #' @method print Calibrate
+#' @importFrom flipFormat FormatAsReal FormatAsPercent
 #' @export
 print.Calibrate <- function (x, ...)
 {
@@ -346,9 +347,14 @@ print.Calibrate <- function (x, ...)
     }
     ess = EffectiveSampleSize(x)
     ess.percent = round(ess / length(x) * 100)
-    cat(paste0("Effective sample size: ",
-               flipFormat::FormatAsReal(ess, decimals = 0),
-               " (",
-               ess.percent, "%)",
-               instruction.for.getting.variable))
+    n = length(x)
+    rng = range(x)
+
+
+    cat(paste0("The weight has been computed for ", FormatAsReal(n, decimals = 0), " observations.\n
+              The weight has an effective sample size of ",
+              FormatAsReal(ess, decimals = 0),
+              " (",  ess.percent, "%)\n",
+              "Smallest weight is ", FormatAsReal(rng[1], decimals = 3), "\n",
+              "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 1), " times the smallest weight)"))
 }
