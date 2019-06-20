@@ -355,8 +355,8 @@ print.Calibrate <- function (x, ...)
     rng = range(x)
 
 
-    cat(paste0("The weight has been computed for ", FormatAsReal(n, decimals = 0), " observations.\n
-              The weight has an effective sample size of ",
+    cat(paste0("The weight has been computed for ", FormatAsReal(n, decimals = 0), " observations.\n",
+              "The weight has an effective sample size of ",
               FormatAsReal(ess, decimals = 0),
               " (",  ess.percent, "%)\n",
               "Smallest weight is ", FormatAsReal(rng[1], decimals = 3), "\n",
