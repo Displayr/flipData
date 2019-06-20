@@ -360,5 +360,6 @@ print.Calibrate <- function (x, ...)
               FormatAsReal(ess, decimals = 0),
               " (",  ess.percent, "%)\n",
               "Smallest weight is ", FormatAsReal(rng[1], decimals = 3), "\n",
-              "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 1), " times the smallest weight)"))
+              "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 1), " times the smallest weight)",
+              instruction.for.getting.variable))
 }
