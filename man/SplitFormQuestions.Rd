@@ -4,14 +4,16 @@
 \alias{SplitFormQuestions}
 \title{\code{SplitFormQuestions}}
 \usage{
-SplitFormQuestions(form.data, use.names = FALSE)
+SplitFormQuestions(form.data, show.labels = TRUE)
 }
 \arguments{
 \item{form.data}{The list a from Q/Displayr dropbox controls containing
 variables and questions/variable sets.}
 
-\item{use.names}{Whether to name variables in the data frame using the
-variable names in Q/Displayr. Otherwise the variable label is used.}
+\item{show.labels}{Whether to name variables in the data frame using the
+variable labels in Q/Displayr, otherwise the variable name is used
+(the variable name cannot be extracted from a question/variable set,
+and a warning is shown).}
 }
 \description{
 Converts a list input from Q/Displayr dropbox controls which
