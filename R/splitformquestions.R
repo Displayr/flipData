@@ -5,10 +5,12 @@
 #'   dataframe.
 #' @param form.data The list a from Q/Displayr dropbox controls containing
 #'   variables and questions/variable sets.
-#' @param use.names Whether to name variables in the data frame using the
-#'   variable names in Q/Displayr. Otherwise the variable label is used.
+#' @param show.labels Whether to name variables in the data frame using the
+#'   variable labels in Q/Displayr, otherwise the variable name is used
+#'   (the variable name cannot be extracted from a question/variable set,
+#'   and a warning is shown).
 #' @export
-SplitFormQuestions <- function(form.data, use.names = FALSE)
+SplitFormQuestions <- function(form.data, show.labels = TRUE)
 {
     dat <- list()
     for (nm in names(formVariables))
@@ -19,13 +21,13 @@ SplitFormQuestions <- function(form.data, use.names = FALSE)
             for (nm2 in setdiff(names(elem), c("NET", "SUM")))
                 dat[[nm2]] <- elem[[nm2]]
         }
-        else if (use.names)
-            dat[[attr(elem, "name")]] <- elem
-        else
+        else if (show.labels)
             dat[[nm]] <- elem
+        else
+            dat[[attr(elem, "name")]] <- elem
     }
 
-    if (use.names && any(sapply(formVariables, is.data.frame)))
+    if (!show.labels && any(sapply(formVariables, is.data.frame)))
         warning("Variable names cannot be shown when questions are selected. ",
                 "To show variable names, please select the variables from the question.")
 
