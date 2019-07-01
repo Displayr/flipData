@@ -13,9 +13,9 @@
 SplitFormQuestions <- function(form.data, show.labels = TRUE)
 {
     dat <- list()
-    for (nm in names(formVariables))
+    for (nm in names(form.data))
     {
-        elem <- formVariables[[nm]]
+        elem <- form.data[[nm]]
         if (is.data.frame(elem))
         {
             for (nm2 in setdiff(names(elem), c("NET", "SUM")))
@@ -27,7 +27,7 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE)
             dat[[attr(elem, "name")]] <- elem
     }
 
-    if (!show.labels && any(sapply(formVariables, is.data.frame)))
+    if (!show.labels && any(sapply(form.data, is.data.frame)))
         warning("Variable names cannot be shown when questions are selected. ",
                 "To show variable names, please select the variables from the question.")
 
