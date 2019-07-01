@@ -191,6 +191,7 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets, subse
 }
 
 # Formats table of margins, as required by the various functions and packages
+#' @importFrom stats terms.formula
 createMargins <- function(targets, adjustment.variables, n.categorical, raking, package)
 {
     # Creating the targets in the required format
@@ -241,7 +242,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 # Calibration function
 #' @importFrom icarus calibration
 #' @importFrom survey calibrate rake
-#' @importFrom stats model.matrix weights
+#' @importFrom stats model.matrix weights terms.formula
 #' @importFrom CVXR Variable Minimize Problem entr
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
