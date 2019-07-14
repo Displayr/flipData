@@ -85,7 +85,7 @@ Calibrate <- function(categorical.variables = NULL,
     # Working out if to rake
     raking = n.categorical == length(adjustment.variables) & !always.calibrate
     if (raking & min(sapply(targets, min)) == 0)
-        stop("One of your targets is set to 0. To achieve this, remove this category from the target and instead apply a filter to the weight to remove the category (or, set always.calibrate = TRUE")
+        stop("One of your targets is set to 0. To achieve this, remove this category from the target and instead apply a filter to the weight to remove the category (or, in the R CODE set always.calibrate = TRUE)")
 
     # Creating the table of margins/targets in the desired format
     marg = createMargins(targets, adjustment.variables, n.categorical, raking, package)
