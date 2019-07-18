@@ -131,20 +131,20 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
                 "those in the list of alternatives: ",
                 paste0(not.found, collapse = ", "),
                 ". Either this variable is not present in the set of ",
-                "alternatives, or no category from input ", question.name, "s ",
-                "match the variable label, in which case the variables ",
-                "from the ", question.name, " should be selected as alternatives ",
-                "instead.")
+                "alternatives, or the variable label does not match any ",
+                "category from the input ", question.name, "s in which case ",
+                "the variables from the ", question.name,
+                " should be selected as alternatives instead.")
         else
             stop("The following variables were specified in '",
                  variable.labels.source, "' but could not be matched to ",
                  "those in the list of alternatives: ",
                  paste0(not.found, collapse = ", "),
                  ". Either these variables are not present in the set of ",
-                 "alternatives, or categories from input ", question.name, "s ",
-                 "do not match the variables' labels, in which case the variables ",
-                 "from the ", question.name, " should be selected as alternatives ",
-                 "instead.")
+                 "alternatives, or the variables' labels do not match any ",
+                 "categories from input ", question.name, "s, in which case ",
+                 "the variables from the ", question.name,
+                 " should be selected as alternatives instead.")
     }
 
     match(variable.labels, labels.from.mixed.input)

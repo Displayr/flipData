@@ -189,7 +189,8 @@ test_that("Pick Any - Grid",
                         "but could not be matched to those in the list of ",
                         "alternatives: incorrect_variable_name. Either this ",
                         "variable is not present in the set of alternatives, ",
-                        "or no category from input questions match the variable ",
-                        "label, in which case the variables from the question ",
-                        "should be selected as alternatives instead."))
+                        "or the variable label does not match any category ",
+                        "from the input questions in which case the variables ",
+                        "from the question should be selected as alternatives ",
+                        "instead."))
 })
