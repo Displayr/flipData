@@ -185,10 +185,11 @@ test_that("Pick Any - Grid",
     expect_error(MatchVariableLabelsToQuestion(names(result$dat),
                                               "incorrect_variable_name",
                                               result$is.grid, "Must include"),
-                 paste0("The following variables were specified in 'Must include' ",
-                        "but could not be matched to those in the list of alternatives: ",
-                        "incorrect_variable_name. Either these variables are not present ",
-                        "in the set of alternatives, or categories from input questions do ",
-                        "not match the variables, in which case the variables from the ",
-                        "question should be selected as alternatives instead."))
+                 paste0("The following variable was specified in 'Must include' ",
+                        "but could not be matched to those in the list of ",
+                        "alternatives: incorrect_variable_name. Either this ",
+                        "variable is not present in the set of alternatives, ",
+                        "or no category from input questions match the variable ",
+                        "label, in which case the variables from the question ",
+                        "should be selected as alternatives instead."))
 })

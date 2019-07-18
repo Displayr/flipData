@@ -125,15 +125,26 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
     if (length(not.found) > 0)
     {
         question.name <- ifelse(productName == "Q", "question", "variable set")
-        stop("The following variables were specified in '",
-             variable.labels.source, "' but could not be matched to ",
-             "those in the list of alternatives: ",
-             paste0(not.found, collapse = ", "),
-             ". Either these variables are not present in the set of ",
-             "alternatives, or categories from input ", question.name, "s ",
-             "do not match the variables, in which case the variables ",
-             "from the ", question.name, " should be selected as alternatives ",
-             "instead.")
+        if (length(not.found) == 1)
+            stop("The following variable was specified in '",
+                 variable.labels.source, "' but could not be matched to ",
+                "those in the list of alternatives: ",
+                paste0(not.found, collapse = ", "),
+                ". Either this variable is not present in the set of ",
+                "alternatives, or no category from input ", question.name, "s ",
+                "match the variable label, in which case the variables ",
+                "from the ", question.name, " should be selected as alternatives ",
+                "instead.")
+        else
+            stop("The following variables were specified in '",
+                 variable.labels.source, "' but could not be matched to ",
+                 "those in the list of alternatives: ",
+                 paste0(not.found, collapse = ", "),
+                 ". Either these variables are not present in the set of ",
+                 "alternatives, or categories from input ", question.name, "s ",
+                 "do not match the variables' labels, in which case the variables ",
+                 "from the ", question.name, " should be selected as alternatives ",
+                 "instead.")
     }
 
     match(variable.labels, labels.from.mixed.input)
