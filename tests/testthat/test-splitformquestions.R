@@ -120,7 +120,13 @@ form.data <- list(`Q4.  Frequency numeric` = structure(list(`Colas (e.g., Coca C
     questiontype = "Number", name = "Q3_3", label = "Q3. Age in years",
     question = "Q3. Age in years"))
 
-test_that("DS-975",
+findInstDirFile <- function(file)
+{
+    file.path(system.file("testdata", package = "flipData", mustWork = TRUE),
+              file)
+}
+
+test_that("Mixed question and variable",
 {
     result <- SplitFormQuestions(form.data)
     expect_equal(names(result),
@@ -136,4 +142,53 @@ test_that("DS-975",
                  c("Colas (e.g., Coca Cola, Pepsi Max)?",
                    "Sparkling mineral water",
                    "Coffee", "Q3_3"))
+
+
+})
+
+test_that("Pick Any - Grid",
+{
+    load(findInstDirFile("Q5.rda"))
+    result <- SplitFormQuestions(list(Q5 = Q5), include.grid.flag = TRUE)
+    expect_equal(names(result$dat),
+                 c("Feminine, Coke", "Feminine, Diet Coke", "Feminine, Coke Zero",
+                   "Feminine, Pepsi", "Feminine, Diet Pepsi", "Feminine, Pepsi Max",
+                   "Feminine, None of these", "Health-conscious, Coke", "Health-conscious, Diet Coke",
+                   "Health-conscious, Coke Zero", "Health-conscious, Pepsi", "Health-conscious, Diet Pepsi",
+                   "Health-conscious, Pepsi Max", "Health-conscious, None of these",
+                   "Innocent, Coke", "Innocent, Diet Coke", "Innocent, Coke Zero",
+                   "Innocent, Pepsi", "Innocent, Diet Pepsi", "Innocent, Pepsi Max",
+                   "Innocent, None of these", "Older, Coke", "Older, Diet Coke",
+                   "Older, Coke Zero", "Older, Pepsi", "Older, Diet Pepsi", "Older, Pepsi Max",
+                   "Older, None of these", "Open to new experiences, Coke", "Open to new experiences, Diet Coke",
+                   "Open to new experiences, Coke Zero", "Open to new experiences, Pepsi",
+                   "Open to new experiences, Diet Pepsi", "Open to new experiences, Pepsi Max",
+                   "Open to new experiences, None of these", "Rebellious, Coke",
+                   "Rebellious, Diet Coke", "Rebellious, Coke Zero", "Rebellious, Pepsi",
+                   "Rebellious, Diet Pepsi", "Rebellious, Pepsi Max", "Rebellious, None of these",
+                   "Sleepy, Coke", "Sleepy, Diet Coke", "Sleepy, Coke Zero", "Sleepy, Pepsi",
+                   "Sleepy, Diet Pepsi", "Sleepy, Pepsi Max", "Sleepy, None of these",
+                   "Traditional, Coke", "Traditional, Diet Coke", "Traditional, Coke Zero",
+                   "Traditional, Pepsi", "Traditional, Diet Pepsi", "Traditional, Pepsi Max",
+                   "Traditional, None of these", "Weight-conscious, Coke", "Weight-conscious, Diet Coke",
+                   "Weight-conscious, Coke Zero", "Weight-conscious, Pepsi", "Weight-conscious, Diet Pepsi",
+                   "Weight-conscious, Pepsi Max", "Weight-conscious, None of these"))
+
+    expect_equal(result$is.grid, rep(TRUE, 63))
+
+    result.2 <- MatchVariableLabelsToQuestion(names(result$dat),
+                                            c("feminine] Diet Coke",
+                                              "feminine] Coke Zero"),
+                                            result$is.grid, "Must include")
+    expect_equal(result.2, c(2, 3))
+
+    expect_error(MatchVariableLabelsToQuestion(names(result$dat),
+                                              "incorrect_variable_name",
+                                              result$is.grid, "Must include"),
+                 paste0("The following variables were specified in 'Must include' ",
+                        "but could not be matched to those in the list of alternatives: ",
+                        "incorrect_variable_name. Either these variables are not present ",
+                        "in the set of alternatives, or categories from input questions do ",
+                        "not match the variables, in which case the variables from the ",
+                        "question should be selected as alternatives instead."))
 })

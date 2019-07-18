@@ -4,16 +4,20 @@
 \alias{SplitFormQuestions}
 \title{\code{SplitFormQuestions}}
 \usage{
-SplitFormQuestions(form.data, show.labels = TRUE)
+SplitFormQuestions(form.data, show.labels = TRUE,
+  include.grid.flag = FALSE)
 }
 \arguments{
-\item{form.data}{The list a from Q/Displayr dropbox controls containing
+\item{form.data}{The list from Q/Displayr dropbox controls containing
 variables and questions/variable sets.}
 
 \item{show.labels}{Whether to name variables in the data frame using the
 variable labels in Q/Displayr, otherwise the variable name is used
 (the variable name cannot be extracted from a question/variable set,
 and a warning is shown).}
+
+\item{include.grid.flag}{Whether to return a flag indicating which variables
+come from Pick Any - Grid or Number - Grid questions.}
 }
 \description{
 Converts a list input from Q/Displayr dropbox controls which
