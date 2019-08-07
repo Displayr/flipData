@@ -194,3 +194,13 @@ test_that("Pick Any - Grid",
                         "from the question should be selected as alternatives ",
                         "instead."))
 })
+
+test_that("form.data with no names; DS-2601",
+{
+    fd <- unname(form.data)
+    result <- SplitFormQuestions(fd)
+    expect_equal(names(result),
+                 c("Colas (e.g., Coca Cola, Pepsi Max)?",
+                   "Sparkling mineral water",
+                   "Coffee", "Q3. Age in years"))
+})

@@ -17,12 +17,12 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
 {
     dat <- list()
     is.grid <- logical(0)
-    for (nm in names(form.data))
+    for (i in seq_along(form.data))
     {
-        elem <- form.data[[nm]]
+        elem <- form.data[[i]]
         if (is.data.frame(elem))
         {
-            nms <- setdiff(names(elem), c("NET", "SUM"))
+            nms <- setdiff(Labels(elem), c("NET", "SUM"))
 
             # Grid questions also have column and row NETs/SUMs which need to
             # be removed
@@ -39,7 +39,7 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
         }
         else if (show.labels)
         {
-            dat[[nm]] <- elem
+            dat[[Labels(elem)]] <- elem
             is.grid <- c(is.grid, FALSE)
         }
         else
