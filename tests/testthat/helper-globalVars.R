@@ -1,1 +1,1 @@
-productName ="Q"
+assign("productName", "Q", .GlobalEnv)

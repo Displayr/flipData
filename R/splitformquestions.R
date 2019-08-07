@@ -62,16 +62,20 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
         data.frame(dat, check.names = FALSE)
 }
 
-#' \code{MatchVariableLabelsToQuestion}
+#' Perform Variable Label Matching
 #'
-#' @description
+#' Match variable labels to labels that
+#' come from a mixture of questions and variables. The labels from
+#' questions may have been modified because the question is a grid
+#' question and this requires special treatment.
 #' @param labels.from.mixed.input Variable labels obtained from
-#'  SplitFormQuestions.
+#'     SplitFormQuestions.
 #' @param variable.labels Variable labels to be matched.
-#' @param is.grid Logical flag indicating which labels.from.mixed.input are
-#'  from a Pick Any - Grid or Number - Grid questions.
-#' @param variable.labels.source The source of the variable labels, to be used
-#'  to show the error message.
+#' @param is.grid Logical flag indicating which
+#'     labels.from.mixed.input are from a Pick Any - Grid or Number -
+#'     Grid questions.
+#' @param variable.labels.source The source of the variable labels, to
+#'     be used to show the error message.
 #' @export
 MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
                                           variable.labels,
@@ -124,7 +128,8 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
 
     if (length(not.found) > 0)
     {
-        question.name <- ifelse(productName == "Q", "question", "variable set")
+        question.name <- ifelse(get0("productName", ifnotfound = "Q") == "Q",
+                                     "question", "variable set")
         if (length(not.found) == 1)
             stop("The following variable was specified in '",
                  variable.labels.source, "' but could not be matched to ",
