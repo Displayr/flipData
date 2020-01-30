@@ -4,8 +4,7 @@
 \alias{CheckForLinearDependence}
 \title{CheckForLinearDependence}
 \usage{
-CheckForLinearDependence(x, variable.names = colnames(x),
-  correlations = FALSE)
+CheckForLinearDependence(x, variable.names = colnames(x), correlations = FALSE)
 }
 \arguments{
 \item{x}{A \code{\link{matrix}} or \code{\link{data.frame}}.}

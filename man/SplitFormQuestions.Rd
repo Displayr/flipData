@@ -4,8 +4,7 @@
 \alias{SplitFormQuestions}
 \title{\code{SplitFormQuestions}}
 \usage{
-SplitFormQuestions(form.data, show.labels = TRUE,
-  include.grid.flag = FALSE)
+SplitFormQuestions(form.data, show.labels = TRUE, include.grid.flag = FALSE)
 }
 \arguments{
 \item{form.data}{The list from Q/Displayr dropbox controls containing

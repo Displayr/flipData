@@ -129,12 +129,13 @@ EstimationData <- function(formula = NULL,
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
                    stop(paste("Unknown 'missing' method:", missing)))
         data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
-        levels.pre <- vapply(data.for.estimation, nlevels, 0L)
+        levels.pre <- unlist(lapply(data.for.estimation, levels))
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
-        levels.post <- vapply(data.for.estimation, nlevels, 0L)
-        if (any(levels.pre > levels.post))
+        levels.post <- unlist(lapply(data.for.estimation, levels))
+        levels.diff <- setdiff(levels.pre, levels.post)
+        if (length(levels.diff) > 0)
         {
-            labls <- paste(labels[levels.pre > levels.post], collapse = ", ")
+            labls <- paste(levels.diff, collapse = ", ")
             warning("Some categories do not appear in the data: ", labls,
                     ". This may be because they are empty in the raw data, or ",
                     "because they are empty after any weights, filters/subsets, ",

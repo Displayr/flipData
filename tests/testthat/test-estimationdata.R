@@ -51,6 +51,15 @@ attr(bank$Fees, "label") <- "Fees paid"
 attr(bank$Online, "label") <- "Online banking"
 
 
+dat2 <- structure(list(Country = structure(c(1L, 4L, 2L, 3L), class = "factor",
+                .Label = c("Australia","Denmark", "Fiji", "France"),
+                questiontype = "PickOne", name = "Country", label = "Country", question = "Country"),
+                  A = structure(c(1L, 2L, 3L, NA), class = "factor", .Label = c("1",
+                 "2", "3"), questiontype = "PickOne", name = "A", label = "A", question = "A")),
+                class = "data.frame", row.names = c(NA, -4L))
+filt <- c(FALSE, TRUE, TRUE, TRUE)
+EstimationData(~Country + A, data = dat2, subset = filt)
+
 
 
 
