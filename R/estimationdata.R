@@ -135,9 +135,9 @@ EstimationData <- function(formula = NULL,
         levels.diff <- setdiff(levels.pre, levels.post)
         if (length(levels.diff) > 0)
         {
-            labls <- paste(levels.diff, collapse = ", ")
-            warning("Some categories do not appear in the data: ", labls,
-                    ". This may be because they are empty in the raw data, or ",
+            labls <- paste(levels.diff, collapse = "', '")
+            warning("Some categories do not appear in the data: '", labls,
+                    "'. This may be because they are empty in the raw data, or ",
                     "because they are empty after any weights, filters/subsets, ",
                     "or missing data settings are applied. This may cause an error. ",
                     "It is recommended that you merge categories prior to estimating",
