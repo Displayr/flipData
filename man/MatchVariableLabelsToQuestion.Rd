@@ -2,7 +2,7 @@
 % Please edit documentation in R/splitformquestions.R
 \name{MatchVariableLabelsToQuestion}
 \alias{MatchVariableLabelsToQuestion}
-\title{\code{MatchVariableLabelsToQuestion}}
+\title{Perform Variable Label Matching}
 \usage{
 MatchVariableLabelsToQuestion(labels.from.mixed.input, variable.labels,
   is.grid, variable.labels.source)
@@ -13,12 +13,16 @@ SplitFormQuestions.}
 
 \item{variable.labels}{Variable labels to be matched.}
 
-\item{is.grid}{Logical flag indicating which labels.from.mixed.input are
-from a Pick Any - Grid or Number - Grid questions.}
+\item{is.grid}{Logical flag indicating which
+labels.from.mixed.input are from a Pick Any - Grid or Number -
+Grid questions.}
 
-\item{variable.labels.source}{The source of the variable labels, to be used
-to show the error message.}
+\item{variable.labels.source}{The source of the variable labels, to
+be used to show the error message.}
 }
 \description{
-\code{MatchVariableLabelsToQuestion}
+Match variable labels to labels that
+come from a mixture of questions and variables. The labels from
+questions may have been modified because the question is a grid
+question and this requires special treatment.
 }
