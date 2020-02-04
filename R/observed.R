@@ -7,7 +7,7 @@
 #' @export
 Observed <- function(x) UseMethod("Observed", x)
 
-#' @inheritParams Observed
+#' @param x A model.
 #' @describeIn Observed Extracts the dependant variable from an object from its formula.
 #' @importFrom stats formula
 #' @export
@@ -18,7 +18,7 @@ Observed.default <- function(x)
     x$model[, all.vars(formula(x))[1]]
 }
 
-#' @inheritParams Observed
+#' @param x A model.
 #' @describeIn Observed Extracts the dependant variable directly from an object.
 #' @export
 Observed.MachineLearningEnsemble <- function(x)
