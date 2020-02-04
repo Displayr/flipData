@@ -4,11 +4,19 @@
 \alias{Calibrate}
 \title{\code{Calibrate}}
 \usage{
-Calibrate(categorical.variables = NULL, categorical.targets = NULL,
-  numeric.variables = NULL, numeric.targets = NULL, lower = NA,
-  upper = NA, trim.iterations = 20, package = c("CVXR", "survey",
-  "icarus")[1], always.calibrate = FALSE, subset = NULL,
-  input.weight = NULL)
+Calibrate(
+  categorical.variables = NULL,
+  categorical.targets = NULL,
+  numeric.variables = NULL,
+  numeric.targets = NULL,
+  lower = NA,
+  upper = NA,
+  trim.iterations = 20,
+  package = c("CVXR", "survey", "icarus")[1],
+  always.calibrate = FALSE,
+  subset = NULL,
+  input.weight = NULL
+)
 }
 \arguments{
 \item{categorical.variables}{An optional list or data frame of categorical adjustment variables.}

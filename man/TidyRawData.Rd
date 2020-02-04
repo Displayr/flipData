@@ -4,11 +4,17 @@
 \alias{TidyRawData}
 \title{Tidy Data From Displayr}
 \usage{
-TidyRawData(data, as.numeric = FALSE, as.binary = FALSE,
-  subset = NULL, weights = NULL,
+TidyRawData(
+  data,
+  as.numeric = FALSE,
+  as.binary = FALSE,
+  subset = NULL,
+  weights = NULL,
   missing = "Exclude cases with missing data",
-  error.if.insufficient.obs = TRUE, extract.common.lab.prefix = FALSE,
-  auto.correct.class = FALSE)
+  error.if.insufficient.obs = TRUE,
+  extract.common.lab.prefix = FALSE,
+  auto.correct.class = FALSE
+)
 }
 \arguments{
 \item{data}{A \code{data.frame}.}

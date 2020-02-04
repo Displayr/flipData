@@ -4,8 +4,12 @@
 \alias{MatchVariableLabelsToQuestion}
 \title{Perform Variable Label Matching}
 \usage{
-MatchVariableLabelsToQuestion(labels.from.mixed.input, variable.labels,
-  is.grid, variable.labels.source)
+MatchVariableLabelsToQuestion(
+  labels.from.mixed.input,
+  variable.labels,
+  is.grid,
+  variable.labels.source
+)
 }
 \arguments{
 \item{labels.from.mixed.input}{Variable labels obtained from

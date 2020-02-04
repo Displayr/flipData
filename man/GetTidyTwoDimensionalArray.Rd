@@ -4,8 +4,11 @@
 \alias{GetTidyTwoDimensionalArray}
 \title{\code{GetTidyTwoDimensionalArray}}
 \usage{
-GetTidyTwoDimensionalArray(x, row.names.to.remove = NULL,
-  column.names.to.remove = NULL)
+GetTidyTwoDimensionalArray(
+  x,
+  row.names.to.remove = NULL,
+  column.names.to.remove = NULL
+)
 }
 \arguments{
 \item{x}{The data that is being analyzed}
