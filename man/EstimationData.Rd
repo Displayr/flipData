@@ -37,6 +37,7 @@ regression. Options are: \code{"Error if missing data"},
 \code{"Exclude cases with missing data"},
 \code{"Use partial data"},
 \code{"Use partial data (pairwise correlations)"},
+\code{"Dummy variable adjustment"},
 \code{"Imputation (replace missing values with estimates)"},
 and \code{"Multiple imputation"}.}
 

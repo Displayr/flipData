@@ -17,6 +17,7 @@
 #'     \code{"Exclude cases with missing data"},
 #'     \code{"Use partial data"},
 #'     \code{"Use partial data (pairwise correlations)"},
+#'     \code{"Dummy variable adjustment"},
 #'     \code{"Imputation (replace missing values with estimates)"},
 #'     and \code{"Multiple imputation"}.
 #' @param m Number of imputation samples.
@@ -32,7 +33,7 @@
 #'     subset.  Ignored for other options of \code{missing}.
 #' @details Removes any empty levels from factors.
 #' @importFrom flipTransformations RemoveMissingLevelsFromFactors
-#' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome
+#' @importFrom flipU AllVariablesNames CopyAttributes HasOutcome OutcomeName
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
 #' @seealso \code{\link[flipImputation]{Imputation}},
@@ -124,15 +125,20 @@ EstimationData <- function(formula = NULL,
         data.subset <- data.subset[, variable.names, drop = FALSE]
         data.for.estimation <- switch(missing, "Error if missing data" = ErrorIfMissingDataFound(data.subset),
                    "Exclude cases with missing data" = RemoveCasesWithAnyNA(data.subset),
+                   "Dummy variable adjustment" = AddDummyVariablesForNAs(data.subset, OutcomeName(formula)),
                    "Assign partial data to clusters" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
                    stop(paste("Unknown 'missing' method:", missing)))
         data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
-        levels.pre <- paste0(rep(labels, vapply(data.for.estimation, nlevels, 0L)), ": ",
+        if (missing == "Dummy variable adjustment")
+            data.cols <- names(data.for.estimation) %in% names(data.subset)
+        else
+            data.cols <- rep(TRUE, ncol(data.for.estimation))
+        levels.pre <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
                             unlist(lapply(data.for.estimation, levels)))
         data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
-        levels.post <- paste0(rep(labels, vapply(data.for.estimation, nlevels, 0L)), ": ",
+        levels.post <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
                              unlist(lapply(data.for.estimation, levels)))
         levels.diff <- setdiff(levels.pre, levels.post)
         if (length(levels.diff) > 0)

@@ -174,3 +174,39 @@ ErrorIfInfinity <- function(data)
 }
 
 
+AddDummyVariablesForNAs <- function(data, outcome.name)
+{
+    outcome <- data[which(names(data) == outcome.name)]
+    predictor.df <- data[-which(names(data) == outcome.name)]
+    # Check edge cases for missing, cases with missing response or all predictors missing.
+    missing.outcomes <- is.na(outcome[[1]])
+    cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
+    # Create dummy variable matrix
+    dummy.variable.df <- lapply(predictor.df, function(x) as.integer(is.na(x)))
+    # Check if some predictors don't have missing data
+    empty.dummy.columns <- sapply(dummy.variable.df, sum) == 0
+    if (any(empty.dummy.columns))
+        dummy.variable.df[empty.dummy.columns] <- NULL
+    if (length(dummy.variable.df) == 0)
+    {
+        if (any(missing.outcomes))
+            return(data[!missing.outcomes, ])
+        else
+            return(data)
+    }
+
+    dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
+    names(dummy.variable.df) <- paste0(names(predictor.df), ".dummy.var")
+    # replace NAs in predictor df with zeros
+    predictor.df[is.na(predictor.df)] = 0
+    # Create new data.frame
+    new.data <- cbind.data.frame(outcome, predictor.df, dummy.variable.df)
+    # Check if all predictors missing, if so, subset, attributes to be preserved in EstimationData
+    if (any(cases.all.predictors.missing) || any(missing.outcomes))
+        new.data <- new.data[!cases.all.predictors.missing & !missing.outcomes, ]
+    # Inspect dummy matrix and remove dummy variables no longer required
+    dummy.parts <- names(new.data) %in% names(dummy.variable.df)
+    if (any(empty.dummy.vars <- lapply(new.data[dummy.parts], sum) == 0))
+        new.data[names(which(empty.dummy.vars))] <- NULL
+    return(new.data)
+}

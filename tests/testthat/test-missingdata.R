@@ -28,4 +28,37 @@ test_that("Infinity",
 
 })
 
+no.missing.df <- data.frame(Y = 1:2, X1 = 1:2, X2 = 1:2)
 
+outcome.has.missing.df <- data.frame(Y = c(NA, 1), X1 = 1:2, X2 = 1:2)
+expected.missing.outcome <- data.frame(Y = 1, X1 = 2, X2 = 2, row.names = 2L)
+
+diag.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(1, NA))
+diag.missing.dummy <- data.frame(Y = 1:2, X1 = c(0, 2), X2 = c(1, 0), X1.dummy.var = 1:0, X2.dummy.var = 0:1)
+
+missing.predictors.case.df <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(NA, 2))
+row.removed.df.no.dummy <- structure(list(Y = 2L, X1 = 2, X2 = 2), row.names = 2L, class = "data.frame")
+
+larger.case.with.missing.df <- data.frame(Y  = c(1, 2,  3,  4, 5, NA, 1, 2,  1),
+                                          X1 = c(1, 4, NA,  3, 2,  3, 1, 0, NA),
+                                          X2 = c(5, 4,  6, NA, 1,  3, 4, 0, NA))
+expected.larger.case <- structure(list(Y = c(1, 2, 3, 4, 5, 1, 2),
+                                       X1 = c(1, 4, 0, 3, 2, 1, 0),
+                                       X2 = c(5, 4, 6, 0, 1, 4, 0),
+                                       X1.dummy.var = c(0L, 0L, 1L, 0L, 0L, 0L, 0L),
+                                       X2.dummy.var = c(0L, 0L, 0L, 1L, 0L, 0L, 0L)),
+                                  row.names = c(1L, 2L, 3L, 4L, 5L, 7L, 8L), class = "data.frame")
+
+test_that("Dummy variable adjustment", {
+    expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y"),
+                     no.missing.df)
+    expect_equal(AddDummyVariablesForNAs(outcome.has.missing.df, outcome.name = "Y"),
+                 expected.missing.outcome)
+    expect_identical(AddDummyVariablesForNAs(diag.missing, "Y"),
+                     diag.missing.dummy)
+    # Edge case, missing predictors make dummy redundant
+    expect_equal(AddDummyVariablesForNAs(missing.predictors.case.df, outcome.name = "Y"),
+                 row.removed.df.no.dummy)
+    expect_identical(AddDummyVariablesForNAs(larger.case.with.missing.df, outcome.name = "Y"),
+                     expected.larger.case)
+})
