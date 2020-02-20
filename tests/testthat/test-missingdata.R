@@ -32,12 +32,18 @@ no.missing.df <- data.frame(Y = 1:2, X1 = 1:2, X2 = 1:2)
 
 outcome.has.missing.df <- data.frame(Y = c(NA, 1), X1 = 1:2, X2 = 1:2)
 expected.missing.outcome <- data.frame(Y = 1, X1 = 2, X2 = 2, row.names = 2L)
+expected.missing.outcome.unchecked <- data.frame(Y = c(NA, 1), X1 = c(1, 2), X2 = c(1, 2))
+
+single.pred.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(1, 2))
+expected.single <- data.frame(Y = 1:2, X1 = c(0, 2), X2 = c(1, 2), X1.dummy.var = c(1, 0))
 
 diag.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(1, NA))
 diag.missing.dummy <- data.frame(Y = 1:2, X1 = c(0, 2), X2 = c(1, 0), X1.dummy.var = 1:0, X2.dummy.var = 0:1)
 
 missing.predictors.case.df <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(NA, 2))
-row.removed.df.no.dummy <- structure(list(Y = 2L, X1 = 2, X2 = 2), row.names = 2L, class = "data.frame")
+expected.missing.predictors <- structure(list(Y = 2L, X1 = 2, X2 = 2), row.names = 2L, class = "data.frame")
+expected.missing.predictors.unchecked <- data.frame(Y = 1:2, X1 = c(0, 2), X2 = c(0, 2),
+                                                    X1.dummy.var = 1:0, X2.dummy.var = 1:0)
 
 larger.case.with.missing.df <- data.frame(Y  = c(1, 2,  3,  4, 5, NA, 1, 2,  1),
                                           X1 = c(1, 4, NA,  3, 2,  3, 1, 0, NA),
@@ -52,13 +58,28 @@ expected.larger.case <- structure(list(Y = c(1, 2, 3, 4, 5, 1, 2),
 test_that("Dummy variable adjustment", {
     expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y"),
                      no.missing.df)
+    expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y", checks = FALSE),
+                     no.missing.df)
+    expect_equal(AddDummyVariablesForNAs(single.pred.missing, outcome.name = "Y"),
+                     expected.single)
+    expect_equal(AddDummyVariablesForNAs(single.pred.missing, outcome.name = "Y", checks = FALSE),
+                     expected.single)
+
     expect_equal(AddDummyVariablesForNAs(outcome.has.missing.df, outcome.name = "Y"),
                  expected.missing.outcome)
+    expect_equal(AddDummyVariablesForNAs(outcome.has.missing.df, outcome.name = "Y", checks = FALSE),
+                 expected.missing.outcome.unchecked)
     expect_identical(AddDummyVariablesForNAs(diag.missing, "Y"),
+                     diag.missing.dummy)
+    expect_identical(AddDummyVariablesForNAs(diag.missing, "Y", checks = FALSE),
                      diag.missing.dummy)
     # Edge case, missing predictors make dummy redundant
     expect_equal(AddDummyVariablesForNAs(missing.predictors.case.df, outcome.name = "Y"),
-                 row.removed.df.no.dummy)
+                 expected.missing.predictors)
+    expect_equal(AddDummyVariablesForNAs(missing.predictors.case.df, outcome.name = "Y", checks = FALSE),
+                 expected.missing.predictors.unchecked)
     expect_identical(AddDummyVariablesForNAs(larger.case.with.missing.df, outcome.name = "Y"),
+                     expected.larger.case)
+    expect_identical(AddDummyVariablesForNAs(larger.case.with.missing.df, outcome.name = "Y", checks = TRUE),
                      expected.larger.case)
 })
