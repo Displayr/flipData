@@ -3,6 +3,7 @@
 S3method(Observed,MachineLearningEnsemble)
 S3method(Observed,default)
 S3method(print,Calibrate)
+export(AddDummyVariablesForNAs)
 export(AddFormulaBars)
 export(AutoCoerceClass)
 export(Calibrate)

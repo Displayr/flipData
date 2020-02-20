@@ -173,7 +173,21 @@ ErrorIfInfinity <- function(data)
     }
 }
 
-# Third parameter will stop row removal checks,
+#' @name AddDummyVariablesForNAs
+#'
+#' @title Add dummy variables to a \code{data.frame} suitable for regression models.
+#'
+#' @description Appends a matrix to a \code{data.frame} containing columns of dummy variables. It assumes
+#'   the input data is suitable for regression and contains a single column for an outcome variable.
+#'   Other columns would be for individual predictors used in the regression. The appended columns of dummy
+#'   variables indicate the missing status of each predictor. i.e. 1 if the predictor is missing in that case,
+#'   zero otherwise. A column is added for each predictor that has at least one case of missing data.
+#'
+#' @param data A \code{data.frame} of the data to be used for a Regression model assuming a single outcome.
+#' @param outcome.name A \code{characater} of the name of the outcome variable in the data.
+#' @param checks A \code{logical} to determine if further checks are done to remove cases from the data.
+#'   If \code{TRUE}, cases are removed if all predictors are missing or if the response is missing.
+#' @export
 AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
 {
     outcome <- data[which(names(data) == outcome.name)]
