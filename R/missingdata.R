@@ -214,7 +214,7 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
     cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
 
     dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
-    names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var")
+    names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var_GQ9KqD7YOf")
     # replace NAs in predictor df with zeros or reference level
     predictor.df <- remapDataFrame(predictor.df)
     # Create new data.frame
