@@ -215,8 +215,8 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
 
     dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
     names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var")
-    # replace NAs in predictor df with zeros
-    predictor.df[is.na(predictor.df)] = 0
+    # replace NAs in predictor df with zeros or reference level
+    predictor.df <- remapDataFrame(predictor.df)
     # Create new data.frame
     new.data <- cbind.data.frame(outcome, predictor.df, dummy.variable.df)
     if (checks)
@@ -230,4 +230,20 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
             new.data[names(which(empty.dummy.vars))] <- NULL
     }
     return(new.data)
+}
+
+remapDataFrame <- function(dataframe)
+{
+    remapped.list <- lapply(dataframe, function(x) {
+        if (is.numeric(x))
+            x[is.na(x)] <- 0
+        else if (is.factor(x))
+            x[is.na(x)] <- levels(x)[1]
+        else
+            stop("Unexpected class when using dummy variable adjustment. ",
+                 "Supplied variable should be 'numeric' or 'factor', ",
+                 "however suppled variable is ", sQuote(class(x)))
+        return(x)
+    })
+    as.data.frame(remapped.list)
 }

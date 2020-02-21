@@ -55,6 +55,12 @@ expected.larger.case <- structure(list(Y = c(1, 2, 3, 4, 5, 1, 2),
                                        X2.dummy.var = c(0L, 0L, 0L, 1L, 0L, 0L, 0L)),
                                   row.names = c(1L, 2L, 3L, 4L, 5L, 7L, 8L), class = "data.frame")
 
+factor.in.df <- data.frame(Y = 1:3, X1 = factor(1:3, labels = LETTERS[1:3]), X2 = 1:3)
+missing.factor.in.df <- data.frame(Y = 1:3, X1 = factor(c(NA, 2:3), labels = LETTERS[2:3]), X2 = 1:3)
+expected.missing.factor <- data.frame(Y = 1:3, X1 = factor(c(2, 2:3), labels = LETTERS[2:3]), X2 = 1:3,
+                                      X1.dummy.var = c(1, 0, 0))
+
+
 test_that("Dummy variable adjustment", {
     expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y"),
                      no.missing.df)
@@ -82,4 +88,8 @@ test_that("Dummy variable adjustment", {
                      expected.larger.case)
     expect_identical(AddDummyVariablesForNAs(larger.case.with.missing.df, outcome.name = "Y", checks = TRUE),
                      expected.larger.case)
+    # Check factors ok
+    expect_identical(AddDummyVariablesForNAs(factor.in.df, outcome.name = "Y"), factor.in.df)
+    expect_equal(AddDummyVariablesForNAs(missing.factor.in.df, outcome.name = "Y"),
+                 expected.missing.factor)
 })
