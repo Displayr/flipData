@@ -173,4 +173,77 @@ ErrorIfInfinity <- function(data)
     }
 }
 
+#' @name AddDummyVariablesForNAs
+#'
+#' @title Add dummy variables to a \code{data.frame} suitable for regression models.
+#'
+#' @description Appends a matrix to a \code{data.frame} containing columns of dummy variables. It assumes
+#'   the input data is suitable for regression and contains a single column for an outcome variable.
+#'   Other columns would be for individual predictors used in the regression. The appended columns of dummy
+#'   variables indicate the missing status of each predictor. i.e. 1 if the predictor is missing in that case,
+#'   zero otherwise. A column is added for each predictor that has at least one case of missing data.
+#'
+#' @param data A \code{data.frame} of the data to be used for a Regression model assuming a single outcome.
+#' @param outcome.name A \code{characater} of the name of the outcome variable in the data.
+#' @param checks A \code{logical} to determine if further checks are done to remove cases from the data.
+#'   If \code{TRUE}, cases are removed if all predictors are missing or if the response is missing.
+#' @export
+AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
+{
+    outcome <- data[which(names(data) == outcome.name)]
+    predictor.df <- data[-which(names(data) == outcome.name)]
+    # Create dummy variable matrix, only create column if necessary
+    dummy.variable.df <- lapply(predictor.df, function(x) {
+        z <- is.na(x)
+        if (any(z))
+            return(as.integer(z))
+        else
+            return(NULL)
+        })
+    # Remove the NULL elements (no missing)
+    dummy.variable.df <- Filter(Negate(is.null), dummy.variable.df)
+    missing.outcomes <- is.na(outcome[[1]])
+    # If no missing data in predictors, return original data, trimming missing outcomes if req
+    if (length(dummy.variable.df) == 0)
+    {
+        if (any(missing.outcomes) && checks)
+            return(data[!missing.outcomes, ])
+        else
+            return(data)
+    }
+    cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
 
+    dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
+    names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var_GQ9KqD7YOf")
+    # replace NAs in predictor df with zeros or reference level
+    predictor.df <- remapDataFrame(predictor.df)
+    # Create new data.frame
+    new.data <- cbind.data.frame(outcome, predictor.df, dummy.variable.df)
+    if (checks)
+    {
+        # Check if all predictors missing, if so, subset, attributes to be preserved in EstimationData
+        if (any(cases.all.predictors.missing) || any(missing.outcomes))
+            new.data <- new.data[!cases.all.predictors.missing & !missing.outcomes, ]
+        # Inspect dummy matrix and remove dummy variables no longer required
+        dummy.parts <- names(new.data) %in% names(dummy.variable.df)
+        if (any(empty.dummy.vars <- lapply(new.data[dummy.parts], sum) == 0))
+            new.data[names(which(empty.dummy.vars))] <- NULL
+    }
+    return(new.data)
+}
+
+remapDataFrame <- function(dataframe)
+{
+    remapped.list <- lapply(dataframe, function(x) {
+        if (is.numeric(x))
+            x[is.na(x)] <- 0
+        else if (is.factor(x))
+            x[is.na(x)] <- levels(x)[1]
+        else
+            stop("Unexpected class when using dummy variable adjustment. ",
+                 "Supplied variable should be 'numeric' or 'factor', ",
+                 "however suppled variable is ", sQuote(class(x)))
+        return(x)
+    })
+    as.data.frame(remapped.list)
+}

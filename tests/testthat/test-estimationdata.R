@@ -64,5 +64,30 @@ test_that("DS-2626",
             "Some categories do not appear in the data: 'Country (Country): Australia', 'Country (Country): Fiji', 'A (A): 1'", fixed = TRUE)
 })
 
+missing.level.test <- data.frame(Y = factor(c(1, 2, 2, 3, 3), labels = LETTERS[1:3]),
+                                 X1 = c(NA, 1, NA, 3, 4),
+                                 X2 = c(NA, 1, 2, 3, 4),
+                                 X3 = c(NA, 3, 2, 1, 4))
+expected.dummy.missing.level <- data.frame(Y = factor(c(2, 2, 3, 3), labels = LETTERS[2:3]),
+                                           X1 = c(1, 0, 3, 4),
+                                           X2 = c(1, 2, 3, 4),
+                                           X3 = c(3, 2, 1, 4),
+                                           X1.dummy.var_GQ9KqD7YOf = c(0, 1, 0, 0),
+                                           row.names = 2:5)
+no.level.test <- data.frame(Y  = c(1, 2, 2, 3, 3),
+                            X1 = c(NA, 1, NA, 3, 4),
+                            X2 = c(NA, 1, 2, 3, 4),
+                            X3 = c(NA, 3, 2, 1, 4))
+
+
+test_that("Dummy variable adjustment", {
+    expect_warning(missing.level.output <- EstimationData(Y ~ X1 + X2 + X3, data = missing.level.test,
+                                                          missing = "Dummy variable adjustment")$estimation.data,
+                   "Some categories do not appear in the data: 'Y: A'")
+    expect_equal(missing.level.output, expected.dummy.missing.level)
+    expect_warning(EstimationData(Y ~ X1 + X2, data = no.level.test), NA)
+    expect_error(EstimationData(Y ~ X1 + X2, no.level.test[1:4, ]),
+                 "There are fewer observations (2) than there are variables (3)", fixed = TRUE)
+})
 
 
