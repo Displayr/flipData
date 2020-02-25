@@ -204,7 +204,7 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
     dummy.variable.df <- Filter(Negate(is.null), dummy.variable.df)
     missing.outcomes <- is.na(outcome[[1]])
     # If no missing data in predictors, return original data, trimming missing outcomes if req
-    if (all(sapply(dummy.variable.df, is.null)))
+    if (length(dummy.variable.df) == 0)
     {
         if (any(missing.outcomes) && checks)
             return(data[!missing.outcomes, ])
