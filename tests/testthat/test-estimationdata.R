@@ -69,7 +69,7 @@ missing.level.test <- data.frame(Y = factor(c(1, 2, 2, 3, 3), labels = LETTERS[1
                                  X2 = c(NA, 1, 2, 3, 4),
                                  X3 = c(NA, 3, 2, 1, 4))
 expected.dummy.missing.level <- data.frame(Y = factor(c(2, 2, 3, 3), labels = LETTERS[2:3]),
-                                           X1 = c(1, 0, 3, 4),
+                                           X1 = c(1, 8/3, 3, 4),
                                            X2 = c(1, 2, 3, 4),
                                            X3 = c(3, 2, 1, 4),
                                            X1.dummy.var_GQ9KqD7YOf = c(0, 1, 0, 0),
