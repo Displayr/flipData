@@ -215,7 +215,7 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
 
     dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
     names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var_GQ9KqD7YOf")
-    # replace NAs in predictor df with zeros or reference level
+    # replace NAs in predictor df with means or reference level
     predictor.df <- remapDataFrame(predictor.df)
     # Create new data.frame
     new.data <- cbind.data.frame(outcome, predictor.df, dummy.variable.df)
@@ -232,11 +232,12 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
     return(new.data)
 }
 
+# original.data should be data.frame input with numeric and factor columns
 remapDataFrame <- function(dataframe)
 {
     remapped.list <- lapply(dataframe, function(x) {
         if (is.numeric(x))
-            x[is.na(x)] <- 0
+            x[is.na(x)] <- mean(x, na.rm = TRUE)
         else if (is.factor(x))
             x[is.na(x)] <- levels(x)[1]
         else

@@ -1,35 +1,33 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 1.2.4
+Version: 1.2.5
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
-Description: Functions for extracting data from formulas and environments,
-    and for describing data, for addressing missing data, and for setting
-    up data in a neat format for other analyses.
+Description: Functions for extracting data from formulas and
+        environments, and for describing data, for addressing missing
+        data, and for setting up data in a neat format for other
+        analyses.
 License: GPL-3
 LazyData: TRUE
-Imports:
-    CVXR (>= 1.0.0),
-    flipFormat (>= 1.0.0),
-    flipImputation,
-    flipTime,
-    flipTransformations (>= 1.4.0),
-    flipU (>= 1.0.2),
-    icarus,
-    lubridate,
-    stats,
-    stringr,
-    survey
+Imports: CVXR (>= 1.0.0),
+ flipFormat (>= 1.0.0),
+ flipImputation,
+ flipTime,
+ flipTransformations (>= 1.4.0),
+ flipU (>= 1.0.2),
+ icarus,
+ lubridate,
+ stats,
+ stringr,
+ survey
 RoxygenNote: 7.0.2
-Suggests: 
-    foreign,
-    testthat,
-    flipExampleData
-Remotes:
-    Displayr/flipExampleData,
-    Displayr/flipFormat,
-    Displayr/flipImputation,
-    Displayr/flipTime,
-    Displayr/flipTransformations,
-    Displayr/flipU
+Suggests: foreign,
+ testthat,
+ flipExampleData
+Remotes: Displayr/flipExampleData,
+ Displayr/flipFormat,
+ Displayr/flipImputation,
+ Displayr/flipTime,
+ Displayr/flipTransformations,
+ Displayr/flipU
