@@ -14,7 +14,7 @@ test_that("Missing options",
     expect_equal(341, suppressWarnings(nrow(EstimationData(Overall ~ Branch, bank, missing = "Exclude cases with missing data")$estimation.data)))
     expect_equal(823, nrow(EstimationData(Overall ~ Branch, bank, missing = "Use partial data")$estimation.data))
     expect_equal(823, nrow(EstimationData(Overall ~ Branch, bank, missing = "Use partial data (pairwise correlations)")$estimation.data))
-    expet_equal(759, nrow(EstimationData(Overall ~ Fees + Interest, bank, missing = "Dummy variable adjustment")$estimation.data))
+    expect_equal(759, nrow(EstimationData(Overall ~ Fees + Interest, bank, missing = "Dummy variable adjustment")$estimation.data))
 })
 
 test_that("Infinity",
