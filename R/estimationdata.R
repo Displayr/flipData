@@ -84,7 +84,7 @@ EstimationData <- function(formula = NULL,
     .filter <- if (weighted) subset & weights > 0 & some.data else subset & some.data  # Name to avoid bug in subset.data.frame
     data.subset <- subset(data, .filter)
     data.subset <- CopyAttributes(data.subset, data)
-
+    dummy.adjusted <- FALSE
     ##############
     ## Imputation
     single.imputation <- missing == "Imputation (replace missing values with estimates)"
@@ -132,7 +132,10 @@ EstimationData <- function(formula = NULL,
                    stop(paste("Unknown 'missing' method:", missing)))
         data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
         if (missing == "Dummy variable adjustment")
+        { # Dummy variable adjustment can be selected but sometimes not used
+            dummy.adjusted <- any(grepl(".dummy.var_GQ9KqD7YOf$", colnames(data.for.estimation)))
             data.cols <- names(data.for.estimation) %in% names(data.subset)
+        }
         else
             data.cols <- rep(TRUE, ncol(data.for.estimation))
         levels.pre <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
@@ -163,11 +166,30 @@ EstimationData <- function(formula = NULL,
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
         stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
                       " than there are variables ", length(variable.names)))
-
     description <- SampleDescription(n.total, n.subset, n.estimation,
                                      Labels(subset), weighted, weight.label, missing, imputation.label, m,
-                                     if(HasOutcome(formula)) "predictor" else "")
-
+                                     if(HasOutcome(formula)) "predictor" else "",
+                                     dummy.adjusted = dummy.adjusted)
+    # Add statements about removing cases with missing outcomes and/or all predictors missing
+    if (missing == "Dummy variable adjustment")
+    {
+        outcome.name <- OutcomeName(formula)
+        missing.outcomes <- is.na(data[[outcome.name]])
+        outcome.index <- which(names(data) == outcome.name)
+        if (ncol(data) == 2)
+            all.predictors.missing <- rep(FALSE, nrow(data))
+        else
+            all.predictors.missing <- apply(data[-outcome.index], 1, function(x) all(is.na(x)))
+        if (any(missing.outcomes | all.predictors.missing))
+        {
+            missing.outcomes <- if (any(missing.outcomes)) "an outcome variable" else NULL
+            all.predictors.missing <- if (any(all.predictors.missing)) "all predictor variables" else NULL
+            description <- paste0(description, paste0(" cases missing ",
+                                                      paste0(c(missing.outcomes, all.predictors.missing),
+                                                             collapse = " or missing "),
+                                                      " have been excluded;"))
+        }
+    }
     list(estimation.data = data.for.estimation,
          weights = weights,
          unfiltered.weights = unfiltered.weights,

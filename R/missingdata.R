@@ -211,7 +211,10 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
         else
             return(data)
     }
-    cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
+    if (ncol(data) == 2)
+        cases.all.predictors.missing <- rep(FALSE, nrow(predictor.df))
+    else
+        cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
 
     dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
     names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var_GQ9KqD7YOf")
