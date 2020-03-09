@@ -123,6 +123,18 @@ test_that("Dummy variable adjustment", {
                  paste0("n = 9 cases used in estimation of a total sample size of 10; ",
                         "missing values of predictor variables have been adjusted using ",
                         "dummy variables; cases missing all predictor variables have been excluded;"))
+    # Have cases with missing outcome and all missing predictors.
+    dummy.test.miss.preds.outcome <- dummy.test
+    dummy.test.miss.preds.outcome[1, 1] <- NA
+    dummy.test.miss.preds.outcome[2, -1] <- NA
+    dummy.test.output <- expect_error(EstimationData(Y ~ X1 + X2 + X3, data = dummy.test.miss.preds.outcome,
+                                                     missing = "Dummy variable adjustment"),
+                                      NA)
+    expect_equal(dummy.test.output$description,
+                 paste0("n = 8 cases used in estimation of a total sample size of 10; ",
+                        "missing values of predictor variables have been adjusted using ",
+                        "dummy variables; cases missing an outcome variable or missing all predictor variables ",
+                        "have been excluded;"))
     # Test edge case
     edge.case.output <- expect_error(EstimationData(Y ~ X, data = edge.case.dummy.miss.outcome,
                                                     missing = "Dummy variable adjustment"),

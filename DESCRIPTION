@@ -11,7 +11,7 @@ Description: Functions for extracting data from formulas and
 License: GPL-3
 LazyData: TRUE
 Imports: CVXR (>= 1.0.0),
- flipFormat (>= 1.2.16),
+ flipFormat (>= 1.6.13),
  flipImputation,
  flipTime,
  flipTransformations (>= 1.4.0),
