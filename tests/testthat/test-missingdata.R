@@ -14,6 +14,7 @@ test_that("Missing options",
     expect_equal(341, suppressWarnings(nrow(EstimationData(Overall ~ Branch, bank, missing = "Exclude cases with missing data")$estimation.data)))
     expect_equal(823, nrow(EstimationData(Overall ~ Branch, bank, missing = "Use partial data")$estimation.data))
     expect_equal(823, nrow(EstimationData(Overall ~ Branch, bank, missing = "Use partial data (pairwise correlations)")$estimation.data))
+    expect_equal(759, nrow(EstimationData(Overall ~ Fees + Interest, bank, missing = "Dummy variable adjustment")$estimation.data))
 })
 
 test_that("Infinity",
@@ -66,6 +67,11 @@ expected.missing.factor <- data.frame(Y = 1:3, X1 = factor(c(2, 2:3), labels = L
                                       X1.dummy.var_GQ9KqD7YOf = c(1, 0, 0))
 df.with.text <- data.frame(Y = 1:2, X1 = 1:2, X3 = c(NA, LETTERS[1]),
                            stringsAsFactors = FALSE)
+edge.case <- data.frame(Y = 1:5, X = 1:5)
+
+expected.edge.with.missing <- structure(list(Y = 1:5, X = c(4.5, 4.5, 4.5, 4, 5),
+                                             X.dummy.var_GQ9KqD7YOf = c(1L, 1L, 1L, 0L, 0L)),
+                                        class = "data.frame", row.names = c(NA, -5L))
 
 test_that("Dummy variable adjustment", {
     expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y"),
@@ -101,4 +107,11 @@ test_that("Dummy variable adjustment", {
 
     expect_error(AddDummyVariablesForNAs(df.with.text, outcome.name = "Y"),
                  "Unexpected class when using dummy variable adjustment.")
+    # Check edge case with one predictor
+    expect_identical(AddDummyVariablesForNAs(edge.case, outcome.name = "Y"),
+                     edge.case)
+    # Recode some to missing in predictor
+    edge.case[1:3, 2] <- NA
+    expect_identical(AddDummyVariablesForNAs(edge.case, outcome.name = "Y"),
+                     expected.edge.with.missing)
 })
