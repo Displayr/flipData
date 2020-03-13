@@ -62,6 +62,9 @@ test_that("DS-2626",
     filt <- c(FALSE, TRUE, TRUE, TRUE)
     expect_warning(EstimationData(~Country + A, data = dat2, subset = filt),
             "Some categories do not appear in the data: 'Country (Country): Australia', 'Country (Country): Fiji', 'A (A): 1'", fixed = TRUE)
+
+    expect_error(res <- TidyRawData(dat2, subset = filt, remove.missing.levels = FALSE), NA)
+    expect_equal(levels(dat2[[1]]), levels(res[[1]]))
 })
 
 missing.level.test <- data.frame(Y = factor(c(1, 2, 2, 3, 3), labels = LETTERS[1:3]),

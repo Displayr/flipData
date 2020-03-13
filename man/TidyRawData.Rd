@@ -12,6 +12,7 @@ TidyRawData(
   weights = NULL,
   missing = "Exclude cases with missing data",
   error.if.insufficient.obs = TRUE,
+  remove.missing.levels = TRUE,
   extract.common.lab.prefix = FALSE,
   auto.correct.class = FALSE
 )
@@ -39,6 +40,9 @@ which removes no data.}
 
 \item{error.if.insufficient.obs}{Throw an error if there are more
 variables than observations.}
+
+\item{remove.missing.levels}{Logical; whether levels are removed
+if they do not occur in the observed data.}
 
 \item{extract.common.lab.prefix}{logical; if true,
 \code{\link[flipFormat]{ExtractCommonPrefix}} will be used to

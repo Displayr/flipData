@@ -13,6 +13,7 @@ EstimationData(
   m = 10,
   seed = 12321,
   error.if.insufficient.obs = TRUE,
+  remove.missing.levels = TRUE,
   impute.full.data = TRUE
 )
 }
@@ -47,6 +48,9 @@ and \code{"Multiple imputation"}.}
 
 \item{error.if.insufficient.obs}{Throw an error if there are more
 variables than observations.}
+
+\item{remove.missing.levels}{Logical; whether levels are removed
+if they do not occur in the observed data.}
 
 \item{impute.full.data}{logical; if \code{TRUE} and \code{missing}
 is either

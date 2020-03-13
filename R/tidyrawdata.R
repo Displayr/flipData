@@ -19,6 +19,8 @@
 #'     which removes no data.
 #' @param error.if.insufficient.obs Throw an error if there are more
 #'     variables than observations.
+#' @param remove.missing.levels Logical; whether levels are removed
+#'     if they do not occur in the observed data.
 #' @param extract.common.lab.prefix logical; if true,
 #'     \code{\link[flipFormat]{ExtractCommonPrefix}} will be used to
 #'     attempt to extract the common prefix from the data labels, and
@@ -44,6 +46,7 @@ TidyRawData <- function(data,
                         weights = NULL,
                         missing = "Exclude cases with missing data",
                         error.if.insufficient.obs = TRUE,
+                        remove.missing.levels = TRUE,
                         extract.common.lab.prefix = FALSE,
                         auto.correct.class = FALSE)
 {
@@ -107,6 +110,7 @@ TidyRawData <- function(data,
                                      subset = subset,
                                      missing = missing,
                                      weights = weights,
+                                     remove.missing.levels = remove.missing.levels,
                                      error.if.insufficient.obs = error.if.insufficient.obs)
     data <- processed.data$estimation.data
     names(data) <- names.without.backticks

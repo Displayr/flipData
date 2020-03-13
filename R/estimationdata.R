@@ -24,6 +24,8 @@
 #' @param seed The random number seed used in the imputation.
 #' @param error.if.insufficient.obs Throw an error if there are more
 #'     variables than observations.
+#' @param remove.missing.levels Logical; whether levels are removed
+#'     if they do not occur in the observed data.
 #' @param impute.full.data logical; if \code{TRUE} and \code{missing}
 #'     is either
 #'     \code{"Imputation (replace missing values with estimates)"} or
@@ -62,6 +64,7 @@ EstimationData <- function(formula = NULL,
                            m = 10,
                            seed = 12321,
                            error.if.insufficient.obs = TRUE,
+                           remove.missing.levels = TRUE,
                            impute.full.data = TRUE)
 {
     # Cleaning weights and subsets.
@@ -138,22 +141,27 @@ EstimationData <- function(formula = NULL,
         }
         else
             data.cols <- rep(TRUE, ncol(data.for.estimation))
-        levels.pre <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
-                            unlist(lapply(data.for.estimation, levels)))
-        data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
-        levels.post <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
-                             unlist(lapply(data.for.estimation, levels)))
-        levels.diff <- setdiff(levels.pre, levels.post)
-        if (length(levels.diff) > 0)
+
+        if (remove.missing.levels)
         {
-            labls <- paste(levels.diff, collapse = "', '")
-            warning("Some categories do not appear in the data: '", labls,
-                    "'. This may be because they are empty in the raw data, or ",
-                    "because they are empty after any weights, filters/subsets, ",
-                    "or missing data settings are applied. This may cause an error. ",
-                    "It is recommended that you merge categories prior to estimating",
-                    " the model, use an alternative missing data method, filter the ",
-                    "data, or make the data numeric.")
+            levels.pre <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
+                                unlist(lapply(data.for.estimation, levels)))
+            data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
+            levels.post <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
+                                 unlist(lapply(data.for.estimation, levels)))
+            
+            levels.diff <- setdiff(levels.pre, levels.post)
+            if (length(levels.diff) > 0)
+            {
+                labls <- paste(levels.diff, collapse = "', '")
+                warning("Some categories do not appear in the data: '", labls,
+                        "'. This may be because they are empty in the raw data, or ",
+                        "because they are empty after any weights, filters/subsets, ",
+                        "or missing data settings are applied. This may cause an error. ",
+                        "It is recommended that you merge categories prior to estimating",
+                        " the model, use an alternative missing data method, filter the ",
+                        "data, or make the data numeric.")
+            }
         }
         estimation.sample <- rownames(data) %in% rownames(data.for.estimation)  # row.names is S3 generic
     }
