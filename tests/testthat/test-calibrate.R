@@ -109,12 +109,21 @@ test_that("Invalid inputs", {
     expect_error(Calibrate(input.age, variable.targets.age.errored), "add up to exactly 1")
 
     variable.targets.age.errored[6] = NA
-    expect_error(Calibrate(input.age, variable.targets.age.errored), "missing")
+    expect_error(Calibrate(input.age, variable.targets.age.errored), "Invalid target values")
 
     variable.targets.age.errored = structure(c("18-29", "30-44", "45-64", "65+", "should be dead already", ".20", ".20",
                                        ".20", ".20", ".20"), .Dim = c(5L, 2L))
     expect_error(Calibrate(input.age, variable.targets.age.errored), "does not appear in variable")
 
+    ## DS-2846
+    variable.targets.age.ws  <-  variable.targets.age
+    variable.targets.age.ws[1, 2] <- "   .4"
+    variable.targets.age.ws[2, 2] <- "   .3    "
+    expect_error(Calibrate(input.age, variable.targets.age.ws), NA)
+
+    variable.targets.age.errored  <-  variable.targets.age
+    variable.targets.age.errored[1, 2] <- "x.4"
+    expect_error(Calibrate(input.age, variable.targets.age.errored), "x: 18-29 - x.4")
 })
 
 # test_that("Print function (depends on file: helper-globalVars.R)", {
