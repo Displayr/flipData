@@ -117,7 +117,8 @@ convertToDataFrame <- function(x)
     x
 }
 
-# Checks and tidies categorical targets
+## Checks and tidies categorical targets
+#' @importFrom stringr str_trim
 categoricalTargets <- function(adjustment.variables, categorical.targets, subset)
 {
     targets = list()
@@ -128,12 +129,18 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
     for (i in 1 : n.categorical)
     {
         tgt = categorical.targets[[i]]
-        targets[[i]] = as.numeric(tgt[, 2])
+        targets[[i]] = as.numeric(stringr::str_trim(tgt[, 2]))
         names(targets[[i]]) = tgt[, 1]
         adj.variable = if(is.null(subset)) adjustment.variables[[i]] else droplevels(adjustment.variables[[i]][subset])
         adj.unique = levels(adj.variable)
         missing.targets = ! adj.unique %in% tgt[, 1]
         varname = names(adjustment.variables)[i]
+        if(any(idx <- is.na(targets[[i]])))
+        {
+            bad.inputs <- paste(paste(tgt[idx, 1], tgt[idx, 2], sep = " - "), collapse = ", ")
+            stop("Invalid target values for ", varname, ": ", bad.inputs, ".")
+        }
+
         if (any(missing.targets))
         {
             missing.cats = paste0(adj.unique[missing.targets], collapse = ", ")
@@ -145,7 +152,8 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
         {
             excess.cats = paste0(tgt[excess.targets, 1], collapse = ", ")
             if (nchar(excess.cats) > 0)
-                stop("Target category that does not appear in variable ", varname, ": ", excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
+                stop("Target category that does not appear in variable ", varname, ": ",
+                     excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
         }
         if ((sm = sum(targets[[i]])) != 1)
         {
