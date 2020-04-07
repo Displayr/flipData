@@ -30,5 +30,5 @@ Remotes: Displayr/flipExampleData,
  Displayr/flipFormat,
  Displayr/flipImputation,
  Displayr/flipTime,
- Displayr/flipTransformations,
- Displayr/flipU
+ Displayr/flipTransformations@DS-2702,
+ Displayr/flipU@DS-2702
