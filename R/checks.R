@@ -125,19 +125,13 @@ CheckForUniqueVariableNames <- function(formula)
 CheckPredictionVariables <- function(object, newdata)
 {
     regression.model <- inherits(object, "Regression")
+    relevant.cols <- names(object$model)[names(object$model) != object$outcome.name]
     # Check if a regression object is being processed and the outlier removal has been implemented.
-    if (regression.model && !all(non.outliers <- object$non.outlier.data))
-    {
-        relevant.cols <- !names(object$estimation.data) %in% c(object$outcome.name, "non.outlier.data_GQ9KqD7YOf")
+    if (outliers.removed <- (regression.model && !all(non.outliers <- object$non.outlier.data)))
         training <- object$estimation.data[non.outliers, relevant.cols, drop = FALSE]
-        outliers.removed <- TRUE
-    }
-    else
-    {
-        relevant.cols <- names(object$model) != object$outcome.name
+    else # otherwise use the possibly subsetted data
         training <- object$model[object$subset, relevant.cols, drop = FALSE]
-        outliers.removed <- FALSE
-    }
+
     if (ncol(training) == 0)
         return(newdata)
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
