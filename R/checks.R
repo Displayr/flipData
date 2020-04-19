@@ -120,11 +120,19 @@ CheckForUniqueVariableNames <- function(formula)
 #' @param object A model object for which prediction is desired.
 #' @param newdata A \code{data.frame} including the variables used to fit the model.
 #' @importFrom flipU CopyAttributes
+#' @importFrom flipFormat Labels
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
-    # Check that newdata contains all training variables
-    training <- object$model[object$subset, names(object$model) != object$outcome.name, drop = FALSE]
+    regression.model <- inherits(object, "Regression")
+    relevant.cols <- names(object$model)[names(object$model) != object$outcome.name]
+    # Check if a regression object is being processed and the outlier removal has been implemented.
+    outliers.removed <- (regression.model && !all(non.outliers <- object$non.outlier.data))
+    if (outliers.removed)
+        training <- object$estimation.data[non.outliers, relevant.cols, drop = FALSE]
+    else # otherwise use the possibly subsetted data
+        training <- object$model[object$subset, relevant.cols, drop = FALSE]
+
     if (ncol(training) == 0)
         return(newdata)
     if (!identical(setdiff(names(training), names(newdata)), character(0)))
@@ -161,10 +169,19 @@ CheckPredictionVariables <- function(object, newdata)
 
                 if (length(level.counts) != 0) # some newdata instances have new levels
                 {
+                    # Use label if available
+                    factor.label <- Labels(object$model, names.to.lookup = train.factor)
+                    if (outliers.removed) # Check if all occurences of new.levels were removed as outliers
+                    {
+                        in.training <- new.levels %in% training[[train.factor]]
+                        in.estimation <- new.levels %in% object$estimation.data[[train.factor]]
+                        warning.due.to.outlier.removal <- in.estimation && !in.training
+                        warning.msg <- checkPredictionWarningMessage(factor.label, level.counts, warning.due.to.outlier.removal)
+                    } else
+                        warning.msg <- checkPredictionWarningMessage(factor.label, level.counts)
                     # Set all new factor levels to NA
                     newdata[newdata[, train.factor] %in% new.levels, train.factor] <- NA
-                    warning(sprintf("Prediction variable %s contains categories (%s) that were not used for training. %d instances are affected. ",
-                                    train.factor, names(level.counts), level.counts))
+                    warning(warning.msg)
                 }
             }
             # Set prediction levels to those used for training
@@ -177,4 +194,42 @@ CheckPredictionVariables <- function(object, newdata)
         }
     }
     return(newdata)
+}
+
+#' Creates an informative warning message about cases where categorical data has had a level entirely remvoed from the training
+#' data and has been input in the prediction data.
+#' @param label The label of the variable in question
+#' @param level.counts A named integer vector which has the counts of each level that applies in this scenario,
+#'    the names of the vector are the level labels.
+#' @param warning.due.to.outlier.removal Logical to flag if this warning is being thrown only because of the automated outlier removal.
+#' @NoRd
+checkPredictionWarningMessage <- function(label, level.counts, warning.due.to.outlier.removal = FALSE)
+{
+    levels <- names(level.counts)
+    variable.label <- sQuote(label)
+    categories <- ngettext(length(levels), "the category", "categories")
+    # Describe how many cases are affected
+    n.levels <- length(level.counts)
+    if (n.levels == 1)
+        instances <- ngettext(level.counts, "instance was", "instances were")
+    else
+        instances <- "instances respectively were"
+    # Give the reason for the warning being thrown
+    context.msg <- paste0("that ", ngettext(length(levels), "was", "were"), " not used in the training data")
+    if (warning.due.to.outlier.removal)
+        context.msg <- paste0(context.msg, paste0(" since the automated outlier removal identified those ",
+                                                  "observations as outliers and removed them"))
+    # Give grammatically correct description of counts.
+    if (n.levels == 2)
+        level.counts <- paste0(level.counts, collapse = " and ")
+    else if (n.levels > 2)
+        level.counts <- paste0(paste0(level.counts[1:(n.levels - 1)], collapse = ", "),
+                               level.counts[n.levels], collapse = " and ")
+    # Collate and return the message
+    sprintf(paste0("The prediction variable %s contained ", categories, " (%s) ", context.msg, ". ",
+                   "It is not possible to predict outcomes in these cases and they are coded as missing as a result. ",
+                   "%s ", instances, " affected. ",
+                   "If non-missing predictions are required, consider merging categories if merging categories ",
+                   "is applicable for this variable."),
+            variable.label, paste0(levels, collapse = ", "), level.counts)
 }

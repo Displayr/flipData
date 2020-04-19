@@ -45,11 +45,16 @@ test_that("CheckPredictionVariables",
 
     # More levels in prediction data than fitted
     newdata <- hbatwithsplits
-    attr(newdata$x1, "Label") <- "something"
+    attr(z$model$x1, "label") <- "something"
+    attr(newdata$x1, "label") <- "something"
     expect_warning(checked <- CheckPredictionVariables(z, newdata = newdata),
-                   "Prediction variable x1 contains categories (Less than 1 year) that were not used for training. 32 instances are affected.",
+                   paste0("The prediction variable ", sQuote("something"), " contained the category ",
+                          "(Less than 1 year) that was not used in the training data. It is not possible to predict ",
+                          "outcomes in these cases and they are coded as missing as a result. 32 instances were affected. ",
+                          "If non-missing predictions are required, consider merging categories if merging categories ",
+                          "is applicable for this variable"),
                    fixed = TRUE)
-    expect_equal(attr(checked$x1, "Label"), "something")
+    expect_equal(attr(checked$x1, "label"), "something")
 
     # Prediction levels reset to those used for fitting
     expect_equal(length(levels(CheckPredictionVariables(z, newdata = droplevels(hbatwithsplits[1, ]))$x1)), 2)
@@ -72,8 +77,51 @@ test_that("CheckPredictionVariables",
     # Input string which is not a level
     single.data[, "x1"] <- as.character("Not a level")
     expect_warning(CheckPredictionVariables(z, newdata = single.data),
-                   "Prediction variable x1 contains categories (Not a level) that were not used for training. 1 instances are affected.",
+                   paste0("The prediction variable ", sQuote("something"), " contained the category ",
+                          "(Not a level) that was not used in the training data. It is not possible to predict ",
+                          "outcomes in these cases and they are coded as missing as a result. 1 instance was affected. ",
+                          "If non-missing predictions are required, consider merging categories if merging categories ",
+                          "is applicable for this variable"),
                    fixed = TRUE)
 
+    # Check fallback to variable name if label not available
+    attr(z$model$x1, "label") <- attr(z$model$x1, "question") <- NULL
+    expect_warning(CheckPredictionVariables(z, newdata = single.data),
+                   paste0("The prediction variable ", sQuote("x1"), " contained the category ",
+                          "(Not a level) that was not used in the training data. It is not possible to predict ",
+                          "outcomes in these cases and they are coded as missing as a result. 1 instance was affected. ",
+                          "If non-missing predictions are required, consider merging categories if merging categories ",
+                          "is applicable for this variable"),
+                   fixed = TRUE)
+})
+
+test_that("DS-28704 Automated outlier removal scenario catches missing levels", {
+    data <- GetData(x3 ~ x1 + x2 + x6, hbatwithsplits, auxiliary.data = NULL)
+    z <- list(model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year"))
+    # Make scenario where outliers have removed all instances of a level in a factor
+    z$estimation.data <- z$model[z$subset, ]
+    z$estimation.data$x1[1] <- "Less than 1 year"
+    z$non.outlier.data <- z$estimation.data$x1 != "Over 5 years"
+    n.affected <- sum(!z$non.outlier.data)
+    z$estimation.data$non.outlier.data_GQ9KqD7YOf <- z$non.outlier.data
+    class(z) <- "Regression"
+    attr(z$model$x1, "label") <- "Time"
+    expect_warning(CheckPredictionVariables(z, newdata = hbatwithsplits),
+                   paste0("The prediction variable ", sQuote("Time"), " contained the category ",
+                          "(Over 5 years) that was not used in the training data since the automated outlier ",
+                          "removal identified those observations as outliers and removed them. ",
+                          "It is not possible to predict outcomes in these cases and they are coded as missing as a result. ",
+                          n.affected, " instances were affected. If non-missing predictions are required, consider merging ",
+                          "categories if merging categories is applicable for this variable"),
+                   fixed = TRUE)
+    # Test situation where two levels are not in training data.
+    z$estimation.data$x1[1] <- "1 to 5 years"
+    expect_warning(CheckPredictionVariables(z, newdata = hbatwithsplits),
+                   paste0("The prediction variable ", sQuote("Time"), " contained categories ",
+                          "(Less than 1 year, Over 5 years) that were not used in the training data. ",
+                          "It is not possible to predict outcomes in these cases and they are coded as missing as a result. ",
+                          "32 and 33 instances respectively were affected. If non-missing predictions are required, consider merging ",
+                          "categories if merging categories is applicable for this variable"),
+                   fixed = TRUE)
 })
 
