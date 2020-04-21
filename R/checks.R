@@ -221,15 +221,24 @@ checkPredictionWarningMessage <- function(label, level.counts, warning.due.to.ou
                                                   "observations as outliers and removed them"))
     # Give grammatically correct description of counts.
     if (n.levels == 2)
+    {
+        levels <- paste0(sQuote(levels), collapse = " and ")
         level.counts <- paste0(level.counts, collapse = " and ")
+    }
     else if (n.levels > 2)
-        level.counts <- paste0(paste0(level.counts[1:(n.levels - 1)], collapse = ", "),
-                               level.counts[n.levels], collapse = " and ")
+    {
+        levels <- paste0(c(paste0(sQuote(levels[1:(n.levels - 1)]), collapse = ", "),
+                           sQuote(levels[n.levels])), collapse = " and ")
+        level.counts <- paste0(c(paste0(level.counts[1:(n.levels - 1)], collapse = ", "),
+                                 level.counts[n.levels]), collapse = " and ")
+    } else
+        levels <- sQuote(levels)
+
     # Collate and return the message
     sprintf(paste0("The prediction variable %s contained ", categories, " (%s) ", context.msg, ". ",
                    "It is not possible to predict outcomes in these cases and they are coded as missing as a result. ",
                    "%s ", instances, " affected. ",
                    "If non-missing predictions are required, consider merging categories if merging categories ",
                    "is applicable for this variable."),
-            variable.label, paste0(levels, collapse = ", "), level.counts)
+            variable.label, levels, level.counts)
 }
