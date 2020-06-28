@@ -69,7 +69,9 @@ TidyRawData <- function(data,
 
     ## handle variables of QDate class
     ## data.frame ensures ProcessQVariables also returns a data.frame
-    data <- flipTransformations::ProcessQVariables(data.frame(data, check.names = FALSE))  # can't have check.names = FALSE
+    data <- flipTransformations::ProcessQVariables(data.frame(data,
+                                                              check.names = FALSE, # can't have check.names = FALSE
+                                                              stringsAsFactors = TRUE))
 
     partial <- missing == "Use partial data"
 
