@@ -71,12 +71,15 @@ missing.level.test <- data.frame(Y = factor(c(1, 2, 2, 3, 3), labels = LETTERS[1
                                  X1 = c(NA, 1, NA, 3, 4),
                                  X2 = c(NA, 1, 2, 3, 4),
                                  X3 = c(NA, 3, 2, 1, 4))
-expected.dummy.missing.level <- data.frame(Y = factor(c(2, 2, 3, 3), labels = LETTERS[2:3]),
-                                           X1 = c(1, 8/3, 3, 4),
-                                           X2 = c(1, 2, 3, 4),
-                                           X3 = c(3, 2, 1, 4),
-                                           X1.dummy.var_GQ9KqD7YOf = c(0, 1, 0, 0),
-                                           row.names = 2:5)
+expected.dummy.missing.level <- structure(list(Y = structure(c(1L, 1L, 2L, 2L),
+                                                             .Label = c("B", "C"),
+                                                             class = "factor"),
+                                               X1 = c(1, 2.66666666666667, 3, 4),
+                                               X2 = c(1, 2, 3, 4),
+                                               X3 = c(3, 2, 1, 4),
+                                               X1.dummy.var_GQ9KqD7YOf = structure(c(0L, 1L, 0L, 0L),
+                                                                                   predictors.matching.dummy = "X1")),
+                                          row.names = 2:5, class = "data.frame")
 no.level.test <- data.frame(Y  = c(1, 2, 2, 3, 3),
                             X1 = c(NA, 1, NA, 3, 4),
                             X2 = c(NA, 1, 2, 3, 4),
