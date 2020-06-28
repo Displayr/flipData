@@ -211,12 +211,13 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
         else
             return(data)
     }
+    dummy.variable.df <- checkAndMapDummyVariables(dummy.variable.df)
     if (ncol(data) == 2)
         cases.all.predictors.missing <- rep(FALSE, nrow(predictor.df))
     else
         cases.all.predictors.missing <- apply(predictor.df, 1, function(x) all(is.na(x)))
 
-    dummy.variable.df <- data.frame(dummy.variable.df, check.names = FALSE)
+    dummy.variable.df <- as.data.frame(dummy.variable.df, check.names = FALSE)
     names(dummy.variable.df) <- paste0(names(dummy.variable.df), ".dummy.var_GQ9KqD7YOf")
     # replace NAs in predictor df with means or reference level
     predictor.df <- remapDataFrame(predictor.df)
@@ -231,6 +232,8 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
         dummy.parts <- names(new.data) %in% names(dummy.variable.df)
         if (any(empty.dummy.vars <- lapply(new.data[dummy.parts], sum) == 0))
             new.data[names(which(empty.dummy.vars))] <- NULL
+        # Copy attributes from the dummy variable (required for aliased dummy mapping)
+        new.data <- CopyAttributes(new.data, dummy.variable.df)
     }
     return(new.data)
 }
@@ -251,3 +254,32 @@ remapDataFrame <- function(dataframe)
     })
     as.data.frame(remapped.list)
 }
+
+# Helper function for the dummy variable adjustment.
+# This function adds an attribute mapping the variable each dummy variable belongs to.
+# This s usually redundant since that is evident in the name except in the case of aliased
+# Dummy variables. That is, predictors have precisely the same missing cases, causing the
+# dummy variables for those predictors will be identical (aliased)
+checkAndMapDummyVariables <- function(data)
+{
+    x <- 1L
+    while(x < length(data))
+    {
+        current.duplicates <- vapply(names(data)[-(1L:x)],
+                                     function(y) all(data[[y]] == data[[x]]), logical(1))
+        names.to.map <- names(data)[x]
+        if (any(current.duplicates))
+        {
+            names.to.map <- c(names.to.map, names(which(current.duplicates)))
+            data[names(which(current.duplicates))] <- NULL
+        }
+        attr(data[[x]], "predictors.matching.dummy") <- names.to.map
+        x <- x + 1
+    }
+    # Add the attribute for the last list element if it wasn't added in the prior steps
+    if (is.null(attr(data[[length(data)]], "predictors.matching.dummy")))
+        attr(data[[length(data)]], "predictors.matching.dummy") <- names(data)[length(data)]
+    data
+}
+
+
