@@ -74,3 +74,12 @@ test_that("GetData missing variable",
               expect_error(GetData(c ~ ., data = x), "Variable.")
 
           })
+
+test_that("DS-2986: Dummy variables compatible with DataFormula", {
+    expect_equal(DataFormula(`Profit Estimation.sav`$Variables$q1 ~ `Profit Estimation.sav`$Variables$q11 +
+                                 `Profit Estimation.sav`$Variables$q1.dummy.var_GQ9KqD7YOf +
+                                 `Profit Estimation.sav`$Variables$q11.dummy.var_GQ9KqD7YOf),
+                 `\`Profit Estimation.sav\`$Variables$q1` ~ `\`Profit Estimation.sav\`$Variables$q11` +
+                     `\`Profit Estimation.sav\`$Variables$q1.dummy.var_GQ9KqD7YOf` +
+                     `\`Profit Estimation.sav\`$Variables$q11.dummy.var_GQ9KqD7YOf`)
+})

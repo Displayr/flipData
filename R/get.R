@@ -68,18 +68,38 @@ DataFormula <- function(formula, data = NULL)
 {
     formula.str <- paste(deparse(formula), collapse = "")
     var.names <- AllVariablesNames(formula, data)
-
+    # Check for dummy variables that include dataset specification
+    .inDatasetOrUsesBackTicks <- function(x)
+        indexOfUnescapedCharacter(x, char = "$") > -1 || grepl("`", x)
+    var.names.flagged <- vapply(as.list(var.names), .inDatasetOrUsesBackTicks, logical(1))
+    dummy.vars.found <- grepl(".dummy.var_GQ9KqD7YOf$", var.names)
+    dummy.vars.dataset.referral <- dummy.vars.found & var.names.flagged
+    if (dummy.vars.exist <- any(dummy.vars.dataset.referral))
+    { # Extract the dummy variables from var.names and formua.str, handle each separately
+        dummy.vars <- var.names[dummy.vars.dataset.referral]
+        var.names <- var.names[!dummy.vars.dataset.referral]
+        # Temporarily remove dummy variables from formula.str
+        patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars, fixed = TRUE), collapse = "|")
+        formula.str <- gsub(patt, "", formula.str)
+    }
     # We sort names from longest to shortest since we will be substituting by name
     sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
     sorted.names <- var.names[sorted.indices]
 
     for (name in sorted.names)
     {
-        if (indexOfUnescapedCharacter(name, "$") > -1 || grepl("`", name))
+        if (.inDatasetOrUsesBackTicks(name))
         {
             new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
             formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
         }
+    }
+    # Add dummy variables at the end, applying the same conditions, wrapping in backticks and
+    # escaping existing backticks if necessary
+    if (any(dummy.vars.exist))
+    {
+        dummy.vars <- paste0("`", gsub("`", "\\`", dummy.vars, fixed = TRUE), "`")
+        formula.str <- paste0(formula.str, " + ", paste0(dummy.vars, collapse = " + "))
     }
     formula(formula.str)
 }
