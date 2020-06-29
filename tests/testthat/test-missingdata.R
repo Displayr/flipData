@@ -152,4 +152,14 @@ test_that("DS-2986: Check aliased dummy variables reduced and mapping retained",
     attr(exp.multi.missing[["X4.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", c(4, 6))
     expect_equal(AddDummyVariablesForNAs(multi.aliased.missing, outcome.name = "Y"),
                  exp.multi.missing)
+    names(aliased.missing) <- paste0("data$Questions$", names(aliased.missing))
+    exp.aliased.missing <- structure(list(`data$Questions$Y` = 1:2,
+                                          `data$Questions$X1` = c(2, 2),
+                                          `data$Questions$X2` = c(3, 3),
+                                          `data$Questions$X3` = c(1, 2),
+                                          `data$Questions$X1.dummy.var_GQ9KqD7YOf` =
+                                              structure(1:0, predictors.matching.dummy = c("data$Questions$X1", "data$Questions$X2"))),
+                                     row.names = c(NA, -2L), class = "data.frame")
+    expect_equal(AddDummyVariablesForNAs(aliased.missing, outcome.name = "data$Questions$Y"),
+                 exp.aliased.missing)
 })

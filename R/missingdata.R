@@ -252,7 +252,7 @@ remapDataFrame <- function(dataframe)
                  "however suppled variable is ", sQuote(class(x)))
         return(x)
     })
-    as.data.frame(remapped.list)
+    as.data.frame(remapped.list, check.names = FALSE)
 }
 
 # Helper function for the dummy variable adjustment.
