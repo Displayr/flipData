@@ -75,7 +75,7 @@ DataFormula <- function(formula, data = NULL)
     dummy.vars.found <- grepl(".dummy.var_GQ9KqD7YOf$", var.names)
     dummy.vars.dataset.referral <- dummy.vars.found & var.names.flagged
     if (dummy.vars.exist <- any(dummy.vars.dataset.referral))
-    { # Extract the dummy variables from var.names and formua.str, handle each separately
+    { # Extract the dummy variables from var.names and formula.str, handle each separately
         dummy.vars <- var.names[dummy.vars.dataset.referral]
         var.names <- var.names[!dummy.vars.dataset.referral]
         # Temporarily remove dummy variables from formula.str

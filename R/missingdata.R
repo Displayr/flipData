@@ -256,10 +256,14 @@ remapDataFrame <- function(dataframe)
 }
 
 # Helper function for the dummy variable adjustment.
-# This function adds an attribute mapping the variable each dummy variable belongs to.
-# This s usually redundant since that is evident in the name except in the case of aliased
+# This function adds an attribute which contains a character vector mapping the dummy variable
+# to each variable that are linked to its binary 0/1 values.
+# This is usually redundant since it typically only maps to a single variable and that information
+# is evident in the dummy variable name. The exception is in the case of aliased
 # Dummy variables. That is, predictors have precisely the same missing cases, causing the
-# dummy variables for those predictors will be identical (aliased)
+# dummy variables for those predictors will be identical (aliased). In this case, a single
+# dummy variable is created for the group of predictors with identical missing value structure
+# and the mapping contains a character vector of all variables in that group that correspond to it.
 checkAndMapDummyVariables <- function(data)
 {
     x <- 1L
