@@ -202,7 +202,7 @@ CheckPredictionVariables <- function(object, newdata)
 #' @param level.counts A named integer vector which has the counts of each level that applies in this scenario,
 #'    the names of the vector are the level labels.
 #' @param warning.due.to.outlier.removal Logical to flag if this warning is being thrown only because of the automated outlier removal.
-#' @NoRd
+#' @noRd
 checkPredictionWarningMessage <- function(label, level.counts, warning.due.to.outlier.removal = FALSE)
 {
     levels <- names(level.counts)

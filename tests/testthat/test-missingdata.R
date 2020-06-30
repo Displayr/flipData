@@ -37,18 +37,21 @@ expected.missing.outcome.unchecked <- data.frame(Y = c(NA, 1), X1 = c(1, 2), X2 
 
 single.pred.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(1, 2))
 expected.single <- data.frame(Y = 1:2, X1 = c(2, 2), X2 = c(1, 2), X1.dummy.var_GQ9KqD7YOf = c(1, 0))
-
+attr(expected.single[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- "X1"
 diag.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(1, NA))
 diag.missing.dummy <- data.frame(Y = 1:2, X1 = c(2, 2), X2 = c(1, 1), X1.dummy.var_GQ9KqD7YOf = 1:0, X2.dummy.var_GQ9KqD7YOf = 0:1)
+attr(diag.missing.dummy[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- "X1"
+attr(diag.missing.dummy[["X2.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- "X2"
 
 missing.predictors.case.df <- data.frame(Y = 1:3, X1 = c(NA, 1, 2), X2 = c(NA, -1, 0))
 expected.missing.predictors <- structure(list(Y = 2:3, X1 = c(1, 2), X2 = c(-1, 0)),
                                          row.names = 2:3, class = "data.frame")
+
 expected.missing.predictors.unchecked <- structure(list(Y = 1:3,
                                                         X1 = c(1.5, 1, 2),
                                                         X2 = c(-0.5, -1, 0),
-                                                        X1.dummy.var_GQ9KqD7YOf = c(1L, 0L, 0L),
-                                                        X2.dummy.var_GQ9KqD7YOf = c(1L, 0L, 0L)),
+                                                        X1.dummy.var_GQ9KqD7YOf = structure(c(1L, 0L, 0L),
+                                                                                            predictors.matching.dummy = c("X1", "X2"))),
                                                    class = "data.frame", row.names = c(NA, -3L))
 
 larger.case.with.missing.df <- data.frame(Y  = c(1, 2,  3,  4, 5, NA, 1, 2,  1),
@@ -57,14 +60,17 @@ larger.case.with.missing.df <- data.frame(Y  = c(1, 2,  3,  4, 5, NA, 1, 2,  1),
 expected.larger.case <- structure(list(Y = c(1, 2, 3, 4, 5, 1, 2),
                                        X1 = c(1, 4, 2, 3, 2, 1, 0),
                                        X2 = c(5, 4, 6, 3.28571428571429, 1, 4, 0),
-                                       X1.dummy.var_GQ9KqD7YOf = c(0L, 0L, 1L, 0L, 0L, 0L, 0L),
-                                       X2.dummy.var_GQ9KqD7YOf = c(0L, 0L, 0L, 1L, 0L, 0L, 0L)),
+                                       X1.dummy.var_GQ9KqD7YOf = structure(c(0L,0L, 1L, 0L, 0L, 0L, 0L),
+                                                                           predictors.matching.dummy = "X1"),
+                                       X2.dummy.var_GQ9KqD7YOf = structure(c(0L, 0L, 0L, 1L, 0L, 0L, 0L),
+                                                                           predictors.matching.dummy = "X2")),
                                   row.names = c(1L, 2L, 3L, 4L, 5L, 7L, 8L), class = "data.frame")
 
 factor.in.df <- data.frame(Y = 1:3, X1 = factor(1:3, labels = LETTERS[1:3]), X2 = 1:3)
 missing.factor.in.df <- data.frame(Y = 1:3, X1 = factor(c(NA, 2:3), labels = LETTERS[2:3]), X2 = 1:3)
 expected.missing.factor <- data.frame(Y = 1:3, X1 = factor(c(2, 2:3), labels = LETTERS[2:3]), X2 = 1:3,
                                       X1.dummy.var_GQ9KqD7YOf = c(1, 0, 0))
+attr(expected.missing.factor[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- "X1"
 df.with.text <- data.frame(Y = 1:2, X1 = 1:2, X3 = c(NA, LETTERS[1]),
                            stringsAsFactors = FALSE)
 edge.case <- data.frame(Y = 1:5, X = 1:5)
@@ -72,6 +78,7 @@ edge.case <- data.frame(Y = 1:5, X = 1:5)
 expected.edge.with.missing <- structure(list(Y = 1:5, X = c(4.5, 4.5, 4.5, 4, 5),
                                              X.dummy.var_GQ9KqD7YOf = c(1L, 1L, 1L, 0L, 0L)),
                                         class = "data.frame", row.names = c(NA, -5L))
+attr(expected.edge.with.missing[["X.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- "X"
 
 test_that("Dummy variable adjustment", {
     expect_identical(AddDummyVariablesForNAs(no.missing.df, outcome.name = "Y"),
@@ -114,4 +121,45 @@ test_that("Dummy variable adjustment", {
     edge.case[1:3, 2] <- NA
     expect_identical(AddDummyVariablesForNAs(edge.case, outcome.name = "Y"),
                      expected.edge.with.missing)
+})
+
+
+test_that("DS-2986: Check aliased dummy variables reduced and mapping retained", {
+    aliased.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(NA, 3), X3 = c(1:2))
+    exp.aliased.missing <- data.frame(Y = 1:2, X1 = c(2, 2), X2 = c(3, 3), X3 = 1:2,
+                                      X1.dummy.var_GQ9KqD7YOf = c(1, 0))
+    attr(exp.aliased.missing[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", 1:2)
+    expect_equal(AddDummyVariablesForNAs(aliased.missing, outcome.name = "Y"),
+                 exp.aliased.missing)
+    multi.aliased.missing <- data.frame(Y = 1:2, X1 = c(NA, 2), X2 = c(NA, 3), X3 = c(1:2),
+                                        X4 = c(1, NA), X5 = 3:4, X6 = c(2, NA))
+    exp.multi.missing <- data.frame(Y = 1:2, X1 = c(2, 2), X2 = c(3, 3), X3 = 1:2,
+                                    X4 = c(1, 1), X5 = c(3, 4), X6 = c(2, 2),
+                                    X1.dummy.var_GQ9KqD7YOf = c(1, 0),
+                                    X4.dummy.var_GQ9KqD7YOf = c(0, 1))
+    attr(exp.multi.missing[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", 1:2)
+    attr(exp.multi.missing[["X4.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", c(4, 6))
+    expect_equal(AddDummyVariablesForNAs(multi.aliased.missing, outcome.name = "Y"),
+                 exp.multi.missing)
+    # Attributes retained when filtering
+    multi.aliased.missing <- data.frame(Y = 1:3, X1 = c(NA, 2, NA), X2 = c(NA, 3, NA), X3 = c(1:2, NA),
+                                        X4 = c(1, NA, NA), X5 = c(3:4, NA), X6 = c(2, NA, NA))
+    exp.multi.missing <- data.frame(Y = 1:2, X1 = c(2, 2), X2 = c(3, 3), X3 = 1:2,
+                                    X4 = c(1, 1), X5 = c(3, 4), X6 = c(2, 2),
+                                    X1.dummy.var_GQ9KqD7YOf = c(1, 0),
+                                    X4.dummy.var_GQ9KqD7YOf = c(0, 1))
+    attr(exp.multi.missing[["X1.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", 1:2)
+    attr(exp.multi.missing[["X4.dummy.var_GQ9KqD7YOf"]], "predictors.matching.dummy") <- paste0("X", c(4, 6))
+    expect_equal(AddDummyVariablesForNAs(multi.aliased.missing, outcome.name = "Y"),
+                 exp.multi.missing)
+    names(aliased.missing) <- paste0("data$Questions$", names(aliased.missing))
+    exp.aliased.missing <- structure(list(`data$Questions$Y` = 1:2,
+                                          `data$Questions$X1` = c(2, 2),
+                                          `data$Questions$X2` = c(3, 3),
+                                          `data$Questions$X3` = c(1, 2),
+                                          `data$Questions$X1.dummy.var_GQ9KqD7YOf` =
+                                              structure(1:0, predictors.matching.dummy = c("data$Questions$X1", "data$Questions$X2"))),
+                                     row.names = c(NA, -2L), class = "data.frame")
+    expect_equal(AddDummyVariablesForNAs(aliased.missing, outcome.name = "data$Questions$Y"),
+                 exp.aliased.missing)
 })
