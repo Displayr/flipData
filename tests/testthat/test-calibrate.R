@@ -286,3 +286,13 @@ test_that("RS-2527 Targets of 0: automatically switching to calbration",
 
           })
 
+test_that("Output contains the right class for extension buttons", {
+    # NOTE: if the tests below fails due to class names changing, ALL
+    #       extension buttons in the wiki that refer to this class name should
+    #       be updated with the new class name.
+
+    wgt <- Calibrate(categorical.variables = data.frame(input.age, input.gender, input.region),
+                     categorical.targets=list(variable.targets.age2, variable.targets.gender, variable.targets.region))
+
+    expect_true(inherits(wgt, "Calibrate"))
+})
