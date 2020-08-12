@@ -2,7 +2,7 @@
 % Please edit documentation in R/get.R
 \name{CleanBackticks}
 \alias{CleanBackticks}
-\title{\code{CleanBackticks}}
+\title{Clean Backticks in variable names}
 \usage{
 CleanBackticks(nms)
 }
@@ -10,6 +10,13 @@ CleanBackticks(nms)
 \item{nms}{Vector of variable names.}
 }
 \description{
-Removes extra backticks and unescapes original backticks
-in variable names due to usage of DataFormula.
+Removes extra backticks and unescapes original backticks in
+variable names due to usage of DataFormula. Handles cases where
+variable names have had to be disambiguated by appending a data
+file name as well as dummy variables from a categorical predictor; see the
+examples.
+}
+\examples{
+CleanBackticks("`data.sav$Variables$q1`")
+CleanBackticks("`\\\\`my data.sav\\\\`$Variables$catvar`2")
 }

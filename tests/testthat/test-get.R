@@ -75,11 +75,58 @@ test_that("GetData missing variable",
 
           })
 
-test_that("DS-2986: Dummy variables compatible with DataFormula", {
+
+test_that("DS-2986: Dummy variables compatible with DataFormula",
+{
     expect_equal(DataFormula(`Profit Estimation.sav`$Variables$q1 ~ `Profit Estimation.sav`$Variables$q11 +
                                  `Profit Estimation.sav`$Variables$q1.dummy.var_GQ9KqD7YOf +
                                  `Profit Estimation.sav`$Variables$q11.dummy.var_GQ9KqD7YOf),
                  `\`Profit Estimation.sav\`$Variables$q1` ~ `\`Profit Estimation.sav\`$Variables$q11` +
                      `\`Profit Estimation.sav\`$Variables$q1.dummy.var_GQ9KqD7YOf` +
                      `\`Profit Estimation.sav\`$Variables$q11.dummy.var_GQ9KqD7YOf`)
+})
+
+test_that("CleanBackticks",
+{
+    expect_equal(CleanBackticks("ProfitEstimation.sav$Variables$q1"),
+                 "ProfitEstimation.sav$Variables$q1")
+    expect_equal(CleanBackticks("`\\`Profit Estimation.sav\\`$Variables$q1`"),
+                 "`Profit Estimation.sav`$Variables$q1")
+
+    ## factor variables (levels appear as suffix in names)
+    expect_equal(CleanBackticks("`ProfitEstimation.sav$Variables$Q8`100"),
+                 "ProfitEstimation.sav$Variables$Q8100")
+    expect_equal(CleanBackticks("`\\`Profit Estimation.sav\\`$Variables$Q8`100"),
+                 "`Profit Estimation.sav`$Variables$Q8100")
+})
+
+test_that("CleanBackticks: factors with non-integer levels; DS-2884",
+{
+
+    ## factor levels might not be integers
+    labels <- c("`regsNDStatewide.Final.0415.sav$Variables$Q7`0.25",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q7`0.5",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q7`0.75",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q7`1",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q8`0.25",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q8`0.5",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q8`0.75",
+                "`regsNDStatewide.Final.0415.sav$Variables$Q8`1",
+                "0|0.14", "0.14|0.29", "0.29|0.5", "0.5|0.71",
+                "0.71|0.86", "0.86|1")
+    out <- CleanBackticks(labels)
+    expect_true(!any(grepl("`", out)))
+
+    labels <- c("`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q7`0.25",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q7`0.5",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q7`0.75",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q7`1",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q8`0.25",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q8`0.5",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q8`0.75",
+                "`\\`regsNDStatewide Final 0415.sav\\`$Variables$Q8`1")
+    out <- CleanBackticks(labels)
+    expect_equal(out[1], "`regsNDStatewide Final 0415.sav`$Variables$Q70.25")
+    expect_true(all(grepl("^`", out)))
+    expect_true(all(grepl(".sav`$Variables", out, fixed = TRUE)))
 })

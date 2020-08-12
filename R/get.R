@@ -105,20 +105,27 @@ DataFormula <- function(formula, data = NULL)
 }
 
 
-#' \code{CleanBackticks}
-#' @description Removes extra backticks and unescapes original backticks
-#' in variable names due to usage of DataFormula.
+#' Clean Backticks in variable names
+#'
+#' Removes extra backticks and unescapes original backticks in
+#' variable names due to usage of DataFormula. Handles cases where
+#' variable names have had to be disambiguated by appending a data
+#' file name as well as dummy variables from a categorical predictor; see the
+#' examples.
 #' @param nms Vector of variable names.
 #' @importFrom stringr str_match
+#' @examples
+#' CleanBackticks("`data.sav$Variables$q1`")
+#' CleanBackticks("`\\`my data.sav\\`$Variables$catvar`2")
 #' @export
 CleanBackticks <- function(nms)
 {
     # temporarily remove integer suffix (added to distinguish factor levels)
-    suffix <- str_match(nms, "([0-9]+$)")[, 2]
-    nms <- sub("([0-9]+$)", "", nms)
+    suffix <- str_match(nms, "([0-9.]+$)")[, 2]
+    nms <- sub("([0-9.]+$)", "", nms)
 
     nms <- sapply(nms, function(nm) {
-        if (length(grep("$", nms, fixed = TRUE)) > 0)
+        if (any(grepl("$", nms, fixed = TRUE)))
             gsub("\\`" , "`", gsub("(^`|`$)", "", nm), fixed = TRUE)
         else
             nm
