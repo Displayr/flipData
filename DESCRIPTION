@@ -21,7 +21,7 @@ Imports: CVXR (>= 1.0.0),
  stats,
  stringr,
  survey
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Encoding: UTF-8
 Suggests: foreign,
  testthat,
