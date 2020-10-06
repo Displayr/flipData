@@ -72,7 +72,7 @@ DataFormula <- function(formula, data = NULL)
     .inDatasetOrUsesBackTicks <- function(x)
         indexOfUnescapedCharacter(x, char = "$") > -1 || grepl("`", x)
     var.names.flagged <- vapply(as.list(var.names), .inDatasetOrUsesBackTicks, logical(1))
-    dummy.vars.found <- grepl(".dummy.var_GQ9KqD7YOf$", var.names)
+    dummy.vars.found <- grepl("\\.dummy\\.var_GQ9KqD7YOf$", var.names)
     dummy.vars.dataset.referral <- dummy.vars.found & var.names.flagged
     if (dummy.vars.exist <- any(dummy.vars.dataset.referral))
     { # Extract the dummy variables from var.names and formula.str, handle each separately
