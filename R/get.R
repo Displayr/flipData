@@ -79,7 +79,8 @@ DataFormula <- function(formula, data = NULL)
         dummy.vars <- var.names[dummy.vars.dataset.referral]
         var.names <- var.names[!dummy.vars.dataset.referral]
         # Temporarily remove dummy variables from formula.str
-        patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars, fixed = TRUE), collapse = "|")
+        dummy.vars.patt <- sub(patt = ".dummy.var_GQ9KqD7YOf", "\\.dummy\\.var_GQ9KqD7YOf", dummy.vars, fixed = TRUE)
+        patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars.patt, fixed = TRUE), collapse = "|")
         formula.str <- gsub(patt, "", formula.str)
     }
     # We sort names from longest to shortest since we will be substituting by name
@@ -96,7 +97,7 @@ DataFormula <- function(formula, data = NULL)
     }
     # Add dummy variables at the end, applying the same conditions, wrapping in backticks and
     # escaping existing backticks if necessary
-    if (any(dummy.vars.exist))
+    if (dummy.vars.exist)
     {
         dummy.vars <- paste0("`", gsub("`", "\\`", dummy.vars, fixed = TRUE), "`")
         formula.str <- paste0(formula.str, " + ", paste0(dummy.vars, collapse = " + "))
