@@ -130,3 +130,10 @@ test_that("CleanBackticks: factors with non-integer levels; DS-2884",
     expect_true(all(grepl("^`", out)))
     expect_true(all(grepl(".sav`$Variables", out, fixed = TRUE)))
 })
+
+test_that("DS-2988: Precise replacement when dataset references are used", {
+    expect_equal(DataFormula(dat$Variables$xy ~ dat$Variables$x),
+                 `dat$Variables$xy` ~ `dat$Variables$x`)
+    expect_equal(DataFormula(`some dat`$Variables$xy ~ `some other dat`$Variables$x),
+                 `\`some dat\`$Variables$xy` ~ `\`some other dat\`$Variables$x`)
+})
