@@ -80,7 +80,9 @@ DataFormula <- function(formula, data = NULL)
         dummy.vars <- var.names[dummy.vars.dataset.referral]
         var.names <- var.names[!dummy.vars.dataset.referral]
         # Temporarily remove dummy variables from formula.str
-        dummy.vars.patt <- sub(patt = ".dummy.var_GQ9KqD7YOf", "\\.dummy\\.var_GQ9KqD7YOf", dummy.vars, fixed = TRUE)
+        dummy.vars.patt <- sub(pattern = ".dummy.var_GQ9KqD7YOf",
+                               replacement = "\\.dummy\\.var_GQ9KqD7YOf",
+                               dummy.vars, fixed = TRUE)
         patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars.patt, fixed = TRUE), collapse = "|")
         formula.str <- gsub(patt, "", formula.str)
     }
