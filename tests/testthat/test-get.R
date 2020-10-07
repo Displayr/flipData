@@ -136,4 +136,10 @@ test_that("DS-2988: Precise replacement when dataset references are used", {
                  `dat$Variables$xy` ~ `dat$Variables$x`)
     expect_equal(DataFormula(`some dat`$Variables$xy ~ `some other dat`$Variables$x),
                  `\`some dat\`$Variables$xy` ~ `\`some other dat\`$Variables$x`)
+    expect_equal(DataFormula(dat$Variables$`x one y` ~ dat$Variables$`x one`),
+                 `dat$Variables$\`x one y\`` ~ `dat$Variables$\`x one\``)
+    expect_equal(DataFormula(dat$Variables$`x one y` ~ x),
+                 `dat$Variables$\`x one y\`` ~ x)
+    expect_equal(DataFormula(dat$Variables$`x one y` ~ `x one y`),
+                 `dat$Variables$\`x one y\`` ~ `\`x one y\``)
 })

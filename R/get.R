@@ -98,13 +98,13 @@ DataFormula <- function(formula, data = NULL)
             { # Split by the $ character being careful not to split if there is a $ inside the data or
               # or variable/question names
                 split.names <- strsplit(name, r"(\$(?=([^`]*`[^`]*`)*[^`]*$))", perl = TRUE)[[1]]
-                # Escape the $ for the final gsub matching pattern below
+                # Escape the $ for the final sub matching pattern below
                 name <- paste0(split.names, collapse = "\\$")
                 # Escape the backticks for the replacements
                 split.names[-2] <- gsub("`", "\\\\`", split.names[-2], fixed = TRUE)
                 new.name <- paste0("`", paste0(split.names, collapse = "$"), "`")
             } else
-                new.name <- paste0("`", name, "`")
+                new.name <- paste0("`", gsub("`", "\\\\`", name, fixed = TRUE), "`")
 
             formula.str <- sub(paste0(name, r"((?=[^`]*(?:`[^`]*`[^`]*)*$))"),
                                new.name, formula.str, perl = TRUE)
