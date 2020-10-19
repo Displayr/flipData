@@ -70,16 +70,20 @@ DataFormula <- function(formula, data = NULL)
     var.names <- AllVariablesNames(formula, data)
     # Check for dummy variables that include dataset specification
     .inDatasetOrUsesBackTicks <- function(x)
-        indexOfUnescapedCharacter(x, char = "$") > -1 || grepl("`", x)
-    var.names.flagged <- vapply(as.list(var.names), .inDatasetOrUsesBackTicks, logical(1))
-    dummy.vars.found <- grepl(".dummy.var_GQ9KqD7YOf$", var.names)
+        c(indexOfUnescapedCharacter(x, char = "$") > -1, grepl("`", x))
+    var.names.flagged <- vapply(as.list(var.names), function(x) any(.inDatasetOrUsesBackTicks(x)),
+                                logical(1))
+    dummy.vars.found <- grepl("\\.dummy\\.var_GQ9KqD7YOf$", var.names)
     dummy.vars.dataset.referral <- dummy.vars.found & var.names.flagged
     if (dummy.vars.exist <- any(dummy.vars.dataset.referral))
     { # Extract the dummy variables from var.names and formula.str, handle each separately
         dummy.vars <- var.names[dummy.vars.dataset.referral]
         var.names <- var.names[!dummy.vars.dataset.referral]
         # Temporarily remove dummy variables from formula.str
-        patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars, fixed = TRUE), collapse = "|")
+        dummy.vars.patt <- sub(pattern = ".dummy.var_GQ9KqD7YOf",
+                               replacement = "\\.dummy\\.var_GQ9KqD7YOf",
+                               dummy.vars, fixed = TRUE)
+        patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars.patt, fixed = TRUE), collapse = "|")
         formula.str <- gsub(patt, "", formula.str)
     }
     # We sort names from longest to shortest since we will be substituting by name
@@ -88,15 +92,27 @@ DataFormula <- function(formula, data = NULL)
 
     for (name in sorted.names)
     {
-        if (.inDatasetOrUsesBackTicks(name))
+        if (any(dataset.or.backtick <- .inDatasetOrUsesBackTicks(name)))
         {
-            new.name <- paste0("`", gsub("`", "\\`", name, fixed = TRUE), "`")
-            formula.str <- gsub(name, new.name, formula.str, fixed = TRUE)
+            if (dataset.or.backtick[1])
+            { # Split by the $ character being careful not to split if there is a $ inside the data or
+              # or variable/question names
+                split.names <- strsplit(name, r"(\$(?=([^`]*`[^`]*`)*[^`]*$))", perl = TRUE)[[1]]
+                # Escape the $ for the final sub matching pattern below
+                name <- paste0(split.names, collapse = "\\$")
+                # Escape the backticks for the replacements
+                split.names[-2] <- gsub("`", "\\\\`", split.names[-2], fixed = TRUE)
+                new.name <- paste0("`", paste0(split.names, collapse = "$"), "`")
+            } else
+                new.name <- paste0("`", gsub("`", "\\\\`", name, fixed = TRUE), "`")
+
+            formula.str <- sub(paste0(name, r"((?=[^`]*(?:`[^`]*`[^`]*)*$))"),
+                               new.name, formula.str, perl = TRUE)
         }
     }
     # Add dummy variables at the end, applying the same conditions, wrapping in backticks and
     # escaping existing backticks if necessary
-    if (any(dummy.vars.exist))
+    if (dummy.vars.exist)
     {
         dummy.vars <- paste0("`", gsub("`", "\\`", dummy.vars, fixed = TRUE), "`")
         formula.str <- paste0(formula.str, " + ", paste0(dummy.vars, collapse = " + "))
