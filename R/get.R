@@ -69,12 +69,11 @@ DataFormula <- function(formula, data = NULL)
     formula.str <- paste(deparse(formula), collapse = "")
     var.names <- AllVariablesNames(formula, data)
     # Check for dummy variables that include dataset specification
-    .inDatasetOrUsesBackTicks <- function(x)
-        c(indexOfUnescapedCharacter(x, char = "$") > -1, grepl("`", x))
-    var.names.flagged <- vapply(as.list(var.names), function(x) any(.inDatasetOrUsesBackTicks(x)),
-                                logical(1))
+    in.dataset <- vapply(var.names, indexOfUnescapedCharacter, char = "$", numeric(1)) > -1
+    uses.backticks <- grepl("`", var.names)
+    names(uses.backticks) <- var.names
     dummy.vars.found <- grepl("\\.dummy\\.var_GQ9KqD7YOf$", var.names)
-    dummy.vars.dataset.referral <- dummy.vars.found & var.names.flagged
+    dummy.vars.dataset.referral <- dummy.vars.found & any(in.dataset | uses.backticks)
     if (dummy.vars.exist <- any(dummy.vars.dataset.referral))
     { # Extract the dummy variables from var.names and formula.str, handle each separately
         dummy.vars <- var.names[dummy.vars.dataset.referral]
@@ -87,14 +86,13 @@ DataFormula <- function(formula, data = NULL)
         formula.str <- gsub(patt, "", formula.str)
     }
     # We sort names from longest to shortest since we will be substituting by name
-    sorted.indices <- sort(sapply(var.names, nchar), decreasing = TRUE, index.return = TRUE)$ix
-    sorted.names <- var.names[sorted.indices]
+    sorted.names <- var.names[order(nchar(var.names), decreasing = TRUE)]
 
     for (name in sorted.names)
     {
-        if (any(dataset.or.backtick <- .inDatasetOrUsesBackTicks(name)))
+        if (in.dataset[name] || uses.backticks[name])
         {
-            if (dataset.or.backtick[1])
+            if (in.dataset[name])
             { # Split by the $ character being careful not to split if there is a $ inside the data or
               # or variable/question names
                 split.names <- strsplit(name, r"(\$(?=([^`]*`[^`]*`)*[^`]*$))", perl = TRUE)[[1]]
