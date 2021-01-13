@@ -15,6 +15,13 @@
 SplitFormQuestions <- function(form.data, show.labels = TRUE,
                                include.grid.flag = FALSE)
 {
+    .checkForDuplicateNames <- function(dat, new.name)
+    {
+        if (new.name %in% names(dat))
+            stop("The data cannot have two colummns with same name: '",
+                 new.name, "'. Modify the inputs to avoid this.")
+    }
+
     dat <- list()
     is.grid <- logical(0)
     for (i in seq_along(form.data))
@@ -33,17 +40,20 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
 
             for (nm2 in nms)
             {
+                .checkForDuplicateNames(dat, nm2)
                 dat[[nm2]] <- elem[[nm2]]
                 is.grid <- c(is.grid, is.grid.question)
             }
         }
         else if (show.labels)
         {
+            .checkForDuplicateNames(dat, attr(elem, "label"))
             dat[[attr(elem, "label")]] <- elem
             is.grid <- c(is.grid, FALSE)
         }
         else
         {
+            .checkForDuplicateNames(dat, attr(elem, "name"))
             dat[[attr(elem, "name")]] <- elem
             is.grid <- c(is.grid, FALSE)
         }

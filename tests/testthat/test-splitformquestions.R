@@ -204,3 +204,12 @@ test_that("form.data with no names; DS-2601",
                    "Sparkling mineral water",
                    "Coffee", "Q3. Age in years"))
 })
+
+test_that("Throw error with duplicate names",
+{
+    fd <- form.data
+    attr(fd[[2]], "label") <- "Coffee"
+    expect_error(SplitFormQuestions(fd),
+                paste0("The data cannot have two colummns with same name: ",
+                       "'Coffee'. Modify the inputs to avoid this."))
+})
