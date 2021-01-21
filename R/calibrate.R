@@ -119,6 +119,7 @@ convertToDataFrame <- function(x)
 
 ## Checks and tidies categorical targets
 #' @importFrom stringr str_trim
+#' @importFrom verbs Sum
 categoricalTargets <- function(adjustment.variables, categorical.targets, subset)
 {
     targets = list()
@@ -155,7 +156,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
                 stop("Target category that does not appear in variable ", varname, ": ",
                      excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
         }
-        if ((sm = sum(targets[[i]])) != 1)
+        if ((sm = Sum(targets[[i]], remove.missing = FALSE)) != 1)
         {
             if (round(sm, 6) == 1)# Forcing to add up to 1 if difference likely due to rounding errors.
                 targets[[i]] = prop.table(targets[[i]])
@@ -252,6 +253,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
 #' @importFrom CVXR Variable Minimize Problem entr solve
+#' @importFrom verbs Sum
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
     if (package == "survey" | raking)
@@ -289,7 +291,7 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       n <- NROW(X)
                       g <- Variable(n)
                       constraints = list(t(A) %*% g == margins)
-                      Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
+                      Phi_R = Minimize(Sum(input.weight * (-entr(g) - g + 1), remove.missing = FALSE))
                       p = Problem(Phi_R, constraints)
                       res = solve(p)
                       as.numeric(input.weight * res$getValue(g))

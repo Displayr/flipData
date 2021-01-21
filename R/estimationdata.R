@@ -55,6 +55,7 @@
 #'     imputation performed (if requested) \item \code{description} -
 #'     character; description of the data; see
 #'     \code{\link[flipFormat]{SampleDescription}} }
+#' @importFrom verbs Sum
 #' @export
 EstimationData <- function(formula = NULL,
                            data = NULL,
@@ -149,7 +150,7 @@ EstimationData <- function(formula = NULL,
             data.for.estimation <- RemoveMissingLevelsFromFactors(data.for.estimation)
             levels.post <- paste0(rep(labels, vapply(data.for.estimation[data.cols], nlevels, 0L)), ": ",
                                  unlist(lapply(data.for.estimation, levels)))
-            
+
             levels.diff <- setdiff(levels.pre, levels.post)
             if (length(levels.diff) > 0)
             {
@@ -170,7 +171,7 @@ EstimationData <- function(formula = NULL,
         weights <- weights[estimation.sample]
 
     # Reporting.
-    n.estimation <- sum(estimation.sample)
+    n.estimation <- Sum(estimation.sample, remove.missing = FALSE)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
         stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
                       " than there are variables ", length(variable.names)))

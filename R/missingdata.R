@@ -111,6 +111,7 @@ MissingValuesByVariable <- function(data)
 #' Takes a QSubset variable and turns it into a logical vector with no missing values
 #' @param subset A QSubset variable from Displayr or Q.
 #' @param n.total The total number of observations.
+#' @importFrom verbs Sum
 #' @export
 CleanSubset <- function(subset, n.total)
 {
@@ -139,7 +140,7 @@ CleanSubset <- function(subset, n.total)
     }
     if (!is.null(new.subset))
         subset <- CopyAttributes(new.subset, subset)
-    n.subset <- sum(subset)
+    n.subset <- Sum(subset, remove.missing = FALSE)
     attr(subset, "n.subset") = n.subset
     subset
 }
