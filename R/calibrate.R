@@ -292,7 +292,7 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       n <- NROW(X)
                       g <- Variable(n)
                       constraints = list(t(A) %*% g == margins)
-                      Phi_R = Minimize(Sum(input.weight * (-entr(g) - g + 1), remove.missing = FALSE))
+                      Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
                       p = Problem(Phi_R, constraints)
                       res = solve(p)
                       as.numeric(input.weight * res$getValue(g))
