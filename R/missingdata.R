@@ -41,10 +41,11 @@ ExcludeCasesWithAnyMissingData <- function(data)
 #' @examples
 #' my.df <- data.frame("A" = c(1, 2, 3, 4, NA), "B" = c(NA, 1, 2, 3, NA), "C" = c(NA, NA, 1, 2, NA))
 #' ExcludeCasesWithCompletelyMissingData(my.df)
+#' @importFrom verbs SumRows
 #' @export
 ExcludeCasesWithCompletelyMissingData <- function(data)
 {
-    result <- data[rowSums(is.na(data)) < ncol(data), ]
+    result <- data[SumRows(is.na(data), remove.missing = FALSE) < ncol(data), ]
     if (nrow(result) == 0)
     {
         NoData()
@@ -111,6 +112,7 @@ MissingValuesByVariable <- function(data)
 #' Takes a QSubset variable and turns it into a logical vector with no missing values
 #' @param subset A QSubset variable from Displayr or Q.
 #' @param n.total The total number of observations.
+#' @importFrom verbs Sum
 #' @export
 CleanSubset <- function(subset, n.total)
 {
@@ -139,7 +141,7 @@ CleanSubset <- function(subset, n.total)
     }
     if (!is.null(new.subset))
         subset <- CopyAttributes(new.subset, subset)
-    n.subset <- sum(subset)
+    n.subset <- Sum(subset, remove.missing = FALSE)
     attr(subset, "n.subset") = n.subset
     subset
 }

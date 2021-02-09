@@ -12,6 +12,7 @@
 #' @importFrom lubridate is.Date is.POSIXt is.timepoint
 #' @importFrom flipTime AsDateTime
 #' @importFrom stats as.formula
+#' @importFrom verbs Sum
 #' @export
 
 AutoCoerceClass <- function(x, stringsAsFactors = TRUE, max.value.labels = 12)
@@ -41,7 +42,7 @@ AutoCoerceClass <- function(x, stringsAsFactors = TRUE, max.value.labels = 12)
     out <- rep(NA, n)
 
     # Numeric
-    if (suppressWarnings(sum(is.na(num <- as.numeric(x.not.missing))) == 0))
+    if (suppressWarnings(Sum(is.na(num <- as.numeric(x.not.missing)), remove.missing = FALSE) == 0))
     {
         out[!missing] <- num
         return(out)
@@ -55,7 +56,7 @@ AutoCoerceClass <- function(x, stringsAsFactors = TRUE, max.value.labels = 12)
         class(out) <- class(dts)
         return(out)
     }
-    if (suppressWarnings(sum(is.na((dat <- AsDateTime(x, on.parse.failure = "warn"))[!missing])) == 0))
+    if (suppressWarnings(Sum(is.na((dat <- AsDateTime(x, on.parse.failure = "warn"))[!missing]), remove.missing = FALSE) == 0))
         return(dat)
 
     # Text versus factors

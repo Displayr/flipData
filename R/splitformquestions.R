@@ -86,6 +86,7 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
 #'     Grid questions.
 #' @param variable.labels.source The source of the variable labels, to
 #'     be used to show the error message.
+#' @importFrom verbs Sum
 #' @export
 MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
                                           variable.labels,
@@ -106,7 +107,7 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
         ind <- sapply(grid.labels.split, length) == 2
         grid.labels <- grid.labels[ind]
         grid.labels.split <- grid.labels.split[ind]
-        n.grid.labels <- sum(ind)
+        n.grid.labels <- Sum(ind, remove.missing = FALSE)
         for (lbl in not.found)
         {
             min.nchar.diff <- Inf

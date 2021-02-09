@@ -14,12 +14,13 @@ WeightedSurveyDesign <- function(data, weights)
 #' @param weights A vector of weights.
 #' @references Kish, Leslie (1965). Survey Sampling. New York: Wiley.
 #' @return numeric
+#' @importFrom verbs Sum
 #' @export
 EffectiveSampleSize <- function(weights)
 {
     if (any(is.na(weights) | weights < 0 | !is.finite(weights)))
         stop("'weights' must be positive numbers.")
-    sum(weights)^2 / sum(weights^2)
+    Sum(weights, remove.missing = FALSE)^2 / Sum(weights^2, remove.missing = FALSE)
 }
 
 
@@ -28,10 +29,11 @@ EffectiveSampleSize <- function(weights)
 #' @param weights A vector of weights.
 #' @param strata Strata, to perform the weight-calibration within.
 #' @return vector
+#' @importFrom verbs Sum
 #' @export
 CalibrateWeight <- function(weights, strata = NULL)
 {
-    .calibrate <- function(weights) weights / sum(weights) * EffectiveSampleSize(weights)
+    .calibrate <- function(weights) weights / Sum(weights, remove.missing = FALSE) * EffectiveSampleSize(weights)
     if (is.null(strata))
         return(.calibrate(weights))
     strata <- factor(strata)

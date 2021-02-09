@@ -104,11 +104,12 @@ Calibrate <- function(categorical.variables = NULL,
 }
 
 # Converts lists to data fames, checking the data for errors along the way.
+#' @importFrom verbs SumColumns
 convertToDataFrame <- function(x)
 {
     x = as.data.frame(x, stringsAsFactors = TRUE)
     # Check that data frame is complete
-    var.missing = colSums(is.na(x)) > 0
+    var.missing = SumColumns(is.na(x), remove.missing = FALSE) > 0
     if (any(var.missing))
     {
         var.missing = paste(names(var.missing)[var.missing], collapse = ", ")
@@ -119,6 +120,7 @@ convertToDataFrame <- function(x)
 
 ## Checks and tidies categorical targets
 #' @importFrom stringr str_trim
+#' @importFrom verbs Sum
 categoricalTargets <- function(adjustment.variables, categorical.targets, subset)
 {
     targets = list()
@@ -155,7 +157,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
                 stop("Target category that does not appear in variable ", varname, ": ",
                      excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
         }
-        if ((sm = sum(targets[[i]])) != 1)
+        if ((sm = Sum(targets[[i]], remove.missing = FALSE)) != 1)
         {
             if (round(sm, 6) == 1)# Forcing to add up to 1 if difference likely due to rounding errors.
                 targets[[i]] = prop.table(targets[[i]])
@@ -252,6 +254,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
 #' @importFrom CVXR Variable Minimize Problem entr solve
+#' @importFrom verbs Sum
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
     if (package == "survey" | raking)
