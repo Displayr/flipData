@@ -12,11 +12,13 @@ License: GPL-3
 LazyData: TRUE
 Depends: R (>= 4.0.0)
 Imports: CVXR (>= 1.0.0),
+ flipAPI (>= 1.0.2),
  flipFormat (>= 1.6.13),
  flipImputation,
  flipTime,
  flipTransformations (>= 1.4.0),
  flipU (>= 1.0.2),
+ haven,
  icarus,
  lubridate,
  stats,
