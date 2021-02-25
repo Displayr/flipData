@@ -1,5 +1,9 @@
+#' @title Merge Data Sets by Case
+#' @description Merges multiple data sets by case where the data sets contain
+#'  similar variables but different cases, e.g., data sets from different time
+#'  periods.
 #' @param data.set.names A character vector of names of data sets from the
-#'  Displayr cloud drive to merge.
+#'  Displayr cloud drive to merge or file paths of local data sets.
 #' @param match.by One of Automatic, All, Variable names, Variable labels,
 #'  Variable and value labels
 #' @param min.match.percentage To be decided, possibly a percentage.
@@ -10,7 +14,12 @@
 #'   variables to omit from the merged data set. The vectors in the list
 #'   correspond to the input data sets.
 #' @export
-MergeDataSetsByCase <- function(data.set.names, match.by,
+MergeDataSetsByCase <- function(data.set.names,
+                                match.by = c("Automatic",
+                                             "All",
+                                             "Variable names",
+                                             "Variable labels",
+                                             "Variable and value labels"),
                                 min.match.percentage = 100,
                                 manual.matches = NULL,
                                 variables.to.omit = NULL)
@@ -35,10 +44,14 @@ MergeDataSetsByCase <- function(data.set.names, match.by,
 # Output to contain:
 # - Table of variable labels with columns: Merged Data Set, Data Set 1, Data Set 2, Data Set 3, ...
 #   perhaps indicating the ones with a weak match and indicating the manual matches
+#   and tooltips with variable names
 # - Omitted variables (listed by data set), indicating the manual omits
 
 readDataSets <- function(data.set.names)
 {
+    if (length(data.set.names) < 2)
+        stop("Merging requires at least two data sets.")
+
     if (canAccessDisplayrCloudDrive())
         readDataSetsFromDisplayrCloudDrive(data.set.names)
     else
@@ -68,7 +81,8 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
         if (!QFileExists(nm))
             stop("The data file '", nm, "' does not exist in the Display ",
                  "cloud drive. Ensure that the data file is in the Display ",
-                 "cloud drive and its name has been correctly specified.")
+                 "cloud drive and its name has been correctly specified.",
+                 call. = FALSE)
         QLoadData(nm)
     })
     names(result) <- data.set.names
@@ -80,27 +94,44 @@ extractVariableMetadata <- function(data.sets)
     list(variable.names = lapply(data.sets, names),
          variable.labels = lapply(data.sets, attr, "label"),
          value.labels = lapply(data.sets, attr, "labels"),
-         data.set.names = names(data.sets))
+         data.set.names = names(data.sets),
+         n.data.sets = length(data.sets))
 }
 
 matchVariables <- function(variable.metadata, match.by, min.match.percentage,
                            manual.matches, variables.to.omit)
 {
-    matched.variables <- list()
+    # matched.variables is a matrix where the columns correspond to the data
+    # sets and each row contains the names of variables that have been matched
+    # together. NA is used if a variable is absent in a match.
+    matched.variables <- matrix(nrow = 0, ncol = variable.metadata$n.data.sets)
     matched.variables <- applyManualMatches(matched.variables,
                                             variable.metadata,
                                             manual.matches,
                                             variables.to.omit)
+    checkVariablesToOmit(variable.metadata, variables.to.omit)
 
     if (match.by == "Variable names")
-    {
-        matchVariableNames(matched.variables, variable.metadata,
-                           variables.to.omit)
-    }
+        matched.variables <- matchVariableNames(matched.variables,
+                                                variable.metadata,
+                                                variables.to.omit)
     else if (match.by == "Variable labels")
     {
-        matchVariableLabels(matched.variables, variable.metadata,
-                            variables.to.omit)
+        matched.variables <- matchVariableLabels(matched.variables,
+                                                 variable.metadata,
+                                                 variables.to.omit)
+    }
+    else if (match.by == "Variable and value labels")
+    {
+
+    }
+    else if (match.by == "Automatic")
+    {
+
+    }
+    else if (match.by == "All")
+    {
+
     }
 
     matched.variables
@@ -109,43 +140,52 @@ matchVariables <- function(variable.metadata, match.by, min.match.percentage,
 applyManualMatches <- function(matched.variables, variable.metadata,
                                manual.matches, variables.to.omit)
 {
+    if (is.null(manual.matches))
+        return (matched.variables)
+
     length(variable.metadata$variable.names)
-    i <- length(matched.variables) + 1
     for (match.text in manual.matches)
     {
         manual.match.variables <- parseManualMatchText(match.text,
                                                        variable.metadata,
                                                        variables.to.omit)
-        matched.variables <- c(matched.variables, manual.match.variables)
+        matched.variables <- rbind(matched.variables, manual.match.variables)
     }
-    checMatchForDuplication(matched.variables, manual.matches)
+    checkMatchForDuplication(matched.variables, manual.matches)
 
     matched.variables
 }
 
-# Document what this does
+# Parses a string of comma-separated variable names to be manually matched
+# and returns a list of character vectors containing matched variable names
 parseManualMatchText <- function(manual.match.text, variable.metadata,
                                  variables.to.omit)
 {
-    split.text <- trimws(strsplit(manual.match.text, ",")[[1]])
+    n.data.sets <- variable.metadata$n.data.sets
 
-    n.data.sets <- length(variable.metadata$variable.names)
-    if (n.data.sets != length(split.text))
-        stop("The input '", manual.match.text, "' needs to contain ",
-             n.data.sets, " variable names corresponding to the ",
-             n.data.sets, " data sets.")
+    split.text <- trimws(strsplit(manual.match.text, ",")[[1]])
+    if (length(split.text) < n.data.sets)
+        split.text <- c(split.text, rep("", n.data.sets - length(split.text)))
+
+    if (sum(split.text != "") < 2)
+        stop("The manual match input '", manual.match.text, "' is invalid as ",
+             "it needs to contain two or more variables.")
 
     parsed.names <- lapply(seq_len(n.data.sets), function(i) {
-        t <- split.text[[i]]
-        parseNameRangeText(t, variable.metadata$variable.names[[i]],
-                           variable.metadata$data.set.names[i])
+        t <- split.text[i]
+        if (t != "")
+            parseNameRangeText(t, variable.metadata$variable.names[[i]],
+                               variable.metadata$data.set.names[i])
+        else
+            NULL
     })
 
-    if (length(unique(vapply(parsed.names, length, integer(1)))) > 1)
-        stop("The following input ranges do not contain the same ",
-             "number of variables: ", paste0(parse.names, collapse = ", "),
-             ". Ensure that the ranges have been correctly specified ",
-             "so that they contain the same number of variables.")
+    n.vars <- vapply(parsed.names, length, integer(1))
+    if (length(unique(n.vars[n.vars > 0])) > 1)
+        stop("The manual match input '", manual.match.text, "' contains ",
+             "variable ranges with differing numbers of variables. ",
+             "Ensure that the ranges have been correctly specified ",
+             "so that they all contain the same number of variables.")
 
     if (!is.null(variables.to.omit))
         for (i in seq_len(n.data.sets))
@@ -164,15 +204,13 @@ parseManualMatchText <- function(manual.match.text, variable.metadata,
                      "matches or the variables to be omitted.")
         }
 
-    lapply(seq_along(parsed.names[[1]]), function(i) {
-        vapply(parsed.names, `[`, character(1), i)
-    })
+    matrix(unlist(parsed.names), ncol = n.data.sets)
 }
 
 parseNameRangeText <- function(range.text, variable.names, data.set.name)
 {
-    msg <- paste0("The input range '", range.text
-                  , "' could not be recognized. It needs to contain the ",
+    msg <- paste0("The input range '", range.text,
+                  "' could not be recognized. It needs to contain the ",
                   "start and end variable names separated by a dash (-).")
 
     dash.ind <- which(strsplit(range.text, "")[[1]] == "-")
@@ -208,10 +246,10 @@ parseNameRangeText <- function(range.text, variable.names, data.set.name)
 
 checkMatchForDuplication <- function(matched.variables, match.source)
 {
-    n.data.sets <- length(matched.variables[[1]])
+    n.data.sets <- ncol(matched.variables)
     for (i in seq_len(n.data.sets))
     {
-        vars <- vapply(matched.variables, `[`, character(1), i)
+        vars <- matched.variables[, i]
         var.table <- table(vars)
         if (any(var.table > 1))
         {
@@ -226,10 +264,55 @@ checkMatchForDuplication <- function(matched.variables, match.source)
     }
 }
 
+checkVariablesToOmit <- function(variable.metadata, variables.to.omit)
+{
+    if (is.null(variables.to.omit))
+        return()
+
+    for (i in seq_len(variable.metadata$n.data.sets))
+    {
+        var.names <- variable.metadata$variable.names[[i]]
+        ind <- which(!(variables.to.omit %in% var.names))
+        if (length(ind) > 0)
+        {
+            stop("The following variable(s) were specified to be omitted but ",
+                 "could not be found in the data set ",
+                 variable.metadata$data.set.names[i], ": ",
+                 paste0(var.names, collapse = ", "), ".")
+        }
+    }
+}
+
 matchVariableNames <- function(matched.variables, variable.metadata,
                                variables.to.omit)
 {
+    unmatched.var <- unmatchedVariables(matched.variables, variable.metadata,
+                                        variables.to.omit)
 
+    var.names <- variable.metadata$variable.names
+
+    n.data.sets <- variable.metadata$n.data.sets
+
+    for (i in seq_len(n.data.sets))
+    {
+
+    }
+
+    matched.variables
+}
+
+unmatchedVariables <- function(matched.variables, variable.metadata,
+                               variables.to.omit)
+{
+    unmatched.var <- variable.metadata$variable.names
+    for (i in seq_len(variable.metadata$n.data.sets))
+    {
+        excluded.variables <- matched.variables[, i]
+        if (!is.null(variables.to.omit))
+            excluded.variables <- c(excluded.variables, variables.to.omit[[i]])
+        variable.names[[i]] <- setdiff(variable.names[[i]], excluded.variables)
+    }
+    variable.names
 }
 
 matchVariableLabels <- function(matched.variables, variable.metadata,
