@@ -13,6 +13,7 @@
 #' @param variables.to.omit A list of character vectors containing names of
 #'   variables to omit from the merged data set. The vectors in the list
 #'   correspond to the input data sets.
+#' @importFrom verbs Sum
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 match.by = c("Automatic",
@@ -29,7 +30,8 @@ MergeDataSetsByCase <- function(data.set.names,
     matched.variables <- matchVariables(variable.metadata, match.by,
                                         min.match.percentage, manual.matches,
                                         variables.to.omit)
-    merged.data.set <- mergeDataSet(matched.variables)
+    merged.data.set <- mergeDataSets(matched.variables, variable.metadata,
+                                     data.sets)
     writeMergedDataSet(merged.data.set)
     outputForMergeDataSetsByCase(variable.metadata, matched.variables)
 }
@@ -46,6 +48,12 @@ MergeDataSetsByCase <- function(data.set.names,
 #   perhaps indicating the ones with a weak match and indicating the manual matches
 #   and tooltips with variable names
 # - Omitted variables (listed by data set), indicating the manual omits
+
+# Fuzzy matching:
+# Start with last data set first perform exact match against second last data set.
+# For the remaining labels, compute relative distances (0-1) for all possible pairs
+# and match if threshold is met, starting from best matches
+# Repeat for third last data set etc.
 
 readDataSets <- function(data.set.names)
 {
@@ -286,16 +294,24 @@ checkVariablesToOmit <- function(variable.metadata, variables.to.omit)
 matchVariableNames <- function(matched.variables, variable.metadata,
                                variables.to.omit)
 {
-    unmatched.var <- unmatchedVariables(matched.variables, variable.metadata,
-                                        variables.to.omit)
-
-    var.names <- variable.metadata$variable.names
-
     n.data.sets <- variable.metadata$n.data.sets
 
-    for (i in seq_len(n.data.sets))
-    {
+    unmatched.vars <- unmatchedVariables(matched.variables, variable.metadata,
+                                         variables.to.omit)
+    unlisted.vars <- unlist(unmatched.vars)
 
+    # Data set indices of variables in unlisted.vars
+    data.set.ind <- rep(seq_length(n.data.sets),
+                             each = vapply(unmatched.vars, length, integer(1)))
+
+    unmatched.vars.table <- table(unlisted.vars)
+    matchable.vars <- names(unmatched.vars.table)[unmatched.vars.table > 1]
+
+    for (v in matchable.vars)
+    {
+        var.row <- rep(NA, n.data.sets)
+        var.row[data.set.ind[unlisted.vars == v]] <- v
+        matched.variables <- rbind(matched.variables, var.row)
     }
 
     matched.variables
@@ -310,9 +326,9 @@ unmatchedVariables <- function(matched.variables, variable.metadata,
         excluded.variables <- matched.variables[, i]
         if (!is.null(variables.to.omit))
             excluded.variables <- c(excluded.variables, variables.to.omit[[i]])
-        variable.names[[i]] <- setdiff(variable.names[[i]], excluded.variables)
+        unmatched.var[[i]] <- setdiff(unmatched.var[[i]], excluded.variables)
     }
-    variable.names
+    unmatched.var
 }
 
 matchVariableLabels <- function(matched.variables, variable.metadata,
@@ -326,9 +342,77 @@ matchVariableAndValueLabels <- function(variable.metadata)
 
 }
 
-mergeDataSet <- function(matched.variables)
+mergeDataSets <- function(matched.variables, variable.metadata, data.sets)
 {
+    merged.vars <- mergeMatchedVariables(matched.variables, variable.metadata)
+    n.data.set.cases <- vapply(data.sets, nrow, integer(1))
+    n.cases <- sum(n.data.set.cases)
+    result <- structure(list(), .Names = character(0), class = "data.frame",
+                            row.names = c(NA, -n.cases))
+    for (v in merged.vars)
+        cbind(result, unlist(lapply(data.sets, `[[`, v)))
 
+    result <- addMergeSrc(result, n.data.set.cases)
+
+    # add attributes?
+
+    result
+}
+
+# Produce an ordering of the matched variables based on the order if the
+# variables in the data set
+mergeMatchedVariables <- function(matched.variables, variable.metadata)
+{
+    n.data.sets <- variable.metadata$n.data.sets
+    vars.list <- lapply(seq_len(n.data.sets), function(i) {
+        data.set.var.names <- variable.metadata$variable.names[[i]]
+        vars <- data.set.var.names[data.set.var.names %in% matched.variables[, i]]
+    })
+
+    # Reverse list so that later data sets are preferred when breaking ties
+    vars.list <- rev(vars.list)
+
+    mergeNames(vars.list)
+}
+
+mergeNames <- function(names.list)
+{
+    merged.names <- character()
+    while (TRUE)
+    {
+        if (length(names.list) == 0)
+            break
+        else if (length(names.list) == 1)
+        {
+            merged.names <- c(merged.names, names.list[[1]])
+            break
+        }
+
+        first.names <- vapply(names.list, `[`, character(1), 1)
+        # Worst ranking (highest number) of each first name in the data sets
+        worst.ranks <- vapply(seq_along(names.list), function(i) {
+            max(vapply(names.list, function(nms) {
+                max(which(nms == first.names[i]), 0L) # 0 if name not found
+            }, integer(1)))
+        }, integer(1))
+
+        # Choose the variable with the least worst ranking
+        selected.name <- first.names[which.min(worst.ranks)]
+        merged.names <- c(merged.names, selected.name)
+
+        # Remove selected variable from names.list
+        names.list <- lapply(names.list, setdiff, selected.name)
+
+        # Remove empty list elements
+        names.list <- names.list[vapply(names.list, length, integer(1)) > 0]
+    }
+    merged.names
+}
+
+addMergeSrc <- function(data.set, data.sets)
+{
+    cbind(data.set, rep(seq_along(n.data.set.cases), n.data.set.cases))
+    # add label?
 }
 
 writeMergedDataSet <- function(merged.data.set)
@@ -340,8 +424,8 @@ outputForMergeDataSetsByCase <- function(variable.metadata, matched.variables)
 {
     result <- list()
     result$match.table <- matchTable(matched.variables)
-    result$omitted.variables <- omittedVariables(variable.metadata,
-                                                 matched.variables)
+    # result$omitted.variables <- omittedVariables(variable.metadata,
+    #                                              matched.variables)
     class(result) <- "MergeDataSetByCase"
     result
 }
@@ -351,7 +435,7 @@ matchTable <- function(matched.variables)
 
 }
 
-omittedVariables <- function(variable.metadata, matched.variables)
-{
-
-}
+# omittedVariables <- function(variable.metadata, matched.variables)
+# {
+#
+# }
