@@ -6,6 +6,7 @@
 \usage{
 MergeDataSetsByCase(
   data.set.names,
+  merged.data.set.name,
   match.by = c("Automatic", "All", "Variable names", "Variable labels",
     "Variable and value labels"),
   min.match.percentage = 100,
@@ -15,7 +16,12 @@ MergeDataSetsByCase(
 }
 \arguments{
 \item{data.set.names}{A character vector of names of data sets from the
-Displayr cloud drive to merge or file paths of local data sets.}
+Displayr cloud drive to merge (if run from Displayr) or file paths of local
+data sets.}
+
+\item{merged.data.set.name}{A string of the name of the merged data set in
+the Displayr cloud drive (if run from Displayr) or the local file path of
+the merged data set.}
 
 \item{match.by}{One of Automatic, All, Variable names, Variable labels,
 Variable and value labels}
