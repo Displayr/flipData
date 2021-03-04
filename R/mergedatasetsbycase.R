@@ -36,14 +36,15 @@ MergeDataSetsByCase <- function(data.set.names,
     data.sets <- readDataSets(data.set.names)
     variable.metadata <- extractVariableMetadata(data.sets)
     matched.names <- matchVariables(variable.metadata, match.by,
-                                         min.match.percentage, manual.matches,
-                                         variables.to.omit)
-    merged.data.set <- mergeDataSets(matched.names, variable.metadata,
-                                     data.sets)
+                                    min.match.percentage, manual.matches,
+                                    variables.to.omit)
+    merge.map <- mergeMap(matched.names, variable.metadata)
+    merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map)
+
     if (!is.null(merged.data.set.name))
         writeMergedDataSet(merged.data.set, merged.data.set.name)
-    outputForMergeDataSetsByCase(merged.data.set, variable.metadata,
-                                 matched.variables,
+
+    outputForMergeDataSetsByCase(merged.data.set, variable.metadata, merge.map,
                                  include.merged.data.set.in.output)
 }
 
@@ -67,6 +68,7 @@ MergeDataSetsByCase <- function(data.set.names,
 # Repeat for third last data set etc.
 
 # Need to ensure any new names we generate are valid for sav files
+# Add setting for what to do with unmatched variables
 
 readDataSets <- function(data.set.names)
 {
@@ -368,33 +370,45 @@ matchVariableAndValueLabels <- function(variable.metadata)
 
 }
 
-mergeDataSets <- function(matched.names, variable.metadata, data.sets)
+# Creates a list containing the character matrix input.names and the character
+# vector merged.names. merged.names contains the variable names in the merged
+# data set and the rows of input.names contain the names of variables in the
+# input data sets that were used create the corresponding variable in
+# merged.names. This is essentially a map from the input variables to the new
+# variable.
+mergeMap <- function(matched.names, variable.metadata)
 {
-
-    final.names <- finalNamesFromMatchedNames(matched.names)
-    ordered.final.names <- orderFinalNames(matched.names, final.names,
-                                           variable.metadata)
-    ordered.matched.names <- orderMatchedNames(matched.names, final.names,
-                                               ordered.final.names)
-
-    n.data.set.cases <- vapply(data.sets, nrow, integer(1))
-    n.cases <- sum(n.data.set.cases)
-
-    result <- data.frame(lapply(seq_len(nrow(ordered.matched.names)), function(i) {
-        compositeVariable(ordered.matched.names[i, ], data.sets)
-    }))
-
-    names(result) <- ordered.final.names
-
-    result[["mergesrc"]] <- mergeSrc(n.data.set.cases)
-
-    result
+    unordered.merged.names <- mergedNamesFromMatchedNames(matched.names)
+    merged.names <- orderMergedNames(unordered.merged.names,
+                                     matched.names,
+                                     variable.metadata)
+    input.names <- orderMatchedNames(matched.names,
+                                       unordered.merged.names,
+                                       merged.names)
+    list(input.names = input.names,
+         merged.names = merged.names)
 }
 
-# Final names are the names shown in the merged data set.
+mergeDataSetsWithMergeMap <- function(data.sets, merge.map)
+{
+    n.vars <- nrow(merge.map$input.names)
+    n.data.set.cases <- vapply(data.sets, nrow, integer(1))
+
+    merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
+        compositeVariable(merge.map$input.names[i, ], data.sets)
+    }))
+
+    names(merged.data.set) <- merge.map$merged.names
+
+    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases)
+
+    merged.data.set
+}
+
+# Merged names are the names shown in the merged data set.
 # They are obtained from the latest non-missing name in each row of
 # matched.names.
-finalNamesFromMatchedNames <- function(matched.names)
+mergedNamesFromMatchedNames <- function(matched.names)
 {
     apply(matched.names, 1, function(nms) {
         rev(nms[!is.na(nms)])[1]
@@ -403,24 +417,24 @@ finalNamesFromMatchedNames <- function(matched.names)
 
 # Produce an ordering of the matched variables based on the order if the
 # variables in the data set
-orderFinalNames <- function(matched.names, final.names, variable.metadata)
+orderMergedNames <- function(unordered.merged.names, matched.names, variable.metadata)
 {
     n.data.sets <- variable.metadata$n.data.sets
     names.list <- lapply(seq_len(n.data.sets), function(i) {
         ind <- match(variable.metadata$variable.names[[i]], matched.names[, i])
-        final.names[ind[!is.na(ind)]]
+        unordered.merged.names[ind[!is.na(ind)]]
     })
 
     # reverse names.list to prioritize later data sets
     mergeNamesListRespectingOrder(rev(names.list))
 }
 
-# Order the rows in the matched names matrix according to the ordered.final.names
-orderMatchedNames <- function(matched.names, final.names, ordered.final.names)
+# Order the rows in the matched names matrix according to the (ordered) merged names
+orderMatchedNames <- function(matched.names, unordered.merged.names, merged.names)
 {
     n.data.sets <- ncol(matched.names)
-    t(vapply(ordered.final.names, function(nm) {
-        matched.names[match(nm, final.names), ]
+    t(vapply(merged.names, function(nm) {
+        matched.names[match(nm, unordered.merged.names), ]
     }, character(n.data.sets)))
 }
 
@@ -435,7 +449,7 @@ orderMatchedNames <- function(matched.names, final.names, ordered.final.names)
 # ascending numeric order (descending rank).
 #
 # The rows of the matrix are then sorted by the first column, using subsequent
-# columns to break ties. The first sorted row corresponds to the final name
+# columns to break ties. The first sorted row corresponds to the name
 # which is chosen to be first name in the output vector. The chosen name is
 # removed from the names.list and the process is repeated to chose the second
 # name in the output until the names.list is exhausted of all elements.
@@ -500,29 +514,10 @@ compositeVariable <- function(variable.names, data.sets)
              " could not be combined as they have different types: ",
              paste0(v.type, collapse = ", "), ".")
 
-    if (v.type == "Categorical")
-    {
-        output <- mergeCategories(var.list)
-        result <- unlist(lapply(seq_len(n.data.sets), function (i) {
-            v <- var.list[[i]]
-            if (!is.null(v))
-                remapValuesInVariable(v, output$value.mapping[[i]])
-            else
-                rep(NA, nrow(data.sets[[i]]))
-        }))
-        attr(result, "labels") <- output$merged.categories
-        class(result) <- c(class(result), "haven_labelled")
-    }
+    result <- if (v.type == "Categorical")
+        combineCategoricalVariables(var.list, data.sets)
     else
-    {
-        result <- unlist(lapply(seq_len(n.data.sets), function (i) {
-            v <- var.list[[i]]
-            if (!is.null(v))
-                v
-            else
-                rep(NA, nrow(data.sets[[i]]))
-        }))
-    }
+        combineNonCategoricalVariables(var.list, data.sets)
 
     attr(result, "label") <- variableLabelFromDataSets(variable.names, data.sets)
 
@@ -543,16 +538,15 @@ variableType <- function(variable)
         stop("Variable type not recognised")
 }
 
-# Merge categories from categorical variables
-mergeCategories <- function(variable.list)
+combineCategoricalVariables <- function(var.list, data.sets)
 {
-    categories.list <- lapply(variable.list, attr, "labels")
+    categories.list <- lapply(var.list, attr, "labels")
 
     # reverse indices to prioritize categories from later data sets
     indices <- rev(which(!vapply(categories.list, is.null, logical(1))))
 
     merged.categories <- categories.list[[indices[1]]]
-    value.mapping <- vector("list", length = length(variable.list))
+    value.map <- vector("list", length = length(var.list))
 
     for (i in indices[-1])
     {
@@ -586,12 +580,33 @@ mergeCategories <- function(variable.list)
             }
         }
         if (nrow(map) > 0)
-            value.mapping[[i]] <- map
+            value.map[[i]] <- map
     }
 
-    # We need to return value.mapping since it determines the new values to use
-    # when creating the composite variable
-    list(merged.categories = merged.categories, value.mapping = value.mapping)
+    n.data.sets <- length(data.sets)
+    result <- unlist(lapply(seq_len(n.data.sets), function (i) {
+        v <- var.list[[i]]
+        if (!is.null(v))
+            remapValuesInVariable(v, value.map[[i]])
+        else
+            rep(NA, nrow(data.sets[[i]]))
+    }))
+    attr(result, "labels") <- merged.categories
+    class(result) <- c(class(result), "haven_labelled")
+
+    result
+}
+
+combineNonCategoricalVariables <- function(var.list, data.sets)
+{
+    n.data.sets <- length(data.sets)
+    unlist(lapply(seq_len(n.data.sets), function (i) {
+        v <- var.list[[i]]
+        if (!is.null(v))
+            v
+        else
+            rep(NA, nrow(data.sets[[i]]))
+    }))
 }
 
 remapValuesInVariable <- function(variable, map)
@@ -623,7 +638,7 @@ variableLabelFromDataSets <- function(variable.names, data.sets)
          " in the supplied data sets.")
 }
 
-mergeSrc <- function( n.data.set.cases)
+mergeSrc <- function(n.data.set.cases)
 {
     result <- rep(seq_along(n.data.set.cases), n.data.set.cases)
     attr(result, "label") <- "Source of cases"
@@ -637,19 +652,19 @@ outputForMergeDataSetsByCase <- function(merged.data.set, variable.metadata,
     result <- list()
     if (include.merged.data.set.in.output)
         result$merged.data.set <- merged.data.set
-    # result$match.table <- matchTable(matched.variables)
+
+    result$variable.metadata <- variable.metadata
+    result$merge.map <- merge.map
+
     # result$omitted.variables <- omittedVariables(variable.metadata,
     #                                              matched.variables)
     class(result) <- "MergeDataSetByCase"
     result
 }
 
-matchTable <- function(matched.variables)
-{
-
-}
-
 # omittedVariables <- function(variable.metadata, matched.variables)
 # {
 #
 # }
+
+# print method

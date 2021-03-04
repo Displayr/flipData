@@ -1,5 +1,7 @@
 context("MergeDataSetsByCase")
 
+# need tests of numeric variables!
+
 library(gtools)
 
 findInstDirFile <- function(file)
