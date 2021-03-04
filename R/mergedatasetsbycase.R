@@ -370,9 +370,8 @@ matchVariableAndValueLabels <- function(variable.metadata)
 
 mergeDataSets <- function(matched.names, variable.metadata, data.sets)
 {
-    final.names <- apply(matched.names, 1, function(nms) {
-        rev(nms[!is.na(nms)])[1]
-    })
+
+    final.names <- finalNamesFromMatchedNames(matched.names)
     ordered.final.names <- orderFinalNames(matched.names, final.names,
                                            variable.metadata)
     ordered.matched.names <- orderMatchedNames(matched.names, final.names,
@@ -392,6 +391,16 @@ mergeDataSets <- function(matched.names, variable.metadata, data.sets)
     result
 }
 
+# Final names are the names shown in the merged data set.
+# They are obtained from the latest non-missing name in each row of
+# matched.names.
+finalNamesFromMatchedNames <- function(matched.names)
+{
+    apply(matched.names, 1, function(nms) {
+        rev(nms[!is.na(nms)])[1]
+    })
+}
+
 # Produce an ordering of the matched variables based on the order if the
 # variables in the data set
 orderFinalNames <- function(matched.names, final.names, variable.metadata)
@@ -402,9 +411,11 @@ orderFinalNames <- function(matched.names, final.names, variable.metadata)
         final.names[ind[!is.na(ind)]]
     })
 
-    mergeNamesListRespectingOrder(names.list)
+    # reverse names.list to prioritize later data sets
+    mergeNamesListRespectingOrder(rev(names.list))
 }
 
+# Order the rows in the matched names matrix according to the ordered.final.names
 orderMatchedNames <- function(matched.names, final.names, ordered.final.names)
 {
     n.data.sets <- ncol(matched.names)
@@ -413,6 +424,27 @@ orderMatchedNames <- function(matched.names, final.names, ordered.final.names)
     }, character(n.data.sets)))
 }
 
+# Takes a list of character vectors each containing names in a certain order
+# and merges them into a single character vector, respecting the order in
+# each vector as much as possible, with earlier vectors taking precedence
+# in case of ties.
+#
+# The algorithm works by first considering the first names in each list
+# element. A matrix is constructed where each row corresponds to the
+# ranks of a first name in the list elements, with the ranks sorted in
+# ascending numeric order (descending rank).
+#
+# The rows of the matrix are then sorted by the first column, using subsequent
+# columns to break ties. The first sorted row corresponds to the final name
+# which is chosen to be first name in the output vector. The chosen name is
+# removed from the names.list and the process is repeated to chose the second
+# name in the output until the names.list is exhausted of all elements.
+#
+# When constructing a row, if a first name does not appear in a list element,
+# it is given a value equal to the worst rank in the row. This means that such
+# a name would have precedence over other names that are not missing with a
+# worse rank. But if it is tied with names with the same worst rank, the tie
+# will be broken by the order of the lists of the names.
 mergeNamesListRespectingOrder <- function(names.list)
 {
     merged.names <- character()
@@ -428,17 +460,15 @@ mergeNamesListRespectingOrder <- function(names.list)
 
         first.names <- vapply(names.list, `[`, character(1), 1)
 
-        name.ranks <- t(vapply(seq_along(names.list), function(i) {
+        name.ranks.matrix <- t(vapply(seq_along(names.list), function(i) {
             sorted <- sort(vapply(names.list, function(nms) {
                 min(which(nms == first.names[i]), Inf)
             }, numeric(1)))
-            # missing name has rank 1, so it is preferred over other names
-            # which aren't missing and have rank 2 or more
-            sorted[sorted == Inf] <- 1
+            sorted[sorted == Inf] <- max(sorted[sorted < Inf])
             sorted
         }, numeric(length(names.list))))
 
-        selected.name <- first.names[do.call(order, data.frame(name.ranks))[1]]
+        selected.name <- first.names[do.call(order, data.frame(name.ranks.matrix))[1]]
         merged.names <- c(merged.names, selected.name)
 
         # Remove selected variable from names.list
@@ -450,6 +480,8 @@ mergeNamesListRespectingOrder <- function(names.list)
     merged.names
 }
 
+# Combine variables from different data sets (end-to-end) to create a
+# composite variable
 compositeVariable <- function(variable.names, data.sets)
 {
     n.data.sets <- length(data.sets)
@@ -511,6 +543,7 @@ variableType <- function(variable)
         stop("Variable type not recognised")
 }
 
+# Merge categories from categorical variables
 mergeCategories <- function(variable.list)
 {
     categories.list <- lapply(variable.list, attr, "labels")
@@ -555,6 +588,9 @@ mergeCategories <- function(variable.list)
         if (nrow(map) > 0)
             value.mapping[[i]] <- map
     }
+
+    # We need to return value.mapping since it determines the new values to use
+    # when creating the composite variable
     list(merged.categories = merged.categories, value.mapping = value.mapping)
 }
 

@@ -43,18 +43,19 @@ test_that("merge cola data, exact match by variable names", {
     expect_equal(attr(merged.data.set$mergesrc, "label"), "Source of cases")
     expect_equal(names(merged.data.set), c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1",
                                            "Q2", "Q3", "Q3_3", "Q4_A", "Q4_B", "Q4_C", "Q4_A_3", "Q4_B_2",
-                                           "Q4_C_2", "Q4_A_5", "Q4_B_3", "Q4_C_3", "Q4_A_6", "Q4_B_4", "Q4_C_4",
-                                           "Q1_F", "mergesrc"))
+                                           "Q4_C_2", "Q1_F", "Q4_A_5", "Q4_B_3", "Q4_C_3", "Q4_A_6", "Q4_B_4",
+                                           "Q4_C_4", "mergesrc"))
     expect_equal(vapply(merged.data.set, attr, character(1), "label"),
                  c(Q1_F_c = "Coke", Q1_E_c1 = "Diet Coke", Q1_D_c = "Coke Zero",
                    Q1_C_c1 = "Pepsi", Q1_A_c = "Diet Pepsi", Q1_B_c1 = "Pepsi Max",
                    Q2 = "Q2. Gender", Q3 = "Q3. Age", Q3_3 = "Q3. Age in years",
                    Q4_A = "Colas (e.g., Coca Cola, Pepsi Max)?", Q4_B = "Sparkling mineral water",
                    Q4_C = "Coffee", Q4_A_3 = "Colas (e.g., Coca Cola, Pepsi Max)?",
-                   Q4_B_2 = "Sparkling mineral water", Q4_C_2 = "Coffee", Q4_A_5 = "Colas (e.g., Coca Cola, Pepsi Max)?",
-                   Q4_B_3 = "Sparkling mineral water", Q4_C_3 = "Coffee", Q4_A_6 = "Q4.  Frequency numeric: Colas (e.g., Coca Cola, Pepsi Max)?",
+                   Q4_B_2 = "Sparkling mineral water", Q4_C_2 = "Coffee", Q1_F = "Q1.  Fragments - Coke",
+                   Q4_A_5 = "Colas (e.g., Coca Cola, Pepsi Max)?", Q4_B_3 = "Sparkling mineral water",
+                   Q4_C_3 = "Coffee", Q4_A_6 = "Q4.  Frequency numeric: Colas (e.g., Coca Cola, Pepsi Max)?",
                    Q4_B_4 = "Q4.  Frequency numeric: Sparkling mineral water", Q4_C_4 = "Q4.  Frequency numeric: Coffee",
-                   Q1_F = "Q1.  Fragments - Coke", mergesrc = "Source of cases"))
+                   mergesrc = "Source of cases"))
 
     expect_true(all(is.na(merged.data.set$Q2[1:327]))) # 1st data set does not have Q2
     expect_equal(unique(merged.data.set$Q2[328:654]), c(4,3)) # Q2 in 2nd data set has labels "M", "F", hence new values created
