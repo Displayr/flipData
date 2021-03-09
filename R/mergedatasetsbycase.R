@@ -19,6 +19,11 @@
 #'  correspond to the input data sets.
 #' @param include.merged.data.set.in.output Whether to include the merged data
 #'  set in the output.
+#' @param write.data.set Whether to save the merged data set file.
+#' @param prioritize.early.data.sets Whether earlier data sets should be
+#'  given priority instead of later data sets when determining which
+#'  names and labels to use.
+#' # need to describe outputs!
 #' @importFrom verbs Sum
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
@@ -31,21 +36,29 @@ MergeDataSetsByCase <- function(data.set.names,
                                 min.match.percentage = 100,
                                 manual.matches = NULL,
                                 variables.to.omit = NULL,
-                                include.merged.data.set.in.output = FALSE)
+                                include.merged.data.set.in.output = FALSE,
+                                write.data.set = TRUE,
+                                prioritize.early.data.sets = TRUE)
 {
     data.sets <- readDataSets(data.set.names)
     variable.metadata <- extractVariableMetadata(data.sets)
     matched.names <- matchVariables(variable.metadata, match.by,
                                     min.match.percentage, manual.matches,
                                     variables.to.omit)
-    merge.map <- mergeMap(matched.names, variable.metadata)
-    merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map)
+    merge.map <- mergeMap(matched.names, variable.metadata,
+                          prioritize.early.data.sets)
+    merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
+                                                 prioritize.early.data.sets)
 
-    if (!is.null(merged.data.set.name))
+    if (is.null(merged.data.set.name))
+        merged.data.set.name <- generateMergedDataSetName(variable.metadata$data.set.names)
+
+    if (write.data.set)
         writeMergedDataSet(merged.data.set, merged.data.set.name)
 
     outputForMergeDataSetsByCase(merged.data.set, variable.metadata, merge.map,
-                                 include.merged.data.set.in.output)
+                                 include.merged.data.set.in.output,
+                                 merged.data.set.name)
 }
 
 # GUI
@@ -122,13 +135,51 @@ writeMergedDataSet <- function(merged.data.set, merged.data.set.name)
         write_sav(merged.data.set, merged.data.set.name)
 }
 
+generateMergedDataSetName <- function(data.set.names)
+{
+    common_prefix <- ""
+    for (i in 1:min(nchar(data.set.names)))
+    {
+        if (length(unique(vapply(data.set.names, substr, character(1), 1, i))) == 1)
+            common_prefix <- substr(data.set.names[1], 1, i)
+        else
+            break
+    }
+    if (common_prefix == "")
+        "Merged data set.sav"
+    else
+        paste0(common_prefix, " merged.sav")
+}
+
+extractDataSetName <- function(data.set.name.or.path)
+{
+    if (is.null(data.set.name.or.path))
+        "Merged data set"
+    else if (canAccessDisplayrCloudDrive())
+        data.set.name.or.path
+    else
+        basename(data.set.name.or.path)
+}
+
 extractVariableMetadata <- function(data.sets)
 {
     list(variable.names = lapply(data.sets, names),
-         variable.labels = lapply(data.sets, attr, "label"),
-         value.labels = lapply(data.sets, attr, "labels"),
+         variable.labels = lapply(data.sets, function(data.set) {
+             vapply(data.set, attr, character(1), "label")
+         }),
+         variable.categories = lapply(data.sets, function(data.set) {
+             lapply(data.set, attr, "labels")
+         }),
          data.set.names = names(data.sets),
          n.data.sets = length(data.sets))
+}
+
+extractMergedVariableMetadata <- function(merged.data.set)
+{
+    list(variable.names = names(merged.data.set),
+         variable.labels = vapply(merged.data.set, attr, character(1), "label"),
+         variable.categories = lapply(merged.data.set, attr, "labels"),
+         n.variables = length(merged.data.set))
 }
 
 matchVariables <- function(variable.metadata, match.by, min.match.percentage,
@@ -376,26 +427,31 @@ matchVariableAndValueLabels <- function(variable.metadata)
 # input data sets that were used create the corresponding variable in
 # merged.names. This is essentially a map from the input variables to the new
 # variable.
-mergeMap <- function(matched.names, variable.metadata)
+mergeMap <- function(matched.names, variable.metadata,
+                     prioritize.early.data.sets)
 {
-    unordered.merged.names <- mergedNamesFromMatchedNames(matched.names)
+    unordered.merged.names <- mergedNamesFromMatchedNames(matched.names,
+                                                          prioritize.early.data.sets)
     merged.names <- orderMergedNames(unordered.merged.names,
                                      matched.names,
-                                     variable.metadata)
+                                     variable.metadata,
+                                     prioritize.early.data.sets)
     input.names <- orderMatchedNames(matched.names,
-                                       unordered.merged.names,
-                                       merged.names)
+                                     unordered.merged.names,
+                                     merged.names)
     list(input.names = input.names,
          merged.names = merged.names)
 }
 
-mergeDataSetsWithMergeMap <- function(data.sets, merge.map)
+mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
+                                      prioritize.early.data.sets)
 {
     n.vars <- nrow(merge.map$input.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
 
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
-        compositeVariable(merge.map$input.names[i, ], data.sets)
+        compositeVariable(merge.map$input.names[i, ], data.sets,
+                          prioritize.early.data.sets)
     }))
 
     names(merged.data.set) <- merge.map$merged.names
@@ -408,16 +464,23 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map)
 # Merged names are the names shown in the merged data set.
 # They are obtained from the latest non-missing name in each row of
 # matched.names.
-mergedNamesFromMatchedNames <- function(matched.names)
+mergedNamesFromMatchedNames <- function(matched.names,
+                                        prioritize.early.data.sets)
 {
-    apply(matched.names, 1, function(nms) {
-        rev(nms[!is.na(nms)])[1]
-    })
+    if (prioritize.early.data.sets)
+        apply(matched.names, 1, function(nms) {
+            nms[!is.na(nms)][1]
+        })
+    else
+        apply(matched.names, 1, function(nms) {
+            rev(nms[!is.na(nms)])[1]
+        })
 }
 
 # Produce an ordering of the matched variables based on the order if the
 # variables in the data set
-orderMergedNames <- function(unordered.merged.names, matched.names, variable.metadata)
+orderMergedNames <- function(unordered.merged.names, matched.names,
+                             variable.metadata, prioritize.early.data.sets)
 {
     n.data.sets <- variable.metadata$n.data.sets
     names.list <- lapply(seq_len(n.data.sets), function(i) {
@@ -425,8 +488,7 @@ orderMergedNames <- function(unordered.merged.names, matched.names, variable.met
         unordered.merged.names[ind[!is.na(ind)]]
     })
 
-    # reverse names.list to prioritize later data sets
-    mergeNamesListRespectingOrder(rev(names.list))
+    mergeNamesListRespectingOrder(names.list, prioritize.early.data.sets)
 }
 
 # Order the rows in the matched names matrix according to the (ordered) merged names
@@ -459,10 +521,13 @@ orderMatchedNames <- function(matched.names, unordered.merged.names, merged.name
 # a name would have precedence over other names that are not missing with a
 # worse rank. But if it is tied with names with the same worst rank, the tie
 # will be broken by the order of the lists of the names.
-mergeNamesListRespectingOrder <- function(names.list)
+mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
 {
+    if (!prioritize.early.elements)
+        names.list <- rev(names.list)
+
     merged.names <- character()
-    while (TRUE)
+    repeat
     {
         if (length(names.list) == 0)
             break
@@ -496,7 +561,8 @@ mergeNamesListRespectingOrder <- function(names.list)
 
 # Combine variables from different data sets (end-to-end) to create a
 # composite variable
-compositeVariable <- function(variable.names, data.sets)
+compositeVariable <- function(variable.names, data.sets,
+                              prioritize.early.data.sets)
 {
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
@@ -515,11 +581,14 @@ compositeVariable <- function(variable.names, data.sets)
              paste0(v.type, collapse = ", "), ".")
 
     result <- if (v.type == "Categorical")
-        combineCategoricalVariables(var.list, data.sets)
+        combineCategoricalVariables(var.list, data.sets,
+                                    prioritize.early.data.sets)
     else
         combineNonCategoricalVariables(var.list, data.sets)
 
-    attr(result, "label") <- variableLabelFromDataSets(variable.names, data.sets)
+    attr(result, "label") <- variableLabelFromDataSets(variable.names,
+                                                       data.sets,
+                                                       prioritize.early.data.sets)
 
     result
 }
@@ -538,12 +607,15 @@ variableType <- function(variable)
         stop("Variable type not recognised")
 }
 
-combineCategoricalVariables <- function(var.list, data.sets)
+combineCategoricalVariables <- function(var.list, data.sets,
+                                        prioritize.early.data.sets)
 {
     categories.list <- lapply(var.list, attr, "labels")
 
-    # reverse indices to prioritize categories from later data sets
-    indices <- rev(which(!vapply(categories.list, is.null, logical(1))))
+    indices <- which(!vapply(categories.list, is.null, logical(1)))
+
+    if (!prioritize.early.data.sets)
+        indices <- rev(indices)
 
     merged.categories <- categories.list[[indices[1]]]
     value.map <- vector("list", length = length(var.list))
@@ -618,10 +690,15 @@ remapValuesInVariable <- function(variable, map)
     result
 }
 
-variableLabelFromDataSets <- function(variable.names, data.sets)
+variableLabelFromDataSets <- function(variable.names, data.sets,
+                                      prioritize.early.data.sets)
 {
-    n.data.sets <- length(data.sets)
-    for (i in rev(seq_along(data.sets))) # start from last data set
+    ind <- if (prioritize.early.data.sets)
+        seq_along(data.sets)
+    else
+        rev(seq_along(data.sets))
+
+    for (i in ind)
     {
         data.set <- data.sets[[i]]
 
@@ -646,25 +723,40 @@ mergeSrc <- function(n.data.set.cases)
 }
 
 outputForMergeDataSetsByCase <- function(merged.data.set, variable.metadata,
-                                         matched.variables,
-                                         include.merged.data.set.in.output)
+                                         merge.map,
+                                         include.merged.data.set.in.output,
+                                         merged.data.set.name)
 {
     result <- list()
     if (include.merged.data.set.in.output)
         result$merged.data.set <- merged.data.set
 
     result$variable.metadata <- variable.metadata
+    result$merged.variable.metadata <- extractMergedVariableMetadata(merged.data.set)
     result$merge.map <- merge.map
-
-    # result$omitted.variables <- omittedVariables(variable.metadata,
-    #                                              matched.variables)
+    result$merged.data.set.name <- extractDataSetName(merged.data.set.name)
+    result$omitted.variables <- omittedVariables(variable.metadata, merge.map)
     class(result) <- "MergeDataSetByCase"
     result
 }
 
-# omittedVariables <- function(variable.metadata, matched.variables)
-# {
-#
-# }
+omittedVariables <- function(variable.metadata, merge.map)
+{
+    lapply(seq_len(variable.metadata$n.data.sets), function(i) {
+        nms <- variable.metadata$variable.names[[i]]
+        ind <- !(nms %in% merge.map$input.names[, i])
+        nms[ind]
+    })
+}
 
-# print method
+#' @importFrom flipFormat DataSetMergingWidget
+#' @export
+print.MergeDataSetByCase <- function(x, ...)
+{
+    DataSetMergingWidget(x$variable.metadata,
+                         x$merged.variable.metadata,
+                         x$merge.map,
+                         x$merged.data.set.name,
+                         x$omitted.variables)
+}
+

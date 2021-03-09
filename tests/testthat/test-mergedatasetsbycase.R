@@ -33,14 +33,24 @@ test_that("matchNamesExactly", {
                            .Dim = c(4L, 2L), .Dimnames = list(c("a", "b", "c", "d"), NULL)))
 })
 
-# Describe mods to cola data sets!
+# cola1.sav: Q2 (Q2. Gender) removed, Q3_3 (Q3. Age in years) moved down to be
+#            after Q4_C_2. Variables after Q4_C_4 removed.
+# cola2.sav: Q2 (Q2. Gender) category labels changed to M, F, and
+#            Q3_3 (Q3. Age in years) category values changed to 1-10.
+#            Variables after Q4_C_4 removed.
+# cola3.sav: Q1.  Fragments coded variables removed, variables after Q4_C_2
+#            removed except for Q1_F (Q1.  Fragments - Coke) which is a text variable.
+# cola4.sav: same as cola3.sav except that Q3_3 renamed to Q3_3_new_name,
+# cola5.sav: Q4_A_3, Q4_B_2, Q4_C_2 renamed to Q4_A_3_new, Q4_B_2_new, Q4_C_2_new,
+#            variables after Q4_C_4 removed.
 
 test_that("merge cola data, exact match by variable names", {
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                               findInstDirFile("cola2.sav"),
                                                               findInstDirFile("cola3.sav")),
                                            match.by = "Variable names",
-                                           include.merged.data.set.in.output = TRUE)$merged.data.set
+                                           include.merged.data.set.in.output = TRUE,
+                                           write.data.set = FALSE)$merged.data.set
     expect_equivalent(merged.data.set$mergesrc, rep(1:3, each = 327))
     expect_equal(attr(merged.data.set$mergesrc, "label"), "Source of cases")
     expect_equal(names(merged.data.set), c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1",
@@ -78,7 +88,8 @@ test_that("manual matches", {
                                                               findInstDirFile("cola4.sav")),
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
-                                           manual.matches = "Q3_3,Q3_3_new_name")$merged.data.set
+                                           manual.matches = "Q3_3,Q3_3_new_name",
+                                           write.data.set = FALSE)$merged.data.set
     expect_true(!("Q3_3" %in% names(merged.data.set)))
     expect_true("Q3_3_new_name" %in% names(merged.data.set))
     expect_true(all(!is.na(merged.data.set$Q3_3_new_name)))
@@ -87,7 +98,8 @@ test_that("manual matches", {
                                                               findInstDirFile("cola5.sav")),
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
-                                           manual.matches = "Q4_A_3 - Q4_C_2,Q4_A_3_new-Q4_C_2_new")$merged.data.set
+                                           manual.matches = "Q4_A_3 - Q4_C_2,Q4_A_3_new-Q4_C_2_new",
+                                           write.data.set = FALSE)$merged.data.set
     expect_true(all(!(c("Q4_A_3", "Q4_B_2", "Q4_C_2") %in% names(merged.data.set))))
     expect_true(all(c("Q4_A_3_new", "Q4_B_2_new", "Q4_C_2_new") %in% names(merged.data.set)))
     expect_true(all(!is.na(merged.data.set$Q4_A_3_new)))
@@ -98,7 +110,8 @@ test_that("manual matches", {
                                            findInstDirFile("cola5.sav")),
                         match.by = "Variable names",
                         include.merged.data.set.in.output = TRUE,
-                        manual.matches = "Q4_A_3 - Q4_B_2,Q4_A_3_new-Q4_C_2_new"),
+                        manual.matches = "Q4_A_3 - Q4_B_2,Q4_A_3_new-Q4_C_2_new",
+                        write.data.set = FALSE),
                  paste0("The manual match input 'Q4_A_3 - Q4_B_2,Q4_A_3_new-Q4_C_2_new' ",
                         "contains variable ranges with differing numbers of variables. ",
                         "Ensure that the ranges have been correctly specified so that ",
@@ -108,7 +121,8 @@ test_that("manual matches", {
                                                               findInstDirFile("cola4.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     manual.matches = "Q3_3"),
+                                     manual.matches = "Q3_3",
+                                     write.data.set = FALSE),
                  "The manual match input 'Q3_3' is invalid as it needs to contain two or more variables.")
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
@@ -116,7 +130,8 @@ test_that("manual matches", {
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
                                      manual.matches = "Q3_3,Q3_3_new_name",
-                                     variables.to.omit = list("Q3_3", character())),
+                                     variables.to.omit = list("Q3_3", character()),
+                                     write.data.set = FALSE),
                  paste0("The variable Q3_3 has been specified in both a manual match and to be omitted. ",
                         "It needs to be removed from the manual match or the variables to be omitted."))
 
@@ -124,7 +139,8 @@ test_that("manual matches", {
                                                         findInstDirFile("cola4.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     manual.matches = c("Q3_3,Q3_3_new_name", "Q3_3,Q2")),
+                                     manual.matches = c("Q3_3,Q3_3_new_name", "Q3_3,Q2"),
+                                     write.data.set = FALSE),
                  paste0("The variable 'Q3_3' has been specified in multiple manual match inputs: ",
                         "'Q3_3,Q3_3_new_name', 'Q3_3,Q2'. Ensure that all variables are only ",
                         "specified in at most one manual match."))
@@ -133,14 +149,16 @@ test_that("manual matches", {
                                                         findInstDirFile("cola4.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     manual.matches = "Q4_3,Q3_3_new_name"),
+                                     manual.matches = "Q4_3,Q3_3_new_name",
+                                     write.data.set = FALSE),
                  paste0("The variable 'Q4_3' could not be found in the data set 'cola1.sav'."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola4.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     manual.matches = "Q2-Q4,Q2_new-Q4_new"),
+                                     manual.matches = "Q2-Q4,Q2_new-Q4_new",
+                                     write.data.set = FALSE),
                  paste0("The variable 'Q2' from the input range 'Q2-Q4' ",
                         "could not be found in the data set 'cola1.sav'."))
 
@@ -148,7 +166,8 @@ test_that("manual matches", {
                                                         findInstDirFile("cola4.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     manual.matches = "Q2-Q3-Q4,Q2_new-Q3_new-Q4_new"),
+                                     manual.matches = "Q2-Q3-Q4,Q2_new-Q3_new-Q4_new",
+                                     write.data.set = FALSE),
                  paste0("The input range 'Q2-Q3-Q4' could not be recognized. ",
                         "It needs to contain the start and end variable names ",
                         "separated by a dash (-)."), fixed = TRUE)
@@ -162,7 +181,8 @@ test_that("omit variables", {
                                            include.merged.data.set.in.output = TRUE,
                                            variables.to.omit = list(character(),
                                                                     "Q2",
-                                                                    "Q1_F"))$merged.data.set
+                                                                    "Q1_F"),
+                                           write.data.set = FALSE)$merged.data.set
 
     expect_true(all(is.na(merged.data.set$Q2[1:654])))
     expect_true(all(!is.na(merged.data.set$Q2[655:981])))
@@ -171,7 +191,8 @@ test_that("omit variables", {
                                                               findInstDirFile("cola2.sav")),
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
-                                           variables.to.omit = list("just_one")),
+                                           variables.to.omit = list("just_one"),
+                                           write.data.set = FALSE),
                  paste0("variables.to.omit must be specified as a list whose ",
                         "elements are the variables to omit in the ",
                         "corresponding data sets."))
@@ -180,7 +201,8 @@ test_that("omit variables", {
                                                         findInstDirFile("cola2.sav")),
                                      match.by = "Variable names",
                                      include.merged.data.set.in.output = TRUE,
-                                     variables.to.omit = list("bad_var", character(0))),
+                                     variables.to.omit = list("bad_var", character(0)),
+                                     write.data.set = FALSE),
                  paste0("The following variable(s) were specified to be ",
                         "omitted but could not be found in the data set ",
                         "cola1.sav: bad_var."), fixed = TRUE)
@@ -188,6 +210,7 @@ test_that("omit variables", {
 
 
 test_that("error messages", {
-    expect_error(MergeDataSetsByCase(data.set.names = findInstDirFile("cola1.sav")),
+    expect_error(MergeDataSetsByCase(data.set.names = findInstDirFile("cola1.sav"),
+                                     write.data.set = FALSE),
                  "Merging requires at least two data sets.")
 })

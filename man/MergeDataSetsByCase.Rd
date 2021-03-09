@@ -6,12 +6,15 @@
 \usage{
 MergeDataSetsByCase(
   data.set.names,
-  merged.data.set.name,
+  merged.data.set.name = NULL,
   match.by = c("Automatic", "All", "Variable names", "Variable labels",
     "Variable and value labels"),
   min.match.percentage = 100,
   manual.matches = NULL,
-  variables.to.omit = NULL
+  variables.to.omit = NULL,
+  include.merged.data.set.in.output = FALSE,
+  write.data.set = TRUE,
+  prioritize.early.data.sets = TRUE
 )
 }
 \arguments{
@@ -21,7 +24,7 @@ data sets.}
 
 \item{merged.data.set.name}{A string of the name of the merged data set in
 the Displayr cloud drive (if run from Displayr) or the local file path of
-the merged data set.}
+the merged data set. If NULL, the data set is not written.}
 
 \item{match.by}{One of Automatic, All, Variable names, Variable labels,
 Variable and value labels}
@@ -35,6 +38,16 @@ indicating which variables are to be matched together, e.g.,
 \item{variables.to.omit}{A list of character vectors containing names of
 variables to omit from the merged data set. The vectors in the list
 correspond to the input data sets.}
+
+\item{include.merged.data.set.in.output}{Whether to include the merged data
+set in the output.}
+
+\item{write.data.set}{Whether to save the merged data set file.}
+
+\item{prioritize.early.data.sets}{Whether earlier data sets should be
+ given priority instead of later data sets when determining which
+ names and labels to use.
+# need to describe outputs!}
 }
 \description{
 Merges multiple data sets by case where the data sets contain
