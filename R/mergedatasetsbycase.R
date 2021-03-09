@@ -48,7 +48,8 @@ MergeDataSetsByCase <- function(data.set.names,
     merge.map <- mergeMap(matched.names, variable.metadata,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
-                                                 prioritize.early.data.sets)
+                                                 prioritize.early.data.sets,
+                                                 variable.metadata$data.set.names)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
@@ -466,7 +467,8 @@ mergeMap <- function(matched.names, variable.metadata,
 }
 
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
-                                      prioritize.early.data.sets)
+                                      prioritize.early.data.sets,
+                                      data.set.names)
 {
     n.vars <- nrow(merge.map$input.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
@@ -475,10 +477,9 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
         compositeVariable(merge.map$input.names[i, ], data.sets,
                           prioritize.early.data.sets)
     }))
-
     names(merged.data.set) <- merge.map$merged.names
 
-    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases)
+    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, data.set.names)
 
     merged.data.set
 }
@@ -737,10 +738,14 @@ variableLabelFromDataSets <- function(variable.names, data.sets,
          " in the supplied data sets.")
 }
 
-mergeSrc <- function(n.data.set.cases)
+mergeSrc <- function(n.data.set.cases, data.set.names)
 {
-    result <- rep(seq_along(n.data.set.cases), n.data.set.cases)
+    n.data.sets <- length(n.data.set.cases)
+    result <- rep(seq_len(n.data.sets), n.data.set.cases)
     attr(result, "label") <- "Source of cases"
+    attr(result, "labels") <- structure(seq_len(n.data.sets),
+                                        .Names = data.set.names)
+    class(result) <- c(class(result), "haven_labelled")
     result
 }
 
