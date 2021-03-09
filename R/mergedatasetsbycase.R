@@ -49,9 +49,8 @@ MergeDataSetsByCase <- function(data.set.names,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
                                                  prioritize.early.data.sets)
-
-    if (is.null(merged.data.set.name))
-        merged.data.set.name <- generateMergedDataSetName(variable.metadata$data.set.names)
+    merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
+                                                   data.set.names)
 
     if (write.data.set)
         writeMergedDataSet(merged.data.set, merged.data.set.name)
@@ -159,6 +158,29 @@ extractDataSetName <- function(data.set.name.or.path)
         data.set.name.or.path
     else
         basename(data.set.name.or.path)
+}
+
+cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
+{
+    if (is.null(merged.data.set.name) ||
+                                trimws(merged.data.set.name) == "")
+        generateMergedDataSetName(data.set.names)
+    else
+    {
+        result <- trimws(merged.data.set.name)
+        if (!grepl("\\.sav$", merged.data.set.name))
+            result <- paste0(result, ".sav")
+        checkFileNameCharacters(result)
+        result
+    }
+}
+
+checkFileNameCharacters <- function(file.name)
+{
+    if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
+        stop("The file name '", file.name, "' is invalid as file names ",
+             "cannot contain the characters ",
+             "'<', '>', ':', '\"', '/', '\\', '|', '?', '*'.")
 }
 
 extractVariableMetadata <- function(data.sets)
