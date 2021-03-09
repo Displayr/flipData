@@ -51,7 +51,10 @@ test_that("merge cola data, exact match by variable names", {
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
                                            write.data.set = FALSE)$merged.data.set
-    expect_equivalent(merged.data.set$mergesrc, rep(1:3, each = 327))
+    expect_equivalent(merged.data.set$mergesrc,
+                      structure(rep(1:3, each = 327), label = "Source of cases",
+                                labels = structure(1:3, .Names = c("cola1.sav", "cola2.sav", "cola3.sav")),
+                                class = c("integer", "haven_labelled")))
     expect_equal(attr(merged.data.set$mergesrc, "label"), "Source of cases")
     expect_equal(names(merged.data.set), c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1",
                                            "Q2", "Q3", "Q3_3", "Q4_A", "Q4_B", "Q4_C", "Q4_A_3", "Q4_B_2",
