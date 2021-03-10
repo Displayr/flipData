@@ -769,9 +769,7 @@ variableLabelFromDataSets <- function(variable.names, data.sets,
                 return(lbl)
         }
     }
-    stop("Label could not be found for variable(s) ",
-         paste0(paste0("'", unique(variable.names[!is.na(variable.names)]), "'"), collapse = ", "),
-         " in the supplied data sets.")
+    return("")
 }
 
 mergeSrc <- function(n.data.set.cases, data.set.names)
