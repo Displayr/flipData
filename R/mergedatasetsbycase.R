@@ -80,8 +80,25 @@ MergeDataSetsByCase <- function(data.set.names,
 # and match if threshold is met, starting from best matches
 # Repeat for third last data set etc.
 
+# TODO
+
 # Need to ensure any new names we generate are valid for sav files
-# Add setting for what to do with unmatched variables
+
+# Option to include or exclude variables without full matches, and option
+# to specify variables to include
+
+# Option to specify variants of variable name or label (include range) (this
+# replaces manual match)
+
+# Option to merge mutually exclusive variables
+
+# Convert text to categorical if there are both text and categorical variables
+
+# Need code to merge various date and date time data
+
+# Variable number in output
+
+# Speed up output display
 
 readDataSets <- function(data.set.names)
 {
@@ -626,6 +643,10 @@ variableType <- function(variable)
         "Numeric"
     else if (is.character(variable))
         "Text"
+    else if (inherits(variable, "POSIXct") ||
+             inherits(variable, "POSIXt") ||
+             inherits(variable, "Date"))
+        "Date-time"
     else
         stop("Variable type not recognised")
 }
