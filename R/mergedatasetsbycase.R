@@ -107,6 +107,8 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Deal with merging of text categories
 
+# More padding around tables
+
 readDataSets <- function(data.set.names)
 {
     if (length(data.set.names) < 2)
@@ -213,8 +215,9 @@ extractVariableMetadata <- function(data.sets)
     list(variable.names = lapply(data.sets, names),
          variable.labels = lapply(data.sets, function(data.set) {
              vapply(data.set, function(v) {
-                 if (!is.null(attr(v, "label")))
-                     attr(v, "label")
+                 lbl <- attr(v, "label", exact = TRUE)
+                 if (!is.null(lbl))
+                     lbl
                  else
                      ""
              }, character(1))
@@ -649,7 +652,7 @@ variableType <- function(variable)
 {
     if (is.null(variable))
         NA_character_
-    else if (!is.null(attr(variable, "labels")))
+    else if (!is.null(attr(variable, "labels", exact = TRUE)))
         "Categorical"
     else if (is.numeric(variable))
         "Numeric"
@@ -761,9 +764,9 @@ variableLabelFromDataSets <- function(variable.names, data.sets,
         if (!is.na(variable.names[i]))
         {
             v <- data.set[[variable.names[i]]]
-            lbl <- attr(v, "label")
+            lbl <- attr(v, "label", exact = TRUE)
             if (!is.null(lbl))
-                return(attr(v, "label"))
+                return(lbl)
         }
     }
     stop("Label could not be found for variable(s) ",
