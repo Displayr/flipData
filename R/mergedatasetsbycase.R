@@ -82,7 +82,11 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # TODO
 
-# Need to ensure any new names we generate are valid for sav files
+# Need to ensure any new names we generate are valid for sav files, e.g. not too long
+
+# Deduplicate matching variable names with different category types
+
+# Option to specify whether to preserve category values or labels
 
 # Option to include or exclude variables without full matches, and option
 # to specify variables to include
@@ -93,12 +97,15 @@ MergeDataSetsByCase <- function(data.set.names,
 # Option to merge mutually exclusive variables
 
 # Convert text to categorical if there are both text and categorical variables
+# and the categories match closely?
 
-# Need code to merge various date and date time data
+# Need code to merge different date and date time data
 
 # Variable number in output
 
 # Speed up output display
+
+# Deal with merging of text categories
 
 readDataSets <- function(data.set.names)
 {
@@ -205,7 +212,12 @@ extractVariableMetadata <- function(data.sets)
 {
     list(variable.names = lapply(data.sets, names),
          variable.labels = lapply(data.sets, function(data.set) {
-             vapply(data.set, attr, character(1), "label")
+             vapply(data.set, function(v) {
+                 if (!is.null(attr(v, "label")))
+                     attr(v, "label")
+                 else
+                     ""
+             }, character(1))
          }),
          variable.categories = lapply(data.sets, function(data.set) {
              lapply(data.set, attr, "labels")
