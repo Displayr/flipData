@@ -44,7 +44,7 @@ MergeDataSetsByCase <- function(data.set.names,
     variable.metadata <- extractVariableMetadata(data.sets)
     matched.names <- matchVariables(variable.metadata, match.by,
                                     min.match.percentage, manual.matches,
-                                    variables.to.omit)
+                                    variables.to.omit, data.sets)
     merge.map <- mergeMap(matched.names, variable.metadata,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
@@ -84,12 +84,11 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new names we generate are valid for sav files, e.g. not too long
 
-# Deduplicate matching variable names with different category types
-
 # Option to specify whether to preserve category values or labels
 
 # Option to include or exclude variables without full matches, and option
-# to specify variables to include
+# to specify variables to include, or specify minimum number of variables
+# to be included in a match
 
 # Option to specify variants of variable name or label (include range) (this
 # replaces manual match)
@@ -97,17 +96,11 @@ MergeDataSetsByCase <- function(data.set.names,
 # Option to merge mutually exclusive variables
 
 # Convert text to categorical if there are both text and categorical variables
-# and the categories match closely?
+# and the categories match closely? Treat empty/blank strings as missing
 
 # Need code to merge different date and date time data
 
-# Variable number in output
-
-# Speed up output display
-
-# Deal with merging of text categories
-
-# More padding around tables
+# Deal with merging of text categories (how to add new "value"?)
 
 readDataSets <- function(data.set.names)
 {
@@ -238,7 +231,7 @@ extractMergedVariableMetadata <- function(merged.data.set)
 }
 
 matchVariables <- function(variable.metadata, match.by, min.match.percentage,
-                           manual.matches, variables.to.omit)
+                           manual.matches, variables.to.omit, data.sets)
 {
     # matched.names is a matrix where the columns correspond to the data
     # sets and each row contains the names of variables that have been matched
@@ -252,8 +245,8 @@ matchVariables <- function(variable.metadata, match.by, min.match.percentage,
 
     if (match.by == "Variable names")
         matched.names <- matchVariableNames(matched.names,
-                                                 variable.metadata,
-                                                 variables.to.omit)
+                                            variable.metadata,
+                                            variables.to.omit)
     else if (match.by == "Variable labels")
     {
         matched.names <- matchVariableLabels(matched.names,
@@ -272,6 +265,8 @@ matchVariables <- function(variable.metadata, match.by, min.match.percentage,
     {
 
     }
+
+    matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets)
 
     matched.names
 }
@@ -476,6 +471,46 @@ matchVariableAndValueLabels <- function(variable.metadata)
 
 }
 
+# Split variable match if variables have different types
+# and type conversion is not possible
+unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
+{
+    n.data.sets <- length(data.sets)
+    result <- matrix(nrow = 0, ncol = n.data.sets)
+    for (i in seq_len(nrow(matched.names)))
+    {
+        ind <- which(!is.na(matched.names[i, ]))
+
+        # Only one variable in the row
+        if (length(ind) == 1)
+        {
+            result <- rbind(result, matched.names[i, ])
+            next
+        }
+
+        v.types <- vapply(ind, function(j) {
+            variableType(data.sets[[j]][[matched.names[i, j]]])
+        }, character(1))
+
+        # All variables have the same type
+        if (length(unique(v.types)) == 1)
+        {
+            result <- rbind(result, matched.names[i, ])
+            next
+        }
+
+        # One row for each variable type
+        unique.v.types <- unique(v.types)
+        for (t in unique.v.types)
+        {
+            new.row <- rep(NA_character_, n.data.sets)
+            new.row[ind[t == v.types]] <- matched.names[i, ind[t == v.types]]
+            result <- rbind(result, new.row, deparse.level = 0)
+        }
+    }
+    result
+}
+
 # Creates a list containing the character matrix input.names and the character
 # vector merged.names. merged.names contains the variable names in the merged
 # data set and the rows of input.names contain the names of variables in the
@@ -495,7 +530,8 @@ mergeMap <- function(matched.names, variable.metadata,
                                      unordered.merged.names,
                                      merged.names)
     list(input.names = input.names,
-         merged.names = merged.names)
+         merged.names = merged.names,
+         deduplicated.names = attr(unordered.merged.names, "deduplicated.names"))
 }
 
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
@@ -522,14 +558,42 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
 mergedNamesFromMatchedNames <- function(matched.names,
                                         prioritize.early.data.sets)
 {
-    if (prioritize.early.data.sets)
-        apply(matched.names, 1, function(nms) {
-            nms[!is.na(nms)][1]
-        })
+    .select.name <- if (prioritize.early.data.sets)
+        function(nms) nms[!is.na(nms)][1]
     else
-        apply(matched.names, 1, function(nms) {
-            rev(nms[!is.na(nms)])[1]
-        })
+        function(nms) rev(nms[!is.na(nms)])[1]
+
+    candidate.names <- apply(matched.names, 1, .select.name)
+
+    deduplicated.names <- matrix(nrow = 0, ncol = 2)
+    dup <- duplicated(candidate.names)
+    if (any(dup))
+    {
+        ind <- which(dup)
+        for (i in ind)
+        {
+            base.name <- candidate.names[i]
+            j <- 2
+            repeat
+            {
+                nm <- paste0(base.name, "_", j)
+                if (!(nm %in% candidate.names))
+                {
+                    candidate.names[i] <- nm
+                    deduplicated.names <- rbind(deduplicated.names,
+                                                c(base.name, nm))
+                    break
+                }
+                else
+                    j <- j + 1
+
+            }
+        }
+        result <- candidate.names
+    }
+
+    attr(candidate.names, "deduplicated.names") <- deduplicated.names
+    candidate.names
 }
 
 # Produce an ordering of the matched variables based on the order if the
@@ -626,15 +690,13 @@ compositeVariable <- function(variable.names, data.sets,
         else
             NULL
     })
-    v.type <- vapply(var.list, variableType, character(1))
-    v.type <- unique(v.type[!is.na(v.type)])
+    v.types <- vapply(var.list, variableType, character(1))
+    v.type <- unique(v.types[!is.na(v.types)])
 
-    if (length(v.type) > 1)
-        stop("The variables for ",
-             paste0(paste0("'", unique(variable.names[!is.na(variable.names)]), "'"), collapse = ", "),
-             " could not be combined as they have different types: ",
-             paste0(v.type, collapse = ", "), ".")
-
+if (length(v.type) > 1)
+{
+    print(1)
+}
     result <- if (v.type == "Categorical")
         combineCategoricalVariables(var.list, data.sets,
                                     prioritize.early.data.sets)
@@ -653,7 +715,12 @@ variableType <- function(variable)
     if (is.null(variable))
         NA_character_
     else if (!is.null(attr(variable, "labels", exact = TRUE)))
-        "Categorical"
+    {
+        if (is.numeric(attr(variable, "labels", exact = TRUE)))
+            "Categorical"
+        else
+            "Categorical with string values"
+    }
     else if (is.numeric(variable))
         "Numeric"
     else if (is.character(variable))
