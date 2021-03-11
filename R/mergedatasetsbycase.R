@@ -729,8 +729,12 @@ variableType <- function(variable)
              inherits(variable, "POSIXt") ||
              inherits(variable, "Date"))
         "Date-time"
+    else if (inherits(variable, "difftime"))
+        "Diff-time"
     else
+    {
         stop("Variable type not recognised")
+    }
 }
 
 combineCategoricalVariables <- function(var.list, data.sets,
