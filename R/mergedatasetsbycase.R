@@ -693,10 +693,6 @@ compositeVariable <- function(variable.names, data.sets,
     v.types <- vapply(var.list, variableType, character(1))
     v.type <- unique(v.types[!is.na(v.types)])
 
-if (length(v.type) > 1)
-{
-    print(1)
-}
     result <- if (v.type == "Categorical")
         combineCategoricalVariables(var.list, data.sets,
                                     prioritize.early.data.sets)
@@ -742,15 +738,15 @@ combineCategoricalVariables <- function(var.list, data.sets,
 {
     categories.list <- lapply(var.list, attr, "labels")
 
-    indices <- which(!vapply(categories.list, is.null, logical(1)))
+    ind <- which(!vapply(categories.list, is.null, logical(1)))
 
     if (!prioritize.early.data.sets)
-        indices <- rev(indices)
+        ind <- rev(ind)
 
-    merged.categories <- categories.list[[indices[1]]]
+    merged.categories <- categories.list[[ind[1]]]
     value.map <- vector("list", length = length(var.list))
 
-    for (i in indices[-1])
+    for (i in ind[-1])
     {
         # 2-column matrix representing a remapping of values where the
         # 1st column contains the original value and the 2nd column contains
@@ -760,25 +756,43 @@ combineCategoricalVariables <- function(var.list, data.sets,
         categories <- categories.list[[i]]
         for (lbl in names(categories))
         {
+            category.value <- categoryValue(categories, lbl)
+
+
             if (lbl %in% names(merged.categories))
             {
-                if (categories[lbl] != merged.categories[lbl]) # same label with different values
+                merged.category.value <- categoryValue(merged.categories, lbl)
+                if (category.value != merged.category.value) # same label with different values
                 {
-                    map <- rbind(map, c(categories[lbl], merged.categories[lbl])) # use the value in merged.categories
+                    map <- rbind(map, c(category.value, merged.category.value)) # use the value in merged.categories
                 }
                 # else: same label, same value, no action required
             }
             else
             {
-                if (categories[lbl] %in% merged.categories) # different labels with same value
+                if (category.value %in% merged.categories) # different labels with same value
                 {
-                    merged.categories[lbl] <- max(merged.categories) + 1 # create new value for label
-                    map <- rbind(map, c(categories[lbl], merged.categories[lbl])) # use the value in merged.categories
+                    # create new value for label
+                    new.value <- if (is.numeric(merged.categories))
+                        ceiling(max(merged.categories)) + 1
+                    else # is.character
+                    {
+                        j <- 2
+                        repeat
+                        {
+                            if (paste0(category.value, j) %in% merged.categories)
+                                break
+                            else
+                                j <- j + 1
+                        }
+                        paste0(category.value, j)
+                    }
+
+                    merged.categories[lbl] <- new.value
+                    map <- rbind(map, c(category.value, new.value))
                 }
                 else # value and label not in merged.categories
-                {
-                    merged.categories[lbl] <- categories[lbl] # create new category in merged.categories
-                }
+                    merged.categories[lbl] <- category.value # create new category in merged.categories
             }
         }
         if (nrow(map) > 0)
@@ -797,6 +811,14 @@ combineCategoricalVariables <- function(var.list, data.sets,
     class(result) <- c(class(result), "haven_labelled")
 
     result
+}
+
+categoryValue <- function(categories, label)
+{
+    if (label != "")
+        unname(categories[label])
+    else
+        unname(categories[names(categories) == ""])
 }
 
 combineNonCategoricalVariables <- function(var.list, data.sets)
