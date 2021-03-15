@@ -43,6 +43,7 @@ test_that("matchNamesExactly", {
 # cola4.sav: same as cola3.sav except that Q3_3 renamed to Q3_3_new_name,
 # cola5.sav: Q4_A_3, Q4_B_2, Q4_C_2 renamed to Q4_A_3_new, Q4_B_2_new, Q4_C_2_new,
 #            variables after Q4_C_4 removed.
+# cola6.sav: Q2 (Q2. Gender) converted to numeric
 
 test_that("merge cola data, exact match by variable names", {
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
@@ -216,4 +217,15 @@ test_that("error messages", {
     expect_error(MergeDataSetsByCase(data.set.names = findInstDirFile("cola1.sav"),
                                      write.data.set = FALSE),
                  "Merging requires at least two data sets.")
+})
+
+test_that("Variable type conversion", {
+    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola2.sav"),
+                                                              findInstDirFile("cola6.sav")),
+                                           match.by = "Variable names",
+                                           include.merged.data.set.in.output = TRUE,
+                                           write.data.set = FALSE)
+    expect_equal(unname(merged.data.set$merged.variable.metadata$variable.types["Q2"]),
+                 "Categorical")
+    expect_true(!any(is.na(merged.data.set$merged.data.set$Q2)))
 })
