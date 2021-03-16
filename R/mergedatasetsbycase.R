@@ -1011,38 +1011,54 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 
     .convertTextVar <- function(parser)
     {
-        unlist(lapply(seq_len(n.data.sets), function (i) {
+        result <- NULL
+        for (i in seq_len(n.data.sets))
+        {
             v <- var.list[[i]]
-            if (is.null(v))
+            new.vals <- if (is.null(v))
                 rep(NA, nrow(data.sets[[i]]))
             else if (v.types[i] == "Text")
             {
                 missing.ind <- isMissingValue(v)
-                result <- rep(NA, length(v))
-                result[!missing.ind] <- parser(v[!missing.ind])
-                result
+                parsed <- rep(NA, length(v))
+                parsed[!missing.ind] <- parser(v[!missing.ind])
+                parsed
             }
             else
                 v
-        }))
+            if (is.null(result))
+                result <- new.vals
+            else
+                result <- c(result, new.vals)
+        }
+        result
     }
 
+    unique.v.types <- unique(v.types[!is.na(v.types)])
+
     # Convert Text to Date/Time
-    if (setequal(unique(v.types), c("Date/Time", "Text")))
+    if (setequal(unique.v.types, c("Date/Time", "Text")))
         .convertTextVar(AsDateTime)
-    else if (setequal(unique(v.types), c("Duration", "Text")))
+    else if (setequal(unique.v.types, c("Duration", "Text")))
         .convertTextVar(as.difftime)
-    else if (setequal(unique(v.types), c("Numeric", "Text")))
+    else if (setequal(unique.v.types, c("Numeric", "Text")))
         .convertTextVar(as.numeric)
     else # all same type
     {
-        unlist(lapply(seq_len(n.data.sets), function (i) {
+        result <- NULL
+        for (i in seq_len(n.data.sets))
+        {
             v <- var.list[[i]]
-            if (!is.null(v))
+            new.vals <- if (!is.null(v))
                 v
             else
                 rep(NA, nrow(data.sets[[i]]))
-        }))
+            if (is.null(result))
+                result <- new.vals
+            else
+                result <- c(result, new.vals)
+        }
+        result
     }
 }
 
