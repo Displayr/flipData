@@ -1,6 +1,7 @@
 context("MergeDataSetsByCase")
 
 # need tests of numeric variables!
+# add test for prioritize.early.data.sets
 
 library(gtools)
 
@@ -13,7 +14,8 @@ findInstDirFile <- function(file)
 test_that("mergeNamesListRespectingOrder", {
     merged.names <- mergeNamesListRespectingOrder(list(c("a", "b", "d", "f", "g", "h"),
                                                    c("c", "e", "f", "h"),
-                                                   c("b", "c", "d", "e")))
+                                                   c("b", "c", "d", "e")),
+                                                  prioritize.early.elements = TRUE)
     expect_equal(merged.names, letters[1:8])
 
     names.list <- list(c("a", "b", "d"),
@@ -23,7 +25,8 @@ test_that("mergeNamesListRespectingOrder", {
 
     perm <- permutations(4,4)
     for (i in seq_len(nrow(perm)))
-        expect_equal(mergeNamesListRespectingOrder(names.list[perm[i, ]]), letters[1:5])
+        expect_equal(mergeNamesListRespectingOrder(names.list[perm[i, ]],
+                                                   prioritize.early.elements = TRUE), letters[1:5])
 })
 
 test_that("matchNamesExactly", {
@@ -59,24 +62,22 @@ test_that("merge cola data, exact match by variable names", {
     expect_equal(attr(merged.data.set$mergesrc, "label"), "Source of cases")
     expect_equal(names(merged.data.set), c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1",
                                            "Q2", "Q3", "Q3_3", "Q4_A", "Q4_B", "Q4_C", "Q4_A_3", "Q4_B_2",
-                                           "Q4_C_2", "Q1_F", "Q4_A_5", "Q4_B_3", "Q4_C_3", "Q4_A_6", "Q4_B_4",
-                                           "Q4_C_4", "mergesrc"))
+                                           "Q4_C_2", "Q4_A_5", "Q4_B_3", "Q4_C_3", "Q4_A_6", "Q4_B_4", "Q4_C_4",
+                                           "Q1_F", "mergesrc"))
     expect_equal(vapply(merged.data.set, attr, character(1), "label"),
                  c(Q1_F_c = "Coke", Q1_E_c1 = "Diet Coke", Q1_D_c = "Coke Zero",
                    Q1_C_c1 = "Pepsi", Q1_A_c = "Diet Pepsi", Q1_B_c1 = "Pepsi Max",
                    Q2 = "Q2. Gender", Q3 = "Q3. Age", Q3_3 = "Q3. Age in years",
                    Q4_A = "Colas (e.g., Coca Cola, Pepsi Max)?", Q4_B = "Sparkling mineral water",
                    Q4_C = "Coffee", Q4_A_3 = "Colas (e.g., Coca Cola, Pepsi Max)?",
-                   Q4_B_2 = "Sparkling mineral water", Q4_C_2 = "Coffee", Q1_F = "Q1.  Fragments - Coke",
-                   Q4_A_5 = "Colas (e.g., Coca Cola, Pepsi Max)?", Q4_B_3 = "Sparkling mineral water",
-                   Q4_C_3 = "Coffee", Q4_A_6 = "Q4.  Frequency numeric: Colas (e.g., Coca Cola, Pepsi Max)?",
+                   Q4_B_2 = "Sparkling mineral water", Q4_C_2 = "Coffee", Q4_A_5 = "Colas (e.g., Coca Cola, Pepsi Max)?",
+                   Q4_B_3 = "Sparkling mineral water", Q4_C_3 = "Coffee", Q4_A_6 = "Q4.  Frequency numeric: Colas (e.g., Coca Cola, Pepsi Max)?",
                    Q4_B_4 = "Q4.  Frequency numeric: Sparkling mineral water", Q4_C_4 = "Q4.  Frequency numeric: Coffee",
-                   mergesrc = "Source of cases"))
+                   Q1_F = "Q1.  Fragments - Coke", mergesrc = "Source of cases"))
 
     expect_true(all(is.na(merged.data.set$Q2[1:327]))) # 1st data set does not have Q2
-    expect_equal(unique(merged.data.set$Q2[328:654]), c(4,3)) # Q2 in 2nd data set has labels "M", "F", hence new values created
-    expect_equal(unique(merged.data.set$Q2[655:981]), c(2,1)) # 3rd data set has original Q2
-    expect_equal(attr(merged.data.set$Q2, "labels"), c(Male = 1, Female = 2, M = 3, F = 4))
+    expect_equal(unique(merged.data.set$Q2[328:981]), c(2,1)) # Retain original values
+    expect_equal(attr(merged.data.set$Q2, "labels"), c(M = 1, F = 2)) # Use labels from earlier data set
 
     # values in Q3_3 of the 2nd data set are modified (keeping the same labels)
     # but upon merging, the values in the last data set are used
@@ -85,6 +86,22 @@ test_that("merge cola data, exact match by variable names", {
                  c(`Less than 18` = 18, `18 to 24` = 22, `25 to 29` = 27, `30 to 34` = 33,
                    `35 to 39` = 37, `40 to 44` = 42, `45 to 49` = 47, `50 to 54` = 52,
                    `55 to 64` = 60, `65 or more` = 70))
+})
+
+
+test_that("create new values when a single categorical value has multiple labels", {
+    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                              findInstDirFile("cola2.sav"),
+                                                              findInstDirFile("cola3.sav")),
+                                           match.by = "Variable names",
+                                           include.merged.data.set.in.output = TRUE,
+                                           write.data.set = FALSE,
+                                           category.value.with.multiple.labels = "Create new values")$merged.data.set
+
+    expect_true(all(is.na(merged.data.set$Q2[1:327]))) # 1st data set does not have Q2
+    expect_equal(unique(merged.data.set$Q2[328:654]), c(2,1)) # original values for gender
+    expect_equal(unique(merged.data.set$Q2[655:981]), c(4,3)) # new values for gender
+    expect_equal(attr(merged.data.set$Q2, "labels"), c(M = 1, F = 2, Male = 3, Female = 4))
 })
 
 test_that("manual matches", {

@@ -24,21 +24,21 @@
 #'  given priority instead of later data sets when determining which
 #'  names and labels to use.
 #' # need to describe outputs!
+#' @param category.value.with.multiple.labels How to deal with a single category value
+#'  with multiple labels. Either "Use first label" or "Create new values" for
+#'  each label.
 #' @importFrom verbs Sum
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
-                                match.by = c("Automatic",
-                                             "All",
-                                             "Variable names",
-                                             "Variable labels",
-                                             "Variable and value labels"),
+                                match.by = "Automatic",
                                 min.match.percentage = 100,
                                 manual.matches = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
                                 write.data.set = TRUE,
-                                prioritize.early.data.sets = TRUE)
+                                prioritize.early.data.sets = TRUE,
+                                category.value.with.multiple.labels = "Use first label")
 {
     data.sets <- readDataSets(data.set.names)
     variable.metadata <- extractVariableMetadata(data.sets)
@@ -49,7 +49,8 @@ MergeDataSetsByCase <- function(data.set.names,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
                                                  prioritize.early.data.sets,
-                                                 variable.metadata$data.set.names)
+                                                 variable.metadata$data.set.names,
+                                                 category.value.with.multiple.labels)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
@@ -97,8 +98,6 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Convert text to categorical if there are both text and categorical variables
 # and the categories match closely? Treat empty/blank strings as missing
-
-# Need code to merge different date and date time data
 
 # Smarter merging of categories where labels are 'close'
 
@@ -632,14 +631,16 @@ mergeMap <- function(matched.names, variable.metadata,
 
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
                                       prioritize.early.data.sets,
-                                      data.set.names)
+                                      data.set.names,
+                                      category.value.with.multiple.labels)
 {
     n.vars <- nrow(merge.map$input.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
 
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
         compositeVariable(merge.map$input.names[i, ], data.sets,
-                          prioritize.early.data.sets)
+                          prioritize.early.data.sets,
+                          category.value.with.multiple.labels)
     }))
 
     names(merged.data.set) <- merge.map$merged.names
@@ -778,7 +779,8 @@ mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
 # Combine variables from different data sets (end-to-end) to create a
 # composite variable
 compositeVariable <- function(variable.names, data.sets,
-                              prioritize.early.data.sets)
+                              prioritize.early.data.sets,
+                              category.value.with.multiple.labels)
 {
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
@@ -790,11 +792,9 @@ compositeVariable <- function(variable.names, data.sets,
     v.types <- vapply(var.list, variableType, character(1))
 
     result <- if ("Categorical" %in% v.types)
-    {
-        print(variable.names)
         combineCategoricalVariables(var.list, data.sets,
-                                    prioritize.early.data.sets, v.types)
-    }
+                                    prioritize.early.data.sets, v.types,
+                                    category.value.with.multiple.labels)
     else
         combineNonCategoricalVariables(var.list, data.sets, v.types)
 
@@ -833,7 +833,8 @@ variableType <- function(variable)
 }
 
 combineCategoricalVariables <- function(var.list, data.sets,
-                                        prioritize.early.data.sets, v.types)
+                                        prioritize.early.data.sets, v.types,
+                                        category.value.with.multiple.labels)
 {
     string.values <- "Categorical with string values" %in% v.types
 
@@ -880,30 +881,33 @@ combineCategoricalVariables <- function(var.list, data.sets,
                 {
                     map <- rbind(map, c(category.value, merged.category.value)) # use the value in merged.categories
                 }
-                # else: same label, same value, no action required
+                # else: same label, same value, no action required as it is already in merged.categories
             }
             else
             {
                 if (category.value %in% merged.categories) # different labels with same value
                 {
-                    # create new value for label
-                    new.value <- if (is.numeric(merged.categories))
-                        ceiling(max(merged.categories)) + 1
-                    else # is.character
+                    if (category.value.with.multiple.labels == "Create new values")
                     {
-                        j <- 2
-                        repeat
+                        new.value <- if (is.numeric(merged.categories)) # create new numeric value for label
+                            ceiling(max(merged.categories)) + 1
+                        else # is character, create new character value
                         {
-                            if (!(paste0(category.value, j) %in% merged.categories))
-                                break
-                            else
-                                j <- j + 1
+                            j <- 2
+                            repeat
+                            {
+                                if (!(paste0(category.value, j) %in% merged.categories))
+                                    break
+                                else
+                                    j <- j + 1
+                            }
+                            paste0(category.value, j)
                         }
-                        paste0(category.value, j)
-                    }
 
-                    merged.categories[lbl] <- new.value
-                    map <- rbind(map, c(category.value, new.value))
+                        merged.categories[lbl] <- new.value
+                        map <- rbind(map, c(category.value, new.value))
+                    }
+                    # else "Use first value", no action required as it is already in merged.categories
                 }
                 else # value and label not in merged.categories
                     merged.categories[lbl] <- category.value # create new category in merged.categories
@@ -1088,29 +1092,3 @@ print.MergeDataSetByCase <- function(x, ...)
                          x$merged.data.set.name,
                          x$omitted.variables)
 }
-
-# convertedTextVariables <- function(variable.metadata, merged.variable.metadata, merge.map)
-# {
-#     n.var <- length(merge.map$merged.names)
-#     n.data.sets <- variable.metadata$n.data.sets
-#     result <- matrix(nrow = 0, ncol = 4)
-#     for (i in seq_len(n.var))
-#     {
-#         merged.type <- merged.variable.metadata$variable.types[i]
-#         for (j in seq_len(n.data.sets))
-#         {
-#             if (is.na(merge.map$input.names[i, j]))
-#                 next
-#
-#             ind <- which(variable.metadata$variable.names[[j]] == merge.map$input.names[i, j])
-#             t <- variable.metadata$variable.types[[j]][ind]
-#             if ((t == "Text" || t == "Numeric") && t != merged.type)
-#             {
-#                 result <- rbind(result, c(merge.map$input.names[i, j],
-#                                           variable.metadata$data.set.names[j],
-#                                           t, merged.type))
-#             }
-#         }
-#     }
-#     result
-# }
