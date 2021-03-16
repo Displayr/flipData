@@ -812,7 +812,7 @@ compositeVariable <- function(variable.names, data.sets,
     })
     v.types <- vapply(var.list, variableType, character(1))
 
-    result <- if ("Categorical" %in% v.types)
+    result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
         combineCategoricalVariables(var.list, data.sets,
                                     prioritize.early.data.sets, v.types,
                                     category.value.with.multiple.labels)
