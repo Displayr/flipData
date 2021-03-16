@@ -508,23 +508,23 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
         {
             merge.ind <- integer(0)
 
-            # Text to date-time if possible
-            if (any(v.types %in% "Date-time") && any(v.types %in% "Text"))
+            # Text to Date/Time if possible
+            if (any(v.types %in% "Date/Time") && any(v.types %in% "Text"))
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
                     isParsableAsDateTime(v.list[[j]])
                 }, logical(1))]
-                merge.ind <- c(ind[v.types == "Date-time"], parsable.ind)
+                merge.ind <- c(ind[v.types == "Date/Time"], parsable.ind)
             }
-            # Text to diff-time if possible
-            else if (any(v.types %in% "Diff-time") && any(v.types %in% "Text"))
+            # Text to Duration if possible
+            else if (any(v.types %in% "Duration") && any(v.types %in% "Text"))
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
                     isParsableAsDiffTime(v.list[[j]])
                 }, logical(1))]
-                merge.ind <- c(ind[v.types == "Diff-time"], parsable.ind)
+                merge.ind <- c(ind[v.types == "Duration"], parsable.ind)
             }
             # Numeric or text to categorical if their values are present in
             # category values or labels
@@ -661,23 +661,28 @@ mergedNamesFromMatchedNames <- function(matched.names,
     else
         function(nms) rev(nms[!is.na(nms)])[1]
 
-    candidate.names <- apply(matched.names, 1, .select.name)
+    result <- apply(matched.names, 1, .select.name)
 
+    # As a result of calling unmatchVariablesOfDifferentTypes, two variables
+    # with the same name from different data sets could not be merged if they
+    # have incompatible types, and therefore become two separate variables in
+    # the merged data set. We need to rename one of these variables in the
+    # merged data set as names need to be unique.
     deduplicated.names <- matrix(nrow = 0, ncol = 2)
-    dup <- duplicated(candidate.names)
+    dup <- duplicated(result)
     if (any(dup))
     {
         ind <- which(dup)
         for (i in ind)
         {
-            base.name <- candidate.names[i]
+            base.name <- result[i]
             j <- 2
             repeat
             {
                 nm <- paste0(base.name, "_", j)
-                if (!(nm %in% candidate.names))
+                if (!(nm %in% result))
                 {
-                    candidate.names[i] <- nm
+                    result[i] <- nm
                     deduplicated.names <- rbind(deduplicated.names,
                                                 c(base.name, nm))
                     break
@@ -687,11 +692,10 @@ mergedNamesFromMatchedNames <- function(matched.names,
 
             }
         }
-        result <- candidate.names
     }
 
-    attr(candidate.names, "deduplicated.names") <- deduplicated.names
-    candidate.names
+    attr(result, "deduplicated.names") <- deduplicated.names
+    result
 }
 
 # Produce an ordering of the matched variables based on the order if the
@@ -705,7 +709,24 @@ orderMergedNames <- function(unordered.merged.names, matched.names,
         unordered.merged.names[ind[!is.na(ind)]]
     })
 
-    mergeNamesListRespectingOrder(names.list, prioritize.early.data.sets)
+    merged.names <- mergeNamesListRespectingOrder(names.list, prioritize.early.data.sets)
+
+    # Move deduplicated names to be just below the original ones
+    deduplicated.names <- attr(result, "deduplicated.names")
+    if (!is.null(deduplicated.names))
+    {
+        for (i in seq_len(nrow(deduplicated.names)))
+        {
+            dedup.ind <- match(deduplicated.names[i, 2], merged.names)
+            merged.names <- merged.names[-dedup.ind]
+            original.ind <- match(deduplicated.names[i, 1], merged.names)
+            merged.names <- c(merged.names[seq_len(original.ind)],
+                              deduplicated.names[i, 2],
+                              merged.names[-seq_len(original.ind)])
+        }
+    }
+
+    merged.names
 }
 
 # Order the rows in the matched names matrix according to the (ordered) merged names
@@ -823,9 +844,9 @@ variableType <- function(variable)
     else if (inherits(variable, "POSIXct") ||
              inherits(variable, "POSIXt") ||
              inherits(variable, "Date"))
-        "Date-time"
+        "Date/Time"
     else if (inherits(variable, "difftime"))
-        "Diff-time"
+        "Duration"
     else
     {
         stop("Variable type not recognised")
@@ -870,48 +891,13 @@ combineCategoricalVariables <- function(var.list, data.sets,
         map <- matrix(nrow = 0, ncol = 2)
 
         categories <- categories.list[[i]]
-        for (lbl in names(categories))
+        for (category.label in names(categories))
         {
-            category.value <- categoryValue(categories, lbl)
-
-            if (lbl %in% names(merged.categories))
-            {
-                merged.category.value <- categoryValue(merged.categories, lbl)
-                if (category.value != merged.category.value) # same label with different values
-                {
-                    map <- rbind(map, c(category.value, merged.category.value)) # use the value in merged.categories
-                }
-                # else: same label, same value, no action required as it is already in merged.categories
-            }
-            else
-            {
-                if (category.value %in% merged.categories) # different labels with same value
-                {
-                    if (category.value.with.multiple.labels == "Create new values")
-                    {
-                        new.value <- if (is.numeric(merged.categories)) # create new numeric value for label
-                            ceiling(max(merged.categories)) + 1
-                        else # is character, create new character value
-                        {
-                            j <- 2
-                            repeat
-                            {
-                                if (!(paste0(category.value, j) %in% merged.categories))
-                                    break
-                                else
-                                    j <- j + 1
-                            }
-                            paste0(category.value, j)
-                        }
-
-                        merged.categories[lbl] <- new.value
-                        map <- rbind(map, c(category.value, new.value))
-                    }
-                    # else "Use first value", no action required as it is already in merged.categories
-                }
-                else # value and label not in merged.categories
-                    merged.categories[lbl] <- category.value # create new category in merged.categories
-            }
+            category.value <- categoryValue(categories, category.label)
+            output <- mergeCategory(category.value, category.label,
+                                    merged.categories, map)
+            merged.categories <- output$merged.categories
+            map <- output$map
         }
         if (nrow(map) > 0)
             value.map[[i]] <- map
@@ -926,13 +912,15 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             is.missing <- isMissingValue(v)
             unique.v <- unique(v[!is.missing])
-            if (string.values && all(unique.v %in% merged.categories)) # text are category (string) values
+            if (string.values &&
+                all(unique.v %in% merged.categories)) # text are category (string) values
             {
                 result <- v
                 result[is.missing] <- NA
                 result
             }
-            else if (!string.values && all(unique.v %in% as.character(merged.categories))) # text are category (numeric) values
+            else if (!string.values &&
+                     all(unique.v %in% as.character(merged.categories))) # text are category (numeric) values
             {
                 result <- suppressWarnings(as.numeric(v))
                 result[is.missing] <- NA
@@ -971,6 +959,50 @@ categoryValue <- function(categories, label)
         unname(categories[names(categories) == ""])
 }
 
+# Merge category into merged.categories
+mergeCategory <- function(category.value, category.label, merged.categories, map)
+{
+    if (category.label %in% names(merged.categories))
+    {
+        merged.category.value <- categoryValue(merged.categories, category.label)
+        if (category.value != merged.category.value) # same label with different values
+        {
+            map <- rbind(map, c(category.value, merged.category.value)) # use the value in merged.categories
+        }
+        # else: same label, same value, no action required as it is already in merged.categories
+    }
+    else
+    {
+        if (category.value %in% merged.categories) # different labels with same value
+        {
+            if (category.value.with.multiple.labels == "Create new values")
+            {
+                new.value <- if (is.numeric(merged.categories)) # create new numeric value for label
+                    ceiling(max(merged.categories)) + 1
+                else # is character, create new character value
+                {
+                    j <- 2
+                    repeat
+                    {
+                        if (!(paste0(category.value, j) %in% merged.categories))
+                            break
+                        else
+                            j <- j + 1
+                    }
+                    paste0(category.value, j)
+                }
+
+                merged.categories[category.label] <- new.value
+                map <- rbind(map, c(category.value, new.value))
+            }
+            # else "Use first value", no action required as it is already in merged.categories
+        }
+        else # value and label not in merged.categories
+            merged.categories[category.label] <- category.value # create new category in merged.categories
+    }
+    list(merged.categories = merged.categories, map = map)
+}
+
 combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 {
     n.data.sets <- length(data.sets)
@@ -993,10 +1025,10 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
         }))
     }
 
-    # Convert text to date-time
-    if (setequal(unique(v.types), c("Date-time", "Text")))
+    # Convert Text to Date/Time
+    if (setequal(unique(v.types), c("Date/Time", "Text")))
         .convertTextVar(AsDateTime)
-    else if (setequal(unique(v.types), c("Diff-time", "Text")))
+    else if (setequal(unique(v.types), c("Duration", "Text")))
         .convertTextVar(as.difftime)
     else if (setequal(unique(v.types), c("Numeric", "Text")))
         .convertTextVar(as.numeric)
