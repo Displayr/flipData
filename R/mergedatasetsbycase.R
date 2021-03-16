@@ -712,7 +712,7 @@ orderMergedNames <- function(unordered.merged.names, matched.names,
     merged.names <- mergeNamesListRespectingOrder(names.list, prioritize.early.data.sets)
 
     # Move deduplicated names to be just below the original ones
-    deduplicated.names <- attr(result, "deduplicated.names")
+    deduplicated.names <- attr(unordered.merged.names, "deduplicated.names")
     if (!is.null(deduplicated.names))
     {
         for (i in seq_len(nrow(deduplicated.names)))
