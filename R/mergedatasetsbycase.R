@@ -895,7 +895,8 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             category.value <- categoryValue(categories, category.label)
             output <- mergeCategory(category.value, category.label,
-                                    merged.categories, map)
+                                    merged.categories, map,
+                                    category.value.with.multiple.labels)
             merged.categories <- output$merged.categories
             map <- output$map
         }
@@ -960,7 +961,8 @@ categoryValue <- function(categories, label)
 }
 
 # Merge category into merged.categories
-mergeCategory <- function(category.value, category.label, merged.categories, map)
+mergeCategory <- function(category.value, category.label, merged.categories, map,
+                          category.value.with.multiple.labels)
 {
     if (category.label %in% names(merged.categories))
     {
