@@ -978,11 +978,18 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             result <- c(result, remapValuesInVariable(v, value.map[[i]]))
 
-            cat.values <- unname(merged.categories)
-            if (!is.null(map))
-                for (j in seq_len(nrow(map)))
-                    cat.values[cat.values == map[j, 2]] <- map[j, 1]
-            input.category.values[, i] <- cat.values
+            input.category.values[, i] <- vapply(merged.categories, function(val) {
+                if (!is.null(map))
+                {
+                    ind <- match(val, map[, 2])
+                    if (!is.na(ind))
+                        val <- map[ind, 1]
+                }
+                if (val %in% categories.list[[i]])
+                    val
+                else
+                    ifelse(string.values, NA_character_, NA_real_)
+            }, ifelse(string.values, character(1), numeric(1)))
         }
     }
 
