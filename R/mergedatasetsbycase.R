@@ -96,6 +96,8 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Smarter merging of categories where labels are 'close'
 
+# Investigate bain 2012 variable order
+
 readDataSets <- function(data.set.names)
 {
     if (length(data.set.names) < 2)
@@ -976,7 +978,8 @@ combineCategoricalVariables <- function(var.list, data.sets,
         }
         else # Categorical
         {
-            result <- c(result, remapValuesInVariable(v, value.map[[i]]))
+            map <- value.map[[i]]
+            result <- c(result, remapValuesInVariable(v, map))
 
             input.category.values[, i] <- vapply(merged.categories, function(val) {
                 if (!is.null(map))
