@@ -85,8 +85,6 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new names we generate are valid for sav files, e.g. not too long
 
-# Option to specify whether to preserve category values or labels
-
 # Option to include or exclude variables without full matches, and option
 # to specify variables to include, or specify minimum number of variables
 # to be included in a match
@@ -95,9 +93,6 @@ MergeDataSetsByCase <- function(data.set.names,
 # replaces manual match)
 
 # Option to merge mutually exclusive variables
-
-# Convert text to categorical if there are both text and categorical variables
-# and the categories match closely? Treat empty/blank strings as missing
 
 # Smarter merging of categories where labels are 'close'
 
@@ -147,6 +142,12 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 #' @importFrom flipAPI QSaveData
 writeDataSet <- function(data.set, data.set.name)
 {
+    # Remove extra attributes that are not needed for writing
+    data.set <- data.frame(lapply(data.set, function(v) {
+        attr(v, "input category values") <- NULL
+        v
+    }))
+
     if (canAccessDisplayrCloudDrive())
         QSaveData(data.set, data.set.name)
     else
@@ -905,47 +906,88 @@ combineCategoricalVariables <- function(var.list, data.sets,
     }
 
     n.data.sets <- length(data.sets)
-    result <- unlist(lapply(seq_len(n.data.sets), function (i) {
+
+    # Matrix containing input category values where rows correspond to
+    # categories and columns correspond to input data sets.
+    # This matrix is shown in the category values table in the output.
+    # This matrix is attached as an attribute to the returned variable.
+    input.category.values <- matrix(nrow = length(merged.categories),
+                                    ncol = n.data.sets)
+
+    # Create composite categorical variable
+    result <- NULL
+    for (i in seq_len(n.data.sets))
+    {
         v <- var.list[[i]]
         if (is.null(v))
-            rep(NA, nrow(data.sets[[i]]))
+            result <- c(result, rep(NA, nrow(data.sets[[i]])))
         else if (v.types[i] == "Text")
         {
             is.missing <- isMissingValue(v)
             unique.v <- unique(v[!is.missing])
             if (string.values &&
-                all(unique.v %in% merged.categories)) # text are category (string) values
+                all(unique.v %in% merged.categories)) # text becomes category (string) values
             {
-                result <- v
-                result[is.missing] <- NA
-                result
+                var.values <- v
+                var.values[is.missing] <- NA
+                result <- c(result, var.values)
+
+                for (val in unique.v)
+                     input.category.values[merged.categories == val, i] <- val
             }
             else if (!string.values &&
-                     all(unique.v %in% as.character(merged.categories))) # text are category (numeric) values
+                     all(unique.v %in% as.character(merged.categories))) # text becomes category (numeric) values
             {
-                result <- suppressWarnings(as.numeric(v))
-                result[is.missing] <- NA
-                result
+                var.values <- suppressWarnings(as.numeric(v))
+                var.values[is.missing] <- NA
+                result <- c(result, var.values)
+
+                for (val in as.numeric(unique.v))
+                    input.category.values[merged.categories == val, i] <- val
             }
-            else # text are category labels
+            else # text becomes category labels
             {
-                result <- numeric(length(v))
+                var.values <- numeric(length(v))
                 for (text.val in unique.v)
-                    result[text.val == v] <- merged.categories[text.val == names(merged.categories)]
-                result
+                    var.values[text.val == v] <- merged.categories[text.val == names(merged.categories)]
+                result <- c(result, var.values)
+
+                for (lbl in unique.v)
+                {
+                    ind <- names(merged.categories) == lbl
+                    input.category.values[ind, i] <- unname(merged.categories[ind])
+                }
             }
         }
         else if (v.types[i] == "Numeric")
         {
+            unique.v <- unique(v[!is.na(v)])
+
             if (string.values)
-                as.character(v)
+            {
+                result <- c(result, as.character(v))
+                unique.v <- as.character(unique.v)
+            }
             else
-                v
+                result <- c(result, v)
+
+            for (val in unique.v)
+                input.category.values[merged.categories == val, i] <- val
         }
-        else
-            remapValuesInVariable(v, value.map[[i]])
-    }))
+        else # Categorical
+        {
+            result <- c(result, remapValuesInVariable(v, value.map[[i]]))
+
+            cat.values <- unname(merged.categories)
+            if (!is.null(map))
+                for (j in seq_len(nrow(map)))
+                    cat.values[cat.values == map[j, 2]] <- map[j, 1]
+            input.category.values[, i] <- cat.values
+        }
+    }
+
     attr(result, "labels") <- merged.categories
+    attr(result, "input category values") <- input.category.values
     class(result) <- c(class(result), "haven_labelled")
 
     result
@@ -1119,6 +1161,7 @@ outputForMergeDataSetsByCase <- function(merged.data.set, variable.metadata,
     result$merge.map <- merge.map
     result$merged.data.set.name <- extractDataSetName(merged.data.set.name)
     result$omitted.variables <- omittedVariables(variable.metadata, merge.map)
+    result$input.category.values <- lapply(merged.data.set, attr, "input category values")
     class(result) <- "MergeDataSetByCase"
     result
 }
@@ -1140,5 +1183,6 @@ print.MergeDataSetByCase <- function(x, ...)
                          x$merged.variable.metadata,
                          x$merge.map,
                          x$merged.data.set.name,
-                         x$omitted.variables)
+                         x$omitted.variables,
+                         x$input.category.values)
 }
