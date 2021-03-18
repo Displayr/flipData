@@ -758,10 +758,13 @@ orderMatchedNames <- function(matched.names, unordered.merged.names, merged.name
 # name in the output until the names.list is exhausted of all elements.
 #
 # When constructing a row, if a first name does not appear in a list element,
-# it is given a value equal to the worst rank in the row. This means that such
-# a name would have precedence over other names that are not missing with a
-# worse rank. But if it is tied with names with the same worst rank, the tie
-# will be broken by the order of the lists of the names.
+# it is given a value equal to its worst rank plus in the list elements
+# where it does appear. This means that such a name would have precedence over
+# other names that are not missing with rank worse than its worst rank.
+
+# In the event that rows are tied, ties are broken by the order of the elements
+# in names.list, i.e., names from early elements will have precedence if
+# prioritize.early.elements is TRUE.
 mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
 {
     if (!prioritize.early.elements)
@@ -780,13 +783,13 @@ mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
 
         first.names <- vapply(names.list, `[`, character(1), 1)
 
-        name.ranks.matrix <- t(vapply(seq_along(names.list), function(i) {
-            sorted <- sort(vapply(names.list, function(nms) {
+        name.ranks.matrix <- t(vapply(seq_along(first.names), function(i) {
+            row.of.ranks <- sort(vapply(names.list, function(nms) {
                 min(which(nms == first.names[i]), Inf)
             }, numeric(1)))
-            sorted[sorted == Inf] <- max(sorted[sorted < Inf])
-            sorted
-        }, numeric(length(names.list))))
+            row.of.ranks[row.of.ranks == Inf] <- max(row.of.ranks[row.of.ranks < Inf])
+            row.of.ranks
+        }, numeric(length(first.names))))
 
         selected.name <- first.names[do.call(order, data.frame(name.ranks.matrix))[1]]
         merged.names <- c(merged.names, selected.name)
