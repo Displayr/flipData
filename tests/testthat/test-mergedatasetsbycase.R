@@ -27,6 +27,17 @@ test_that("mergeNamesListRespectingOrder", {
     for (i in seq_len(nrow(perm)))
         expect_equal(mergeNamesListRespectingOrder(names.list[perm[i, ]],
                                                    prioritize.early.elements = TRUE), letters[1:5])
+
+    # Cycles
+    merged.names <- mergeNamesListRespectingOrder(list(c("b", "c", "d"),
+                                                       c("a", "c", "b", "d")),
+                                                  prioritize.early.elements = TRUE)
+    expect_equal(merged.names, letters[1:4])
+
+    merged.names <- mergeNamesListRespectingOrder(list(c("b", "c", "d", "e"),
+                                                       c("a", "c", "d", "b", "e"),
+                                                       c("c", "b")),
+                                                  prioritize.early.elements = TRUE)
 })
 
 test_that("matchNamesExactly", {
@@ -111,18 +122,30 @@ test_that("manual matches", {
                                            include.merged.data.set.in.output = TRUE,
                                            manual.matches = "Q3_3,Q3_3_new_name",
                                            write.data.set = FALSE)$merged.data.set
-    expect_true(!("Q3_3" %in% names(merged.data.set)))
-    expect_true("Q3_3_new_name" %in% names(merged.data.set))
-    expect_true(all(!is.na(merged.data.set$Q3_3_new_name)))
+    expect_true("Q3_3" %in% names(merged.data.set))
+    expect_false("Q3_3_new_name" %in% names(merged.data.set))
+    expect_true(all(!is.na(merged.data.set$Q3_3)))
 
+    # Data set index
+    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                              findInstDirFile("cola4.sav")),
+                                           match.by = "Variable names",
+                                           include.merged.data.set.in.output = TRUE,
+                                           manual.matches = "Q3_3_new_name(2),Q3_3(1)",
+                                           write.data.set = FALSE)$merged.data.set
+    expect_true("Q3_3" %in% names(merged.data.set))
+    expect_false("Q3_3_new_name" %in% names(merged.data.set))
+    expect_true(all(!is.na(merged.data.set$Q3_3)))
+
+    # Range
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                               findInstDirFile("cola5.sav")),
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
                                            manual.matches = "Q4_A_3 - Q4_C_2,Q4_A_3_new-Q4_C_2_new",
                                            write.data.set = FALSE)$merged.data.set
-    expect_true(all(!(c("Q4_A_3", "Q4_B_2", "Q4_C_2") %in% names(merged.data.set))))
-    expect_true(all(c("Q4_A_3_new", "Q4_B_2_new", "Q4_C_2_new") %in% names(merged.data.set)))
+    expect_true(all(c("Q4_A_3", "Q4_B_2", "Q4_C_2") %in% names(merged.data.set)))
+    expect_false(any(c("Q4_A_3_new", "Q4_B_2_new", "Q4_C_2_new") %in% names(merged.data.set)))
     expect_true(all(!is.na(merged.data.set$Q4_A_3_new)))
     expect_true(all(!is.na(merged.data.set$Q4_B_2_new)))
     expect_true(all(!is.na(merged.data.set$Q4_C_2_new)))
@@ -172,7 +195,10 @@ test_that("manual matches", {
                                      include.merged.data.set.in.output = TRUE,
                                      manual.matches = "Q4_3,Q3_3_new_name",
                                      write.data.set = FALSE),
-                 paste0("The variable 'Q4_3' could not be found in the data set 'cola1.sav'."))
+                 paste0("The input variable 'Q4_3' specified for manual ",
+                        "matching could not be found in any of the input ",
+                        "data sets. Ensure that the variable has been ",
+                        "correctly specified."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola4.sav")),
@@ -180,8 +206,9 @@ test_that("manual matches", {
                                      include.merged.data.set.in.output = TRUE,
                                      manual.matches = "Q2-Q4,Q2_new-Q4_new",
                                      write.data.set = FALSE),
-                 paste0("The variable 'Q2' from the input range 'Q2-Q4' ",
-                        "could not be found in the data set 'cola1.sav'."))
+                 paste0("The input range 'Q2-Q4' was not found in any of ",
+                        "the input data sets. Ensure that the range has ",
+                        "been correctly specified."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola4.sav")),
@@ -189,9 +216,9 @@ test_that("manual matches", {
                                      include.merged.data.set.in.output = TRUE,
                                      manual.matches = "Q2-Q3-Q4,Q2_new-Q3_new-Q4_new",
                                      write.data.set = FALSE),
-                 paste0("The input range 'Q2-Q3-Q4' could not be recognized. ",
-                        "It needs to contain the start and end variable names ",
-                        "separated by a dash (-)."), fixed = TRUE)
+                 paste0("The input range 'Q2-Q3-Q4' was not found in any of ",
+                        "the input data sets. Ensure that the range has been ",
+                        "correctly specified."), fixed = TRUE)
 })
 
 test_that("omit variables", {

@@ -7,14 +7,14 @@
 MergeDataSetsByCase(
   data.set.names,
   merged.data.set.name = NULL,
-  match.by = c("Automatic", "All", "Variable names", "Variable labels",
-    "Variable and value labels"),
+  match.by = "Automatic",
   min.match.percentage = 100,
   manual.matches = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
   write.data.set = TRUE,
-  prioritize.early.data.sets = TRUE
+  prioritize.early.data.sets = TRUE,
+  category.value.with.multiple.labels = "Use first label"
 )
 }
 \arguments{
@@ -32,8 +32,10 @@ Variable and value labels}
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
 \item{manual.matches}{A character vector of comma-separated variable names
-indicating which variables are to be matched together, e.g.,
-"var_name_from_data_set_1, var_name_from_data_set_2, ..."}
+indicating which variables are to be matched together. Ranges of variables
+can be specified by separating variable names by '-'. Variables can be
+specified from specific data sets by appending '(x)' to the variable name
+where x is the data set index.}
 
 \item{variables.to.omit}{A list of character vectors containing names of
 variables to omit from the merged data set. The vectors in the list
@@ -48,6 +50,10 @@ set in the output.}
  given priority instead of later data sets when determining which
  names and labels to use.
 # need to describe outputs!}
+
+\item{category.value.with.multiple.labels}{How to deal with a single category value
+with multiple labels. Either "Use first label" or "Create new values" for
+each label.}
 }
 \description{
 Merges multiple data sets by case where the data sets contain
