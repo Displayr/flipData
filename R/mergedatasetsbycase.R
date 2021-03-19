@@ -163,7 +163,7 @@ generateMergedDataSetName <- function(data.set.names)
     common_prefix <- ""
     for (i in 1:min(nchar(data.set.names)))
     {
-        if (length(unique(vapply(data.set.names, substr, character(1), 1, i))) == 1)
+        if (length(unique(vapply(tolower(data.set.names), substr, character(1), 1, i))) == 1)
             common_prefix <- substr(data.set.names[1], 1, i)
         else
             break
@@ -453,7 +453,19 @@ parseManualMatchText <- function(manual.match.text, variable.metadata,
                      "matches or the variables to be omitted.")
         }
 
-    matrix(unlist(parsed.names), ncol = n.data.sets)
+    n.var <- max(vapply(parsed.names, length, integer(1)))
+    result <- vapply(parsed.names, function(nms) {
+        if (is.null(nms))
+            rep(NA_character_, n.var)
+        else
+            nms
+    }, character(n.var))
+
+    # If there is only one variable, vapply returns a vector
+    if (!is.matrix(result))
+        t(result)
+    else
+        result
 }
 
 # Parse variable names with '(x)' appended where 'x' is a data set index
@@ -532,7 +544,7 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
                              data.set.ind, data.set.names, source.text,
                              input.text)
 {
-    if (is.null(parsed.names[[data.set.ind]]))
+    if (is.na(source.text[data.set.ind]))
     {
         parsed.names[[data.set.ind]] <- input.text.without.index
         parsed.names
@@ -661,7 +673,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
         v.types <- vapply(v.list[ind], variableType, character(1))
 
         # All variables have the same type
-        if (length(unique(v.types)) == 1)
+        if (length(unique(v.types[!is.na(v.types)])) == 1)
         {
             result <- rbind(result, matched.names[i, ])
             next
