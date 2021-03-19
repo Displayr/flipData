@@ -456,6 +456,7 @@ parseManualMatchText <- function(manual.match.text, variable.metadata,
     matrix(unlist(parsed.names), ncol = n.data.sets)
 }
 
+# Parse variable names with '(x)' appended where 'x' is a data set index
 parseDataSetIndex <- function(input.text, n.data.sets)
 {
     if (grepl("\\([[:digit:]]+\\)$", input.text))

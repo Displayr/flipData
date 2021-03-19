@@ -150,6 +150,19 @@ test_that("manual matches", {
     expect_true(all(!is.na(merged.data.set$Q4_B_2_new)))
     expect_true(all(!is.na(merged.data.set$Q4_C_2_new)))
 
+    # Range with data set indices
+    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                              findInstDirFile("cola5.sav")),
+                                           match.by = "Variable names",
+                                           include.merged.data.set.in.output = TRUE,
+                                           manual.matches = "Q4_A_3(1) - Q4_C_2,Q4_A_3_new(2)-Q4_C_2_new(2)",
+                                           write.data.set = FALSE)$merged.data.set
+    expect_true(all(c("Q4_A_3", "Q4_B_2", "Q4_C_2") %in% names(merged.data.set)))
+    expect_false(any(c("Q4_A_3_new", "Q4_B_2_new", "Q4_C_2_new") %in% names(merged.data.set)))
+    expect_true(all(!is.na(merged.data.set$Q4_A_3_new)))
+    expect_true(all(!is.na(merged.data.set$Q4_B_2_new)))
+    expect_true(all(!is.na(merged.data.set$Q4_C_2_new)))
+
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                            findInstDirFile("cola5.sav")),
                         match.by = "Variable names",
