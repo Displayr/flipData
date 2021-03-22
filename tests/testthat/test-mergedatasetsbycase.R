@@ -28,16 +28,11 @@ test_that("mergeNamesListRespectingOrder", {
         expect_equal(mergeNamesListRespectingOrder(names.list[perm[i, ]],
                                                    prioritize.early.elements = TRUE), letters[1:5])
 
-    # Cycles
-    merged.names <- mergeNamesListRespectingOrder(list(c("b", "c", "d"),
-                                                       c("a", "c", "b", "d")),
+    merged.names <- mergeNamesListRespectingOrder(list(c("a", "d", "e", "f", "g", "h"),
+                                                       c("b", "c", "e", "i"),
+                                                       c("c", "d", "e", "j", "k")),
                                                   prioritize.early.elements = TRUE)
-    expect_equal(merged.names, letters[1:4])
-
-    merged.names <- mergeNamesListRespectingOrder(list(c("b", "c", "d", "e"),
-                                                       c("a", "c", "d", "b", "e"),
-                                                       c("c", "b")),
-                                                  prioritize.early.elements = TRUE)
+    expect_equal(merged.names, letters[1:11])
 })
 
 test_that("matchNamesExactly", {

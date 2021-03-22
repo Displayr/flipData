@@ -936,7 +936,27 @@ mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
         }
 
         first.names <- unique(vapply(names.list, `[`, character(1), 1))
-        selected.name <- dominantName(first.names, names.list)
+
+        ranks <- lapply(first.names, function(candidate.name) {
+            vapply(names.list, function(nms) match(candidate.name, nms), integer(1))
+        })
+
+        # Select the first of the names in first.names that aren't dominated
+        # by another name in first.names. A name is dominated if another name
+        # is always ranked ahead of it whenever they appear together.
+        undominated <- vapply(seq_along(first.names), function(i) {
+            all(vapply(seq_along(first.names)[-i], function(j) {
+                i.beats.j <- ranks[[i]] < ranks[[j]]
+                i.beats.j <- i.beats.j[!is.na(i.beats.j)]
+                length(i.beats.j) == 0 || any(i.beats.j)
+            }, logical(1)))
+        }, logical(1))
+
+        selected.name <- if (any(undominated))
+            first.names[undominated][1]
+        else
+            first.names[1]
+
         merged.names <- c(merged.names, selected.name)
 
         # Remove selected variable from names.list
@@ -948,145 +968,23 @@ mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
     merged.names
 }
 
-# Finds the dominant name from candidate.names by establishing all the ordered
-# sets of names in candidate.names, excluding any cycles. Order is determined
-# from the relative positions of the names in names.list. The dominant name
-# from each ordered set is extracted and the earliest dominant name in
-# candidate.names is chosen.
 dominantName <- function(candidate.names, names.list)
 {
-    nms.ind.list <- lapply(names.list,
-                           function(nms) vapply(candidate.names, match, integer(1), nms))
+    ranks <- lapply(candidate.names, function(candidate.name) {
+        vapply(names.list, function(nms) match(candidate.name, nms), integer(1))
+    })
 
-    # Each element in the list is a vector of names in a cycle
-    cycles <- list()
-    repeat
-    {
-        # Each element is a vector of names representing a unique ordering,
-        # where the first name is most dominant
-        ordered.sets <- list()
-
-        reset <- FALSE
-        for (i in seq_along(candidate.names)[-1])
-        {
-            nm.A <- candidate.names[i]
-            for (j in seq_len(i - 1))
-            {
-                nm.B <- candidate.names[j]
-
-                # Don't consider this pair if they are in a cycle
-                if (inCycle(nm.A, nm.V, cycles))
-                    break
-
-                for (nms.ind in nms.ind.list)
-                {
-                    ind.A <- nms.ind[nm.A]
-                    ind.B <- nms.ind[nm.B]
-                    if (is.na(ind.A) || is.na(ind.B))
-                        next
-
-                    relationship <- relationshipBetweenNames(ordered.sets,
-                                                             nm.A, nm.B)
-
-                    # Agrees with existing relationships
-                    if ((ind.A < ind.B && relationship == "A dominates B") ||
-                        (ind.B < ind.A && relationship == "B dominates A"))
-                        next
-
-                    # If circularity exists, remove circular names and start again
-                    if ((ind.A < ind.B && relationship == "B dominates A") ||
-                        (ind.B < ind.A && relationship == "A dominates B"))
-                    {
-                        for (k in seq_along(ordered.sets))
-                        {
-                            ord <- ordered.sets[[k]]
-                            ind.A <- match(nm.A, ord)
-                            ind.B <- match(nm.B, ord)
-                            if (is.na(ind.A) || is.na(ind.B))
-                                next
-
-                            cycles <- c(cycles, list(ord[ind.A:ind.B]))
-                        }
-                        reset <- TRUE
-                        break
-                    }
-
-                    ordered.sets <- if (ind.A < ind.B)
-                        introduceOrdering(ordered.sets, c(nm.A, nm.B))
-                    else
-                        introduceOrdering(ordered.sets, c(nm.B, nm.A))
-                }
-                if (reset)
-                    break
-            }
-            if (reset)
-                break
-        }
-
-        if (!reset)
-            break
-    }
-
-    names.in.ordered.sets <-  unique(unlist(ordered.sets))
-    ordered.sets <- c(ordered.sets,
-                      as.list(setdiff(candidate.names, names.in.ordered.sets)))
-    # Extract dominant (1st) name from each ordered.sets
-    nms <- vapply(ordered.sets, `[`, character(1), 1)
-    # Choose dominant name which appears earliest
-    nms[which.min(pmin(match(nms, candidate.names)))]
-}
-
-dominantName2 <- function(candidate.names, names.list)
-{
-    # Create pairwise dominance matrix, record any cycles
-    # Find larger cycles in condorcet matrix
-    # Create ordering omitting pairs in cycles
-}
-
-inCycle <- function(nm.A, nm.B, cycles)
-{
-    for (i in seq_along(cycles))
-        if (nm.A %in% cycles[[i]] && nm.B %in% cycles[[i]])
-            return(TRUE)
-    FALSE
-}
-
-relationshipBetweenNames <- function(ordered.sets, nm.A, nm.B)
-{
-    result <- "Undefined"
-    for (ord in ordered.sets)
-    {
-        ind.A <- match(nm.A, ord)
-        ind.B <- match(nm.B, ord)
-        if (is.na(ind.A) || is.na(ind.B))
-            next
-        if (ind.A < ind.B)
-            result <- "1 dominates 2"
-        else
-            result <- "2 dominates 1"
-        break
-    }
-    result
-}
-
-introduceOrdering <- function(ordered.sets, ordering)
-{
-    new.ordered.sets <- list()
-    merged.into.existing.set <- FALSE
-    for (i in seq_along(ordered.sets))
-    {
-        ord <- ordered.sets[[i]]
-        new.ordered.sets <- c(new.ordered.sets, list(ord))
-        ind <- match(ordering[i], ord)
-        if (!is.na(ind))
-        {
-            new.ordered.sets <- c(new.ordered.sets, list(c(ord[seq_len(ind)], ordering[2])))
-            merged.into.existing.set <- TRUE
-        }
-    }
-    if (!merged.into.existing.set)
-        new.ordered.sets <- c(new.ordered.sets, list(ordering))
-    new.ordered.sets
+    undominated <- vapply(seq_along(candidate.names), function(i) {
+        all(vapply(seq_along(candidate.names)[-i], function(j) {
+            i.beats.j <- ranks[[i]] < ranks[[j]]
+            i.beats.j <- i.beats.j[!is.na(i.beats.j)]
+            any(i.beats.j)
+        }, logical(1)))
+    }, logical(1))
+    if (any(undominated))
+        candidate.names[undominated][1]
+    else
+        candidate.names[1]
 }
 
 # Combine variables from different data sets (end-to-end) to create a
