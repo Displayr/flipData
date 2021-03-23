@@ -64,19 +64,6 @@ MergeDataSetsByCase <- function(data.set.names,
                                  merged.data.set.name)
 }
 
-# GUI
-# textboxes for data set names
-# combobox for match.by
-# numeric updown for min.match.percentage
-# textboxes for manual.match
-# textboxes for variables.to.omit
-
-# Output to contain:
-# - Table of variable labels with columns: Merged Data Set, Data Set 1, Data Set 2, Data Set 3, ...
-#   perhaps indicating the ones with a weak match and indicating the manual matches
-#   and tooltips with variable names
-# - Omitted variables (listed by data set), indicating the manual omits
-
 # Fuzzy matching:
 # Start with last data set first perform exact match against second last data set.
 # For the remaining labels, compute relative distances (0-1) for all possible pairs
@@ -87,18 +74,20 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new names we generate are valid for sav files, e.g. not too long
 
-# Option to include or exclude variables without full matches, and option
-# to specify variables to include, or specify minimum number of variables
-# to be included in a match
+# Checkbox to choose datasets where variables are excluded when they don't have matches
 
-# Option to specify variants of variable name or label (include range) (this
-# replaces manual match)
-
-# Option to merge mutually exclusive variables
+# Option to merge mutually exclusive variables from same data set, e.g. Internet_provider
+# variables for US and Canada in Bain data sets?
 
 # Smarter merging of categories where labels are 'close'
 
-# Investigate bain 2012 variable order, create dominance algorithm for sorting
+# Option to specify variables not to merge
+
+# Note if manual merge not possible due to variable type difference?
+
+# Subtitle in output showing summary status?
+
+# Don't guess merged data set name?
 
 readDataSets <- function(data.set.names)
 {
@@ -657,11 +646,12 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
 {
     n.data.sets <- length(data.sets)
     result <- matrix(nrow = 0, ncol = n.data.sets)
+    unmatched.names <- matrix(nrow = 0, ncol = n.data.sets)
     for (i in seq_len(nrow(matched.names)))
     {
         ind <- which(!is.na(matched.names[i, ]))
-        v.list <- vector(mode = "list", length = n.data.sets)
-        v.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names[i, j]]])
+        var.list <- vector(mode = "list", length = n.data.sets)
+        var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names[i, j]]])
 
         # Only one variable in the row
         if (length(ind) == 1)
@@ -670,7 +660,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             next
         }
 
-        v.types <- vapply(v.list[ind], variableType, character(1))
+        v.types <- vapply(var.list[ind], variableType, character(1))
 
         # All variables have the same type
         if (length(unique(v.types[!is.na(v.types)])) == 1)
@@ -681,6 +671,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
 
         cat.types <- c("Categorical", "Categorical with string values")
 
+        k <- 1
         repeat
         {
             merge.ind <- integer(0)
@@ -690,7 +681,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsDateTime(v.list[[j]])
+                    isParsableAsDateTime(var.list[[j]])
                 }, logical(1))]
                 merge.ind <- c(ind[v.types == "Date/Time"], parsable.ind)
             }
@@ -699,49 +690,31 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsDiffTime(v.list[[j]])
+                    isParsableAsDiffTime(var.list[[j]])
                 }, logical(1))]
                 merge.ind <- c(ind[v.types == "Duration"], parsable.ind)
             }
-            # Numeric or text to categorical if their values are present in
-            # category values or labels
+            # Numeric or text to categorical as long as there aren't too many
+            # unique values: less than max of 20 or 150% of the number of
+            # categorical values.
             else if (any(v.types %in% cat.types))
             {
                 cat.ind <- ind[v.types %in% cat.types]
 
-                all.category.values <- unlist(lapply(cat.ind, function (j) {
-                    as.character(attr(v.list[[j]], "labels", exact = TRUE))
-                }))
-                all.category.labels <- unlist(lapply(cat.ind, function (j) {
-                    names(attr(v.list[[j]], "labels", exact = TRUE))
-                }))
+                n.category.values <- length(unique(unlist(lapply(cat.ind, function (j) {
+                    as.character(attr(var.list[[j]], "labels", exact = TRUE))
+                }))))
 
-                num.ind <- ind[v.types == "Numeric"]
-                num.merge.ind <- num.ind[vapply(num.ind, function(j) {
-                    vals <- unique(v.list[[j]])
-                    vals <- vals[!is.na(vals)]
-                    all(vals %in% all.category.values)
+                num.or.text.ind <- ind[v.types %in% c("Numeric", "Text")]
+                num.or.text.merge.ind <- num.or.text.ind[vapply(num.or.text.ind, function(j) {
+                    length(unique(var.list[[j]])) <= max(20, n.category.values * 1.5)
                 }, logical(1))]
 
-                text.ind <- ind[v.types == "Text"]
-                text.merge.ind <- text.ind[vapply(text.ind, function(j) {
-                    vals <- unique(v.list[[j]])
-                    vals <- vals[!isMissingValue(vals)]
-                    all(vals %in% all.category.values) ||
-                        all(vals %in% all.category.labels)
-                }, logical(1))]
-
-                merge.ind <- c(cat.ind, num.merge.ind, text.merge.ind)
+                merge.ind <- c(cat.ind, num.or.text.merge.ind)
             }
-            # Text to numeric if possible
+            # Text to numeric or numeric to text
             else if (any(v.types %in% "Numeric") && any(v.types %in% "Text"))
-            {
-                text.ind <- ind[v.types == "Text"]
-                parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsNumeric(v.list[[j]])
-                }, logical(1))]
-                merge.ind <- c(ind[v.types == "Numeric"], parsable.ind)
-            }
+                merge.ind <- c(ind[v.types %in% c("Numeric", "Text")])
             else
                 merge.ind <- ind[v.types == v.types[1]]
 
@@ -755,8 +728,14 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
 
             v.types <- v.types[ind %in% new.ind]
             ind <- new.ind
+            k <- k + 1
         }
+        if (k > 1)
+            unmatched.names <- rbind(unmatched.names, matched.names[i, ],
+                                     deparse.level = 0)
     }
+
+    attr(result, "unmatched.names") <- unmatched.names
     result
 }
 
@@ -803,7 +782,9 @@ mergeMap <- function(matched.names, variable.metadata,
                                      merged.names)
     list(input.names = input.names,
          merged.names = merged.names,
-         deduplicated.names = attr(unordered.merged.names, "deduplicated.names"))
+         unmatched.names = attr(matched.names, "unmatched.names"),
+         unmatched.names.renamed = attr(unordered.merged.names,
+                                        "unmatched.names.renamed"))
 }
 
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
@@ -838,6 +819,10 @@ mergedNamesFromMatchedNames <- function(matched.names,
     else
         function(nms) rev(nms[!is.na(nms)])[1]
 
+    unmatched.names <- attr(matched.names, "unmatched.names", exact = TRUE)
+    unmatched.names.renamed <- vector(mode = "list",
+                                      length = nrow(unmatched.names))
+
     result <- apply(matched.names, 1, .select.name)
 
     # As a result of calling unmatchVariablesOfDifferentTypes, two variables
@@ -845,7 +830,6 @@ mergedNamesFromMatchedNames <- function(matched.names,
     # have incompatible types, and therefore become two separate variables in
     # the merged data set. We need to rename one of these variables in the
     # merged data set as names need to be unique.
-    deduplicated.names <- matrix(nrow = 0, ncol = 2)
     dup <- duplicated(result)
     if (any(dup))
     {
@@ -860,8 +844,12 @@ mergedNamesFromMatchedNames <- function(matched.names,
                 if (!(nm %in% result))
                 {
                     result[i] <- nm
-                    deduplicated.names <- rbind(deduplicated.names,
-                                                c(base.name, nm))
+
+                    unmatched.ind <- which(vapply(seq_len(nrow(unmatched.names)), function(j) {
+                        any(unmatched.names[j, ] == matched.names[i, ])
+                    }, logical(1)))
+                    unmatched.names.renamed[[unmatched.ind]] <- c(unmatched.names.renamed[[unmatched.ind]],
+                                                                  list(nm))
                     break
                 }
                 else
@@ -871,7 +859,7 @@ mergedNamesFromMatchedNames <- function(matched.names,
         }
     }
 
-    attr(result, "deduplicated.names") <- deduplicated.names
+    attr(result, "unmatched.names.renamed") <- unmatched.names.renamed
     result
 }
 
@@ -966,25 +954,6 @@ mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
         names.list <- names.list[vapply(names.list, length, integer(1)) > 0]
     }
     merged.names
-}
-
-dominantName <- function(candidate.names, names.list)
-{
-    ranks <- lapply(candidate.names, function(candidate.name) {
-        vapply(names.list, function(nms) match(candidate.name, nms), integer(1))
-    })
-
-    undominated <- vapply(seq_along(candidate.names), function(i) {
-        all(vapply(seq_along(candidate.names)[-i], function(j) {
-            i.beats.j <- ranks[[i]] < ranks[[j]]
-            i.beats.j <- i.beats.j[!is.na(i.beats.j)]
-            any(i.beats.j)
-        }, logical(1)))
-    }, logical(1))
-    if (any(undominated))
-        candidate.names[undominated][1]
-    else
-        candidate.names[1]
 }
 
 # Combine variables from different data sets (end-to-end) to create a
@@ -1118,38 +1087,76 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             is.missing <- isMissingValue(v)
             unique.v <- unique(v[!is.missing])
-            if (string.values &&
-                all(unique.v %in% merged.categories)) # text becomes category (string) values
-            {
-                var.values <- v
-                var.values[is.missing] <- NA
-                result <- c(result, var.values)
 
-                for (val in unique.v)
-                     input.category.values[[i]][merged.categories == val] <- val
-            }
-            else if (!string.values &&
-                     all(unique.v %in% as.character(merged.categories))) # text becomes category (numeric) values
+            # text becomes category (numeric) values
+            if (!string.values && isParsableAsNumeric(unique.v))
             {
                 var.values <- suppressWarnings(as.numeric(v))
                 var.values[is.missing] <- NA
                 result <- c(result, var.values)
 
                 for (val in as.numeric(unique.v))
-                    input.category.values[[i]][merged.categories == val] <- val
+                {
+                    if (val %in% merged.categories)
+                        input.category.values[[i]][merged.categories == val] <- val
+                    else
+                    {
+                        ind <- length(merged.categories) + 1
+                        merged.categories[ind] <- val
+                        names(merged.categories)[ind] <- as.character(val)
+                        input.category.values[[i]][ind] <- val
+                    }
+                }
+            }
+            # text becomes category (string) values
+            else if (string.values && any(unique.v %in% merged.categories))
+            {
+                result <- c(result, v)
+                for (val in unique.v)
+                {
+                    if (val %in% merged.categories)
+                        input.category.values[[i]][merged.categories == val] <- val
+                    else
+                    {
+                        ind <- length(merged.categories) + 1
+                        merged.categories[ind] <- val
+                        names(merged.categories)[ind] <- val
+                        input.category.values[[i]][ind] <- val
+                    }
+                }
             }
             else # text becomes category labels
             {
-                var.values <- numeric(length(v))
-                for (text.val in unique.v)
-                    var.values[text.val == v] <- merged.categories[text.val == names(merged.categories)]
-                result <- c(result, var.values)
-
                 for (lbl in unique.v)
                 {
-                    ind <- names(merged.categories) == lbl
-                    input.category.values[[i]][ind] <- unname(merged.categories[ind])
+                    if (lbl %in% names(merged.categories))
+                    {
+                        ind <- lbl == names(merged.categories)
+                        input.category.values[[i]][ind] <- unname(merged.categories[ind])
+                    }
+                    else if (string.values)
+                    {
+                        merged.categories[lbl] <- lbl
+                        input.category.values[[i]][length(merged.categories)] <- lbl
+                    }
+                    else
+                    {
+                        ind <- length(merged.categories) + 1
+                        val <- ceiling(max(merged.categories)) + 1
+                        merged.categories[ind] <- val
+                        names(merged.categories)[ind] <- lbl
+                        input.category.values[[i]][ind] <- lbl
+                    }
                 }
+
+                var.values <- if (string.values)
+                    character(length(v))
+                else
+                    numeric(length(v))
+
+                for (lbl in unique.v)
+                    var.values[lbl == v] <- merged.categories[lbl == names(merged.categories)]
+                result <- c(result, var.values)
             }
         }
         else if (v.types[i] == "Numeric")
@@ -1165,7 +1172,17 @@ combineCategoricalVariables <- function(var.list, data.sets,
                 result <- c(result, v)
 
             for (val in unique.v)
-                input.category.values[[i]][merged.categories == val] <- val
+            {
+                if (val %in% merged.categories)
+                    input.category.values[[i]][merged.categories == val] <- val
+                else
+                {
+                    new.ind <- length(merged.categories) + 1
+                    merged.categories[new.ind] <- val
+                    names(merged.categories)[new.ind] <- val
+                    input.category.values[[i]][new.ind] <- val
+                }
+            }
         }
         else # Categorical
         {
@@ -1279,13 +1296,31 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 
     unique.v.types <- unique(v.types[!is.na(v.types)])
 
-    # Convert Text to Date/Time
     if (setequal(unique.v.types, c("Date/Time", "Text")))
         .convertTextVar(AsDateTime)
     else if (setequal(unique.v.types, c("Duration", "Text")))
         .convertTextVar(as.difftime)
     else if (setequal(unique.v.types, c("Numeric", "Text")))
-        .convertTextVar(as.numeric)
+    {
+        text.ind <- which(v.types == "Text")
+        is.parsable <- all(vapply(text.ind, function(j) {
+            isParsableAsNumeric(var.list[[j]])
+        }, logical(1)))
+        if (is.parsable)
+            .convertTextVar(as.numeric)
+        else
+        {
+            unlist(lapply(seq_len(n.data.sets), function(i) {
+                v <- var.list[[i]]
+                if (is.null(v))
+                    rep(NA, nrow(data.sets[[i]]))
+                else if (v.types[i] == "Numeric")
+                    as.character(v)
+                else
+                    v
+            }))
+        }
+    }
     else # all same type
     {
         result <- NULL
