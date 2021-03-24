@@ -11,11 +11,14 @@
 #' @param match.by One of Automatic, All, Variable names, Variable labels,
 #'  Variable and value labels
 #' @param min.match.percentage To be decided, possibly a percentage.
-#' @param manual.matches A character vector of comma-separated variable names
-#'  indicating which variables are to be matched together. Ranges of variables
-#'  can be specified by separating variable names by '-'. Variables can be
-#'  specified from specific data sets by appending '(x)' to the variable name
-#'  where x is the data set index.
+#' @param variables.to.match A character vector of pairs of comma-separated
+#'  variable names indicating which variables are to be matched together.
+#'  Ranges of variables can be specified by separating variable names by '-'.
+#'  Variables can be specified from specific data sets by appending '(x)' to
+#'  the variable name where x is the data set index.
+#' @param variables.to.not.match A character vector of comma-separated variable
+#'  names specifying variables that should never be matched together, with
+#'  variable names suffixed with the data set index in parentheses, e.g., 'Q2(3)'.
 #' @param variables.to.omit A list of character vectors containing names of
 #'  variables to omit from the merged data set. The vectors in the list
 #'  correspond to the input data sets.
@@ -29,24 +32,30 @@
 #' @param category.value.with.multiple.labels How to deal with a single category value
 #'  with multiple labels. Either "Use first label" or "Create new values" for
 #'  each label.
+#' @param required.data.sets A logical vector indicating the data sets that
+#'  each variable in the merged data set is required to contain values from.
 #' @importFrom verbs Sum
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
                                 match.by = "Automatic",
                                 min.match.percentage = 100,
-                                manual.matches = NULL,
+                                variables.to.match = NULL,
+                                variables.to.not.match = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
                                 write.data.set = TRUE,
                                 prioritize.early.data.sets = TRUE,
-                                category.value.with.multiple.labels = "Use first label")
+                                category.value.with.multiple.labels = "Use first label",
+                                required.data.sets = NULL)
 {
-    data.sets <- readDataSets(data.set.names)
+    data.sets <- readDataSets(data.set.names, 2)
     variable.metadata <- extractVariableMetadata(data.sets)
     matched.names <- matchVariables(variable.metadata, match.by,
-                                    min.match.percentage, manual.matches,
-                                    variables.to.omit, data.sets)
+                                    min.match.percentage, variables.to.match,
+                                    variables.to.not.match,
+                                    variables.to.omit, data.sets,
+                                    required.data.sets)
     merge.map <- mergeMap(matched.names, variable.metadata,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
@@ -83,16 +92,14 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Option to specify variables not to merge
 
-# Note if manual merge not possible due to variable type difference?
-
 # Subtitle in output showing summary status?
 
-# Don't guess merged data set name?
+# Remove data set names in output and show row lines, improve spacing between notes
 
-readDataSets <- function(data.set.names)
+readDataSets <- function(data.set.names, min.data.sets = 1)
 {
-    if (length(data.set.names) < 2)
-        stop("Merging requires at least two data sets.")
+    if (length(data.set.names) < min.data.sets)
+        stop("At least ", min.data.sets, " data set(s) are required.")
 
     if (canAccessDisplayrCloudDrive())
         readDataSetsFromDisplayrCloudDrive(data.set.names)
@@ -147,22 +154,6 @@ writeDataSet <- function(data.set, data.set.name)
         write_sav(data.set, data.set.name)
 }
 
-generateMergedDataSetName <- function(data.set.names)
-{
-    common_prefix <- ""
-    for (i in 1:min(nchar(data.set.names)))
-    {
-        if (length(unique(vapply(tolower(data.set.names), substr, character(1), 1, i))) == 1)
-            common_prefix <- substr(data.set.names[1], 1, i)
-        else
-            break
-    }
-    if (common_prefix == "")
-        "Merged data set.sav"
-    else
-        paste0(common_prefix, " merged.sav")
-}
-
 extractDataSetName <- function(data.set.name.or.path)
 {
     if (is.null(data.set.name.or.path))
@@ -176,8 +167,8 @@ extractDataSetName <- function(data.set.name.or.path)
 cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
 {
     if (is.null(merged.data.set.name) ||
-                                trimws(merged.data.set.name) == "")
-        generateMergedDataSetName(data.set.names)
+        trimws(merged.data.set.name) == "")
+        "Merged data set.sav"
     else
     {
         result <- trimws(merged.data.set.name)
@@ -228,27 +219,32 @@ extractMergedVariableMetadata <- function(merged.data.set)
 }
 
 matchVariables <- function(variable.metadata, match.by, min.match.percentage,
-                           manual.matches, variables.to.omit, data.sets)
+                           variables.to.match, variables.to.not.match,
+                           variables.to.omit, data.sets, required.data.sets)
 {
+    never.matched.names <- parseVariablesToNotMatch(variables.to.not.match)
+
     # matched.names is a matrix where the columns correspond to the data
     # sets and each row contains the names of variables that have been matched
     # together. NA is used if a variable is absent in a match.
     matched.names <- matrix(nrow = 0, ncol = variable.metadata$n.data.sets)
     matched.names <- applyManualMatches(matched.names,
-                                             variable.metadata,
-                                             manual.matches,
-                                             variables.to.omit)
+                                        variable.metadata,
+                                        variables.to.match,
+                                        variables.to.not.match,
+                                        variables.to.omit)
     checkVariablesToOmit(variable.metadata, variables.to.omit)
 
     if (match.by == "Variable names")
         matched.names <- matchVariableNames(matched.names,
                                             variable.metadata,
+                                            variables.to.not.match,
                                             variables.to.omit)
     else if (match.by == "Variable labels")
     {
         matched.names <- matchVariableLabels(matched.names,
-                                                  variable.metadata,
-                                                  variables.to.omit)
+                                             variable.metadata,
+                                             variables.to.omit)
     }
     else if (match.by == "Variable and value labels")
     {
@@ -268,13 +264,68 @@ matchVariables <- function(variable.metadata, match.by, min.match.percentage,
     matched.names
 }
 
-applyManualMatches <- function(matched.names, variable.metadata,
-                               manual.matches, variables.to.omit)
+
+parseVariablesToNotMatch <- function(variables.to.not.match, variable.metadata)
 {
-    if (is.null(manual.matches))
+    var.names <- variable.metadata$variable.names
+    n.data.sets <- variable.metadata$n.data.sets
+    result <- matrix(nrow = 0, ncol = n.data.sets)
+    for (i in seq_along(variables.to.not.match))
+    {
+        split.text <- trimws(strsplit(t, ",")[[1]])
+        split.text <- split.text[split.text != ""]
+        if (length(split.text) != 2)
+            stop("A pair of variables or variable ranges need to be specified ",
+                 "for the variables to not match.")
+        dash.ind.1 <- match("-", strsplit(split.text[1], "")[[1]])
+        dash.ind.2 <- match("-", strsplit(split.text[2], "")[[1]])
+        if (is.na(dash.ind.1) && !is.na(dash.ind.2) ||
+            !is.na(dash.ind.1) && is.na(dash.ind.2))
+            stop("Ranges need to be specified for either none or both of the ",
+                 "inputs to variables to not match.")
+        else if (is.na(dash.ind.1) && is.na(dash.ind.2))
+        {
+            data.set.ind.1 <- parseDataSetIndex(split.text[1])
+            data.set.ind.2 <- parseDataSetIndex(split.text[2])
+            if (is.na(data.set.ind.1) || is.na(data.set.ind.2))
+                stop("Data set indices need to be specified for the variables ",
+                     "to not match, e.g. 'Q2(2)' for variable 'Q2' from data ",
+                     "2.")
+            nm.1 <- removeDataSetIndex(split.text[1])
+            nm.2 <- removeDataSetIndex(split.text[2])
+            if (!(nm.1 %in% var.names[[data.set.ind.1]]))
+                stop("Variable ", nm.1, " (variable to not match) could not ",
+                     "be found in data set ", data.set.ind.1)
+            if (!(nm.2 %in% var.names[[data.set.ind.2]]))
+                stop("Variable ", nm.2, " (variable to not match) could not ",
+                     "be found in data set ", data.set.ind.2)
+            new.row <- rep(NA_character_, n.data.sets)
+            new.row[data.set.ind.1] <-
+            result <- rbind(result, new.row)
+        }
+        else # ranges
+        {
+
+        }
+    }
+    result
+
+
+    # lapply(variables.to.not.match, function(t) {
+    #     split.text <- trimws(strsplit(t, ",")[[1]])
+    #     split.text <- split.text[split.text != ""]
+    #
+    # })
+}
+
+applyManualMatches <- function(matched.names, variable.metadata,
+                               variables.to.match, variables.to.not.match,
+                               variables.to.omit)
+{
+    if (is.null(variables.to.match))
         return (matched.names)
 
-    for (match.text in manual.matches)
+    for (match.text in variables.to.match)
     {
         manual.matched.names <- parseManualMatchText(match.text,
                                                      variable.metadata,
@@ -282,13 +333,13 @@ applyManualMatches <- function(matched.names, variable.metadata,
         matched.names <- rbind(matched.names,
                                manual.matched.names)
     }
-    checkMatchForDuplication(matched.names, manual.matches)
+    checkMatchForDuplication(matched.names, variables.to.match)
 
     matched.names
 }
 
 # Parses a string of comma-separated variable names to be manually matched
-# and returns a list of character vectors containing matched variable names
+# and returns matrix of matched names where columns correspond to input data
 parseManualMatchText <- function(manual.match.text, variable.metadata,
                                  variables.to.omit)
 {
@@ -413,7 +464,6 @@ parseManualMatchText <- function(manual.match.text, variable.metadata,
                     source.text[data.set.ind] <- input.text
                     is.var.found <- TRUE
                 }
-
             }
         }
     }
@@ -450,7 +500,8 @@ parseManualMatchText <- function(manual.match.text, variable.metadata,
             nms
     }, character(n.var))
 
-    # If there is only one variable, vapply returns a vector
+    # If there is only one variable, vapply returns a vector,
+    # so we need to transpose
     if (!is.matrix(result))
         t(result)
     else
