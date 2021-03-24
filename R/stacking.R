@@ -52,6 +52,7 @@ StackData <- function(data.set.name,
     result$stacked.variable.names <- stacked.variable.names
     result$stacked.variable.labels <- stacked.variable.labels
     result$stacking.array <- stacking.array
+    result$stacked.indices <- stacked.indices
     class(result) <- "StackedData"
     result
 }
@@ -219,5 +220,6 @@ print.StackedData <- function(x, ...)
 {
     StackingWidget(x$stacked.variable.names,
                    x$stacked.variable.labels,
-                   x$stacking.array)
+                   x$stacking.array,
+                   x$stacked.indices)
 }
