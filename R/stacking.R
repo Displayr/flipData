@@ -1,5 +1,6 @@
 #' @export
-StackData <- function(data.set.name,
+StackData <- function(input.data.set.name,
+                      stacked.data.set.name = NULL,
                       specify.by = NULL,
                       common.labels = NULL,
                       variables.to.stack = NULL,
@@ -47,6 +48,8 @@ StackData <- function(data.set.name,
     # Omit variables
 
     # Write stacked data set
+    stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
+                                                     input.data.set.name)
 
     result <- list()
     result$stacked.variable.names <- stacked.variable.names
@@ -212,6 +215,25 @@ getCommonPrefix <- function(nms)
             break
     }
     common_prefix
+}
+
+cleanStackedDataSetName <- function(stacked.data.set.name, input.data.set.name)
+{
+    if (is.null(stacked.data.set.name) || stacked.data.set.name == "")
+    {
+        if (grepl("\\.sav$", input.data.set.name))
+        {
+            n <- nchar(input.data.set.name)
+            name.without.sav <- substr(input.data.set.name, 1, n - 4)
+            return(paste0(name.without.sav, " stacked.sav"))
+        }
+        else
+            return(paste0(input.data.set.name, " stacked.sav"))
+    }
+    else if (!grepl("\\.sav$", stacked.data.set.name))
+        return(paste0(stacked.data.set.name, ".sav"))
+    else
+        return(stacked.data.set.name)
 }
 
 #' @importFrom flipFormat StackingWidget
