@@ -213,7 +213,7 @@ getCommonPrefix <- function(nms)
     common_prefix
 }
 
-#' @importFrom flipFormat DataSetMergingWidget
+#' @importFrom flipFormat StackingWidget
 #' @export
 print.StackedData <- function(x, ...)
 {
