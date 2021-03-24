@@ -9,12 +9,14 @@ MergeDataSetsByCase(
   merged.data.set.name = NULL,
   match.by = "Automatic",
   min.match.percentage = 100,
-  manual.matches = NULL,
+  variables.to.match = NULL,
+  variables.to.not.match = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
   write.data.set = TRUE,
   prioritize.early.data.sets = TRUE,
-  category.value.with.multiple.labels = "Use first label"
+  category.value.with.multiple.labels = "Use first label",
+  required.data.sets = NULL
 )
 }
 \arguments{
@@ -31,11 +33,15 @@ Variable and value labels}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
-\item{manual.matches}{A character vector of comma-separated variable names
-indicating which variables are to be matched together. Ranges of variables
-can be specified by separating variable names by '-'. Variables can be
-specified from specific data sets by appending '(x)' to the variable name
-where x is the data set index.}
+\item{variables.to.match}{A character vector of pairs of comma-separated
+variable names indicating which variables are to be matched together.
+Ranges of variables can be specified by separating variable names by '-'.
+Variables can be specified from specific data sets by appending '(x)' to
+the variable name where x is the data set index.}
+
+\item{variables.to.not.match}{A character vector of comma-separated variable
+names specifying variables that should never be matched together, with
+variable names suffixed with the data set index in parentheses, e.g., 'Q2(3)'.}
 
 \item{variables.to.omit}{A list of character vectors containing names of
 variables to omit from the merged data set. The vectors in the list
@@ -54,6 +60,9 @@ set in the output.}
 \item{category.value.with.multiple.labels}{How to deal with a single category value
 with multiple labels. Either "Use first label" or "Create new values" for
 each label.}
+
+\item{required.data.sets}{A logical vector indicating the data sets that
+each variable in the merged data set is required to contain values from.}
 }
 \description{
 Merges multiple data sets by case where the data sets contain

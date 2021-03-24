@@ -1,3 +1,4 @@
+#' @export
 StackData <- function(data.set.name,
                       specify.by = NULL,
                       common.labels = NULL,
@@ -51,7 +52,7 @@ StackData <- function(data.set.name,
     result$stacked.variable.names <- stacked.variable.names
     result$stacked.variable.labels <- stacked.variable.labels
     result$stacking.array <- stacking.array
-
+    class(result) <- "StackedData"
     result
 }
 
@@ -212,3 +213,11 @@ getCommonPrefix <- function(nms)
     common_prefix
 }
 
+#' @importFrom flipFormat DataSetMergingWidget
+#' @export
+print.StackedData <- function(x, ...)
+{
+    StackingWidget(x$stacked.variable.names,
+                   x$stacked.variable.labels,
+                   x$stacking.array)
+}
