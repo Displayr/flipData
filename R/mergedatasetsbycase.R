@@ -154,11 +154,9 @@ writeDataSet <- function(data.set, data.set.name)
         write_sav(data.set, data.set.name)
 }
 
-dataSetName <- function(data.set.name.or.path)
+dataSetNameWithoutPath <- function(data.set.name.or.path)
 {
-    if (is.null(data.set.name.or.path))
-        "Merged data set"
-    else if (canAccessDisplayrCloudDrive())
+    if (canAccessDisplayrCloudDrive())
         data.set.name.or.path
     else
         basename(data.set.name.or.path)
@@ -209,7 +207,7 @@ metadataFromDataSets <- function(data.sets)
          n.data.sets = length(data.sets))
 }
 
-metadataFromDataSet <- function(data.set)
+metadataFromDataSet <- function(data.set, data.set.name)
 {
     list(variable.names = names(data.set),
          variable.labels = vapply(data.set, function(v) {
@@ -219,7 +217,8 @@ metadataFromDataSet <- function(data.set)
          variable.types = vapply(data.set, variableType, character(1)),
          variable.categories = lapply(data.set, attr, "labels",
                                       exact = TRUE),
-         n.variables = length(data.set))
+         n.variables = length(data.set),
+         data.set.name = dataSetNameWithoutPath(data.set.name))
 }
 
 matchVariables <- function(input.data.set.metadata, match.by,
@@ -1449,9 +1448,9 @@ outputForMergeDataSetsByCase <- function(merged.data.set, input.data.set.metadat
         result$merged.data.set <- merged.data.set
 
     result$input.data.set.metadata <- input.data.set.metadata
-    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set)
+    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
+                                                           merged.data.set.name)
     result$merge.map <- merge.map
-    result$merged.data.set.name <- dataSetName(merged.data.set.name)
     result$omitted.variables <- omittedVariables(input.data.set.metadata, merge.map)
     result$input.category.values <- lapply(merged.data.set, attr, "input.category.values")
     class(result) <- "MergeDataSetByCase"
@@ -1474,7 +1473,6 @@ print.MergeDataSetByCase <- function(x, ...)
     DataSetMergingWidget(x$input.data.set.metadata,
                          x$merged.data.set.metadata,
                          x$merge.map,
-                         x$merged.data.set.name,
                          x$omitted.variables,
                          x$input.category.values)
 }

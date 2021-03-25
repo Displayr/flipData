@@ -9,7 +9,7 @@ StackData(
   stacked.data.set.name = NULL,
   common.labels = NULL,
   specify.by = NULL,
-  variables.to.manually.stack = NULL,
+  manual.stacking = NULL,
   variables.to.omit = NULL
 )
 }
@@ -25,11 +25,16 @@ identify variables to stack. To be identified, a set of variables to be
 stacked must contain these labels, have the same prefix and suffix before
 and after these labels and be contiguous.}
 
-\item{specify.by}{To be filled}
+\item{specify.by}{"Variable" or "Case"}
 
-\item{variables.to.omit}{To be filled}
+\item{manual.stacking}{To be filled}
 
-\item{variables.to.stack}{To be filled}
+\item{variables.to.omit}{String of comma-separated variable names to omit.
+Variable ranges can be specified by supplying the start and end variables
+separated by a dash '-'. If the start or end variables are left out, then
+the range is assumed to start from the first variable or end at the last
+variable respectively. Wildcards in variable names can be specified
+with an asterisk '*'.}
 }
 \description{
 Stacks variables in a data set.
