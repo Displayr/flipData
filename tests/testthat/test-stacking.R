@@ -10,7 +10,9 @@ common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
                    "Diet Pepsi", "Pepsi Max", "None of these")
 
 test_that("stacking", {
-    StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
+    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
+
+    # Check stacked values!
 })
 
 test_that("omitted variables", {
@@ -46,7 +48,8 @@ test_that("omitted variables", {
                              variables.to.omit = "not_*_variable"),
                    paste0("No matches were found for the wildcard variable ",
                           "name 'not_*_variable'. Ensure that the wildcard ",
-                          "variable name has been correctly specified."))
+                          "variable name has been correctly specified."),
+                   fixed = TRUE)
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              common.labels = common.labels,
@@ -55,4 +58,69 @@ test_that("omitted variables", {
                           "'not-range' could not be identified. The input ",
                           "range has been ignored. Ensure that the variable ",
                           "name is correctly specified."))
+})
+
+test_that("manual stacking by variables", {
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        common.labels = common.labels,
+                        specify.by = "Variable",
+                        manual.stacking = c("Q6_*, NA", "Q9_A, Q9_B, Q9_C-Q9_F"))
+
+    md <- result$stacked.data.set.metadata
+    expect_true("Q6_" %in% md$variable.names)
+    expect_true("Q9_" %in% md$variable.names)
+    expect_true(md$is.stacked.variable["Q6_"])
+    expect_true(md$is.stacked.variable["Q9_"])
+    expect_equal(md$stacking.input.variable.names[["Q6_"]],
+                 c("Q6_A", "Q6_B", "Q6_C", "Q6_D", "Q6_E", "Q6_F", NA))
+    expect_equal(md$stacking.input.variable.names[["Q9_"]],
+                 c("Q9_A", "Q9_B", "Q9_C", "Q9_D", "Q9_E", "Q9_F", NA))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Variable",
+                             manual.stacking = "Q6_A, Q6_B, not_a_variable"),
+                   paste0("The manual stacking input varible name ",
+                          "'not_a_variable' could not be identified. The ",
+                          "manual stacking input 'Q6_A, Q6_B, not_a_variable'",
+                          "has been ignored."))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Variable",
+                             manual.stacking = c("Q6_*", "Q6_A-Q6_F")),
+                   paste0("The manual stacking input 'Q6_A, Q6_*' has been ",
+                          "ignored as it contains duplicate entries for ",
+                          "'Q6_A'."), fixed = TRUE)
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Variable",
+                             manual.stacking = "Q6_A, Q6_*"),
+                   paste0("The manual stacking input 'Q6_A-Q6_F' has been ",
+                          "ignored as it contains variable(s) that overlap ",
+                          "with another manual stacking input 'Q6_*'."),
+                   fixed = TRUE)
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Variable",
+                             manual.stacking = "Q6_A,not_*_variable"),
+                   paste0("No matches were found for the manual stacking ",
+                          "input wildcard name 'not_*_variable'. Ensure that ",
+                          "the wildcard variable name has been correctly ",
+                          "specified. The manual stacking input ",
+                          "'Q6_A,not_*_variable' has been ignored."),
+                   fixed = TRUE)
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Variable",
+                             manual.stacking = "Q6_A-not_a_variable"),
+                   paste0("The end variable from the manual stacking input ",
+                          "range 'Q6_A-not_a_variable' could not be ",
+                          "identified. The manual stacking input ",
+                          "'Q6_A-not_a_variable' has been ignored. ",
+                          "Ensure that the variable name is correctly ",
+                          "specified."))
 })

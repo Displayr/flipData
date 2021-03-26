@@ -33,8 +33,8 @@ StackData <- function(input.data.set.name,
 
     stacking.groups <- stackWithCommonLabels(common.labels,
                                              input.data.set.metadata)
-    # stacking.groups <- stackManually(stacking.groups, manual.stacking,
-    #                                  specify.by, input.data.set.metadata)
+    stacking.groups <- stackManually(stacking.groups, manual.stacking,
+                                     specify.by, input.data.set.metadata)
 
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
                                        stacking.groups, variables.to.omit)
@@ -67,6 +67,9 @@ StackData <- function(input.data.set.name,
 # Manual stacking specified by case
 # Automatic common labels
 
+# Find groups of variables to stack given the common labels.
+# A group of variables to stack would have labels that contain the common
+# labels along with the same prefix and suffix.
 stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 {
     if (is.null(common.labels) || length(common.labels) == 0)
@@ -144,36 +147,160 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
     if (length(unstackable.ind) > 0)
         stacking.groups <- stacking.groups[-unstackable.ind, ]
     attr(stacking.groups, "unstackable.names") <- unstackable.names
+    attr(stacking.groups, "is.manually.stacked") <- rep(FALSE,
+                                                       nrow(stacking.groups))
     stacking.groups
 }
 
 stackManually <- function(stacking.groups, manual.stacking,
                           specify.by, input.data.set.metadata)
 {
-    if (is.null(manual.stacking))
+    if (is.null(manual.stacking) || length(manual.stacking) == 0 ||
+        manual.stacking == "")
         return(stacking.groups)
 
     variable.names <- input.data.set.metadata$variable.names
 
+    na.ind <- match("NA", variable.names)
+    has.na.variable <- !is.na(na.ind)
+    if (has.na.variable)
+        warning("There is an input variable named 'NA'. To avoid confusion, ",
+                "missing stacking variables need to be specified with an ",
+                "extra slash for this data set, i.e., N/A")
+
     stacking.groups <- if (specify.by == "Variable")
         stackingSpecifiedByVariable(stacking.groups, manual.stacking,
-                                    variable.names)
+                                    variable.names, has.na.variable)
     else
         stackingSpecifiedByCase(stacking.groups, manual.stacking,
-                                variable.names)
+                                variable.names, has.na.variable)
 }
 
 stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
-                                        variable.names)
+                                        variable.names, has.na.variable)
 {
+    permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
+
+    manual.stacking.groups <- list()
+    manual.stacking.groups.text <- character(0)
+
     for (input.text in manual.stacking)
     {
+        on.fail <- paste0("The manual stacking input '", input.text,
+                          "' has been ignored.")
+        split.text <- splitByComma(input.text)
 
+        group.names <- character(0)
+        for (t in split.text)
+        {
+            # deal with NA
+            parsed <- if (t %in% permitted.na)
+                NA_character_
+            else if (grepl("-", t, fixed = TRUE)) # contains range
+                parseRange(t, variable.names, "manual stacking", on.fail)
+            else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+                parseWildcard(t, variable.names, "manual stacking", on.fail)
+            else
+                parseVariableName(t, variable.names, "manual stacking",
+                                  on.fail)
+            if (length(parsed) == 0)
+            {
+                group.names <- NULL
+                break
+            }
+            else
+                group.names <- c(group.names, parsed)
+        }
+        if (is.null(group.names))
+            next
+
+        if (all(is.na(group.names)))
+        {
+            warning("The manual stacking input '", input.text,
+                    "' has been ignored as it does not contain any variables.")
+            next
+        }
+
+        # Check for duplicate variables
+        dup <- duplicated(removeNA(group.names))
+        if (any(dup))
+        {
+            warning("The manual stacking input '", input.text,
+                    "' has been ignored as it contains duplicate entries for ",
+                    paste0("'", removeNA(group.names)[dup], "'",
+                           collapse = ", "), ".")
+            next
+        }
+
+        # Remove trailing NA
+        ind <- which(!is.na(group.names))
+        group.names <- group.names[seq_len(ind[length(ind)])]
+
+        group.ind <- vapply(group.names, match, integer(1), variable.names)
+
+        # Check for overlap with previous manual stacking inputs
+        if (length(manual.stacking.groups) > 0)
+        {
+            group.ind.without.na <- removeNA(group.ind)
+            overlap.ind <- which(vapply(manual.stacking.groups, function(manual.group) {
+                any(group.ind.without.na %in% manual.group)
+            }, logical(1)))
+            if (length(overlap.ind) > 0)
+            {
+                warning("The manual stacking input '", input.text,
+                        "' has been ignored as it contains variable(s) that ",
+                        "overlap with another manual stacking input '",
+                        manual.stacking.groups.text[overlap.ind[1]], "'.")
+                next
+            }
+        }
+
+        manual.stacking.groups <- c(manual.stacking.groups, list(group.ind))
+        manual.stacking.groups.text <- c(manual.stacking.groups.text,
+                                         input.text)
     }
+    if (length(manual.stacking.groups) == 0)
+        return(stacking.groups)
+
+    # Remove rows in stacking.groups that contain overlap with
+    # manual.stacking.groups
+    for (manual.group in manual.stacking.groups)
+    {
+        manual.group.without.na <- removeNA(manual.group)
+        is.overlapping <- apply(stacking.groups, 1, function(group) {
+            any(manual.group.without.na %in% group)
+        })
+        stacking.groups <- stacking.groups[!is.overlapping, ]
+    }
+
+    # Increase number of columns in stacking.groups if necessary to fit
+    # manual.stacking.groups
+    n.rows <- nrow(stacking.groups)
+    n.cols <- ncol(stacking.groups)
+    max.stacking <- max(max(vapply(manual.stacking.groups, length, integer(1))),
+                        n.cols)
+    new.stacking.groups <- matrix(nrow = n.rows, ncol = max.stacking)
+    new.stacking.groups[seq_len(n.rows), seq_len(n.cols)] <- stacking.groups
+    stacking.groups <- new.stacking.groups
+
+    # Append manual.stacking.groups to stacking.groups
+    for (manual.group in manual.stacking.groups)
+    {
+        new.group <- rep(NA_integer_, max.stacking)
+        new.group[seq_along(manual.group)] <- manual.group
+        stacking.groups <- rbind(stacking.groups, new.group)
+    }
+
+    n.manual.stacking <- length(manual.stacking.groups)
+    is.manually.stacked <- c(rep(FALSE, nrow(stacking.groups) - n.manual.stacking),
+                             rep(TRUE, n.manual.stacking))
+    attr(stacking.groups, "is.manually.stacked") <- is.manually.stacked
+
+    stacking.groups
 }
 
 stackingSpecifiedByCase <- function(stacking.groups, manual.stacking,
-                                    input.data.set.metadata)
+                                    variable.names, has.na.variable)
 {
 
 }
@@ -187,7 +314,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                                         input.data.set.metadata$n.variables)
     stacked.indices <- stackedIndices(stacking.groups, retained.indices)
 
-    # refactor this, don't like the name "stackedVariableText"
+    # TODO: refactor this, don't like the name "stackedVariableText"
     stacked.data.set.var.names <- stackedVariableText(stacking.groups,
                                                       input.var.names,
                                                       retained.indices,
@@ -198,6 +325,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                                                        stacked.indices)
 
     n.stacked <- ncol(stacking.groups)
+    is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
     stacked.data.set <- data.frame(lapply(seq_along(stacked.data.set.var.names), function(i) {
         ind <- match(i, stacked.indices)
         if (!is.na(ind)) # Stacked variable
@@ -210,6 +338,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                     rep(NA, nrow(input.data.set))
             }))
             attr(v, "is.stacked") <- TRUE
+            attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.var.names[group.ind]
             attr(v, "stacking.input.variable.labels") <- input.var.labels[group.ind]
             categories <- attr(input.data.set[[removeNA(group.ind)[1]]],
@@ -220,6 +349,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             input.var <- input.data.set[[stacked.data.set.var.names[i]]]
             v <- rep(input.var, n.stacked)
             attr(v, "is.stacked") <- FALSE
+            attr(v, "is.manually.stacked") <- NA
             categories <- attr(input.var, "labels", exact = TRUE)
         }
         attr(v, "label") <- stacked.data.set.var.labels[i]
@@ -247,10 +377,11 @@ retainedIndices <- function(stacking.groups, n.vars)
 # Indices of stacked variables in stacked data set
 stackedIndices <- function(stacking.groups, retained.indices)
 {
-    stacking.ind <- vapply(seq_len(nrow(stacking.groups)), function(i) {
-        ind <- removeNA(stacking.groups[i, ])
-        ind <- ind[which.min(ind)]
-    }, integer(1))
+    # TODO: rename stacking.ind to avoid confusion with stacked.indices
+    stacking.ind <- apply(stacking.groups, 1, function(group.ind) {
+        ind <- removeNA(group.ind)
+        ind[which.min(ind)]
+    })
 
     vapply(stacking.ind, match, integer(1), retained.indices)
 }
@@ -259,15 +390,15 @@ stackedVariableText <- function(stacking.groups, variable.text,
                                 retained.indices, stacked.indices,
                                 prevent.duplicates = FALSE)
 {
-    stacked.text <- vapply(seq_len(nrow(stacking.groups)), function(i) {
-        ind <- removeNA(stacking.groups[i, ])
+    stacked.text <- apply(stacking.groups, 1, function(group.ind) {
+        ind <- removeNA(group.ind)
         text <- variable.text[ind]
         common.prefix <- trimws(getCommonPrefix(text))
         if (common.prefix != "")
             common.prefix
         else
             "stacked_var"
-    }, character(1))
+    })
 
     result <- variable.text[retained.indices]
     result[stacked.indices] <- stacked.text
@@ -312,20 +443,23 @@ parseVariablesToOmit <- function(variables.to.omit, variable.names)
         variables.to.omit == "")
         return(character(0))
 
+    purpose <- "omitted variable"
+
     result <- character(0)
     for (input.text in variables.to.omit)
     {
-        split.text <- trimws(strsplit(input.text, ",")[[1]])
-        split.text <- split.text[split.text != ""]
-
+        split.text <- splitByComma(input.text)
         for (t in split.text)
         {
             result <- if (grepl("-", t, fixed = TRUE)) # contains range
-                c(result, parseRange(t, variable.names))
+                c(result, parseRange(t, variable.names, purpose,
+                                     "The input range has been ignored."))
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                c(result, parseWildcard(t, variable.names))
+                c(result, parseWildcard(t, variable.names, purpose,
+                                        "This input has been ignored."))
             else
-                c(result, parseVariableName(t, variable.names))
+                c(result, parseVariableName(t, variable.names, purpose,
+                                            "This input has been ignored."))
         }
     }
 
@@ -333,23 +467,23 @@ parseVariablesToOmit <- function(variables.to.omit, variable.names)
     result[order(vapply(result, match, integer(1), variable.names))]
 }
 
-parseRange <- function(range.text, variable.names)
+parseRange <- function(range.text, variable.names, purpose, on.fail)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
     start.var.text <- trimws(substr(range.text, 1, dash.ind - 1))
     end.var.text <- trimws(substr(range.text, dash.ind + 1, nchar(range.text)))
     if (grepl("*", start.var.text, fixed = TRUE))
     {
-        warning("The start variable from the input range '", range.text, "' ",
-                "contains the wildcard character '*' which is not permitted ",
-                "in a range. The input range has been ignored.")
+        warning("The start variable from the ", purpose, " input range '",
+                range.text, "' contains the wildcard character '*' which is ",
+                "not permitted in a range. ", on.fail)
         return(character(0))
     }
     if (grepl("*", end.var.text, fixed = TRUE))
     {
-        warning("The end variable from the input range '", range.text, "' ",
-                "contains the wildcard character '*' which is not permitted ",
-                "in a range. The input range has been ignored.")
+        warning("The end variable from the ", purpose, " input range '",
+                range.text, "' contains the wildcard character '*' which is ",
+                "not permitted in a range. ", on.fail)
         return(character(0))
     }
 
@@ -365,31 +499,31 @@ parseRange <- function(range.text, variable.names)
 
     if (is.na(start.ind))
     {
-        warning("The start variable from the input range '", range.text, "' ",
-                "could not be identified. The input range has been ignored. ",
-                "Ensure that the variable name is correctly specified.")
+        warning("The start variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ",on.fail,
+                " Ensure that the variable name is correctly specified.")
         return(character(0))
     }
     if (is.na(end.ind))
     {
-        warning("The end variable from the input range '", range.text, "' ",
-                "could not be identified. The input range has been ignored. ",
-                "Ensure that the variable name is correctly specified.")
+        warning("The end variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ",on.fail,
+                " Ensure that the variable name is correctly specified.")
         return(character(0))
     }
     if (start.ind > end.ind)
     {
-        warning("The start variable from the input range '", range.text, "' ",
-                "appears after the end variable in the data set. ",
-                "The input range has been ignored. Ensure that the range has ",
-                "been correctly specified.")
+        warning("The start variable from the ", purpose, "input range '",
+                range.text, "' ", "appears after the end variable in the ",
+                "data set. Ensure that the range has been correctly ",
+                "specified. ", on.fail)
         return(character(0))
     }
     variable.names[start.ind:end.ind]
 }
 
 #' @importFrom flipU EscapeRegexSymbols
-parseWildcard <- function(wildcard.text, variable.names)
+parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -400,22 +534,24 @@ parseWildcard <- function(wildcard.text, variable.names)
     is.match <- grepl(pattern, variable.names)
     if (!any(is.match))
     {
-        warning("No matches were found for the wildcard variable name '",
+        warning("No matches were found for the ", purpose,
+                " input wildcard name '",
                 wildcard.text, "'. Ensure that the wildcard variable name ",
-                "has been correctly specified.")
+                "has been correctly specified. ", on.fail)
         return(character(0))
     }
     variable.names[is.match]
 }
 
-parseVariableName <- function(variable.name.text, variable.names)
+parseVariableName <- function(variable.name.text, variable.names, purpose,
+                              on.fail)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text
     else
     {
-        warning("The input varible name '", variable.name.text,
-                "' could not be identified and has been ignored.")
+        warning("The ", purpose, " input varible name '", variable.name.text,
+                "' could not be identified. ", on.fail)
         return(character(0))
     }
 }
@@ -455,6 +591,8 @@ metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
     result <- metadataFromDataSet(stacked.data.set, stacked.data.set.name)
     result$is.stacked.variable <- vapply(stacked.data.set, attr, logical(1),
                                          "is.stacked")
+    result$is.manually.stacked.variable <- vapply(stacked.data.set, attr, logical(1),
+                                                  "is.manually.stacked")
     result$stacking.input.variable.names <- lapply(stacked.data.set, attr,
                                                    "stacking.input.variable.names")
     result$stacking.input.variable.labels <- lapply(stacked.data.set, attr,
@@ -470,6 +608,12 @@ allIdentical <- function(x)
 removeNA <- function(x)
 {
     x[!is.na(x)]
+}
+
+splitByComma <- function(input.text)
+{
+    split.text <- trimws(strsplit(input.text, ",")[[1]])
+    split.text[split.text != ""]
 }
 
 #' @importFrom flipFormat StackingWidget

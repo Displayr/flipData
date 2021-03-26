@@ -276,8 +276,7 @@ parseVariablesToNotMatch <- function(variables.to.not.match, input.data.set.meta
     result <- matrix(nrow = 0, ncol = n.data.sets)
     for (i in seq_along(variables.to.not.match))
     {
-        split.text <- trimws(strsplit(t, ",")[[1]])
-        split.text <- split.text[split.text != ""]
+        split.text <- splitByComma(t)
         if (length(split.text) != 2)
             stop("A pair of variables or variable ranges need to be specified ",
                  "for the variables to not match.")
@@ -350,9 +349,7 @@ parseManualMatchText <- function(manual.match.text, input.data.set.metadata,
     n.data.sets <- input.data.set.metadata$n.data.sets
     var.names <- input.data.set.metadata$variable.names
     data.set.names <- input.data.set.metadata$data.set.names
-
-    split.text <- trimws(strsplit(manual.match.text, ",")[[1]])
-    split.text <- split.text[split.text != ""]
+    split.text <- splitByComma(manual.match.text)
 
     if (sum(split.text != "") < 2)
         stop("The manual match input '", manual.match.text, "' is invalid as ",
