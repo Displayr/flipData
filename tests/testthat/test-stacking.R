@@ -9,6 +9,12 @@ findInstDirFile <- function(file)
 common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
                    "Diet Pepsi", "Pepsi Max", "None of these")
 
+test_that("no stacking", {
+    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
+
+    # check stuff!
+})
+
 test_that("stacking", {
     result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
 
@@ -123,4 +129,70 @@ test_that("manual stacking by variables", {
                           "'Q6_A-not_a_variable' has been ignored. ",
                           "Ensure that the variable name is correctly ",
                           "specified."))
+})
+
+test_that("manual stacking by observations", {
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        common.labels = common.labels,
+                        specify.by = "Observation",
+                        manual.stacking = c("Q6_A, Q9_A",
+                                            "Q6_B, Q9_B",
+                                            "Q6_C, Q9_C",
+                                            "Q6_D, Q9_D",
+                                            "Q6_E, Q9_E",
+                                            "Q6_F, Q9_F"))
+
+    md <- result$stacked.data.set.metadata
+    expect_true("Q6_" %in% md$variable.names)
+    expect_true("Q9_" %in% md$variable.names)
+    expect_true(md$is.stacked.variable["Q6_"])
+    expect_true(md$is.stacked.variable["Q9_"])
+    expect_equal(md$stacking.input.variable.names[["Q6_"]],
+                 c("Q6_A", "Q6_B", "Q6_C", "Q6_D", "Q6_E", "Q6_F", NA))
+    expect_equal(md$stacking.input.variable.names[["Q9_"]],
+                 c("Q9_A", "Q9_B", "Q9_C", "Q9_D", "Q9_E", "Q9_F", NA))
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        specify.by = "Observation",
+                        manual.stacking = c("Q5_*_1",
+                                            "Q5_*_2",
+                                            "Q5_*_3",
+                                            "Q5_*_4",
+                                            "Q5_*_5",
+                                            "Q5_*_6",
+                                            "Q5_*_7"))
+    md <- result$stacked.data.set.metadata
+    v.names <- c("Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_", "Q5_19_",
+                 "Q5_23_", "Q5_25_", "Q5_31_")
+    expect_true(all(v.names %in% md$variable.names))
+    expect_true(all(md$is.stacked.variable[v.names]))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Observation",
+                             manual.stacking = c("Q6_A, not_a_variable",
+                                                 "Q6_B, Q9_B")),
+                   paste0("The manual stacking input varible name ",
+                          "'not_a_variable' could not be identified. ",
+                          "No manual stacking was conducted."))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Observation",
+                             manual.stacking = c("Q6_A, Q6_A",
+                                                 "Q6_B, Q9_B")),
+                   paste0("No manual stacking was conducted as the manual ",
+                          "stacking input 'Q6_A, Q6_A' contains duplicate ",
+                          "entries for 'Q6_A'."), fixed = TRUE)
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             common.labels = common.labels,
+                             specify.by = "Observation",
+                             manual.stacking = c("Q6_A, Q9_A",
+                                                 "Q6_A, Q9_B")),
+                   paste0("No manual stacking was conducted as the manual ",
+                          "stacking input 'Q6_A, Q9_B' contains variable(s) ",
+                          "that overlap with another manual stacking input ",
+                          "'Q6_A, Q9_A'."),
+                   fixed = TRUE)
 })
