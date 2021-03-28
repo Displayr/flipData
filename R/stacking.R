@@ -16,6 +16,7 @@
 #'   the range is assumed to start from the first variable or end at the last
 #'   variable respectively. Wildcards in variable names can be specified
 #'   with an asterisk '*'.
+#' @param write.data.set Whether to write the stacked data set.
 #' @export
 StackData <- function(input.data.set.name,
                       stacked.data.set.name = NULL,
@@ -23,7 +24,8 @@ StackData <- function(input.data.set.name,
                       common.labels = NULL,
                       specify.by = NULL,
                       manual.stacking = NULL,
-                      variables.to.omit = NULL)
+                      variables.to.omit = NULL,
+                      write.data.set = TRUE)
 {
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
     input.data.set.metadata <- metadataFromDataSet(input.data.set,
@@ -55,7 +57,8 @@ StackData <- function(input.data.set.name,
 
     stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
                                                      input.data.set.name)
-    writeDataSet(stacked.data.set, stacked.data.set.name)
+    if (write.data.set)
+        writeDataSet(stacked.data.set, stacked.data.set.name)
 
     stacked.data.set.metadata <- metadataFromStackedDataSet(stacked.data.set,
                                                             stacked.data.set.name)
