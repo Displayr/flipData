@@ -38,6 +38,10 @@ StackData <- function(input.data.set.name,
             warning("Input common labels have been ignored as automatic ",
                     "common labels on.")
         common.labels <- automaticCommonLabels(input.data.set.metadata)
+        if (!write.data.set)
+        {
+            return(common.labels)
+        }
     }
 
     stacking.groups <- stackWithCommonLabels(common.labels,
