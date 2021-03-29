@@ -17,6 +17,8 @@
 #'   variable respectively. Wildcards in variable names can be specified
 #'   with an asterisk '*'.
 #' @param write.data.set Whether to write the stacked data set.
+#' @param include.stacked.data.set.in.output Whether to include the stacked
+#'   data set in the output.
 #' @export
 StackData <- function(input.data.set.name,
                       stacked.data.set.name = NULL,
@@ -25,7 +27,8 @@ StackData <- function(input.data.set.name,
                       specify.by = "Variable",
                       manual.stacking = NULL,
                       variables.to.omit = NULL,
-                      write.data.set = TRUE)
+                      write.data.set = TRUE,
+                      include.stacked.data.set.in.output = FALSE)
 {
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
     variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
@@ -83,11 +86,104 @@ StackData <- function(input.data.set.name,
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$omitted.variables <- c(parsed.variables.to.omit, parsed.variables.to.omit.2)
     result$omitted.stacked.variables <- omitted.stacked.variables
+
+    if (include.stacked.data.set.in.output)
+        result$stacked.data.set <- stacked.data.set
+
     class(result) <- "StackedData"
     result
 }
 
 # TODO: check for places where drop = FALSE is needed!
+
+readDataSets <- function(data.set.names, min.data.sets = 1)
+{
+    if (length(data.set.names) < min.data.sets)
+        stop("At least ", min.data.sets, " data set(s) are required.")
+
+    if (canAccessDisplayrCloudDrive())
+        readDataSetsFromDisplayrCloudDrive(data.set.names)
+    else
+        readLocalDataSets(data.set.names)
+}
+
+canAccessDisplayrCloudDrive <- function()
+{
+    company.secret <- get0("companySecret")
+    !is.null(company.secret) && company.secret != "UNKNOWN"
+}
+
+#' @importFrom haven read_sav
+readLocalDataSets <- function(data.set.paths)
+{
+    result <- lapply(data.set.paths, function(path) {
+        read_sav(path)
+    })
+    names(result) <- basename(data.set.paths)
+    result
+}
+
+#' @importFrom flipAPI QFileExists QLoadData
+readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
+{
+    result <- lapply(data.set.names, function(nm) {
+        if (!QFileExists(nm))
+            stop("The data file '", nm, "' does not exist in the Display ",
+                 "cloud drive. Ensure that the data file is in the Display ",
+                 "cloud drive and its name has been correctly specified.",
+                 call. = FALSE)
+        QLoadData(nm)
+    })
+    names(result) <- data.set.names
+    result
+}
+
+#' @importFrom haven write_sav
+#' @importFrom flipAPI QSaveData
+writeDataSet <- function(data.set, data.set.name)
+{
+    # Remove extra attributes that are not needed for writing
+    data.set <- data.frame(lapply(data.set, function(v) {
+        attr(v, "input.category.values") <- NULL
+        v
+    }))
+
+    if (canAccessDisplayrCloudDrive())
+        QSaveData(data.set, data.set.name)
+    else
+        write_sav(data.set, data.set.name)
+}
+
+dataSetNameWithoutPath <- function(data.set.name.or.path)
+{
+    if (canAccessDisplayrCloudDrive())
+        data.set.name.or.path
+    else
+        basename(data.set.name.or.path)
+}
+
+cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
+{
+    if (is.null(merged.data.set.name) ||
+        trimws(merged.data.set.name) == "")
+        "Merged data set.sav"
+    else
+    {
+        result <- trimws(merged.data.set.name)
+        if (!grepl("\\.sav$", merged.data.set.name))
+            result <- paste0(result, ".sav")
+        checkFileNameCharacters(result)
+        result
+    }
+}
+
+checkFileNameCharacters <- function(file.name)
+{
+    if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
+        stop("The file name '", file.name, "' is invalid as file names ",
+             "cannot contain the characters ",
+             "'<', '>', ':', '\"', '/', '\\', '|', '?', '*'.")
+}
 
 automaticCommonLabels <- function(input.data.set.metadata)
 {
@@ -254,7 +350,7 @@ stackManually <- function(stacking.groups, manual.stacking,
                           specify.by, input.data.set.metadata)
 {
     if (is.null(manual.stacking) || length(manual.stacking) == 0 ||
-        manual.stacking == "")
+        setequal(manual.stacking, ""))
         return(stacking.groups)
 
     variable.names <- input.data.set.metadata$variable.names
@@ -608,6 +704,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                 else
                     rep(NA, nrow(input.data.set))
             }))
+            v <- c(t(matrix(v, nrow = nrow(input.data.set))))
             attr(v, "is.stacked") <- TRUE
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.var.names[group.ind]
@@ -618,7 +715,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         else # Not stacked variable
         {
             input.var <- input.data.set[[stacked.data.set.var.names[i]]]
-            v <- rep(input.var, n.stacked)
+            v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
             categories <- attr(input.var, "labels", exact = TRUE)
@@ -737,7 +834,7 @@ getCommonSuffix <- function(nms)
 splitVariablesToOmitText <- function(variables.to.omit)
 {
     if (is.null(variables.to.omit) || length(variables.to.omit) == 0 ||
-        variables.to.omit == "")
+        setequal(variables.to.omit, ""))
         return(character(0))
 
     unlist(lapply(variables.to.omit, splitByComma))
@@ -930,6 +1027,20 @@ cleanStackedDataSetName <- function(stacked.data.set.name, input.data.set.name)
         return(stacked.data.set.name)
 }
 
+metadataFromDataSet <- function(data.set, data.set.name)
+{
+    list(variable.names = names(data.set),
+         variable.labels = vapply(data.set, function(v) {
+             lbl <- attr(v, "label", exact = TRUE)
+             ifelse(!is.null(lbl), lbl, "")
+         }, character(1)),
+         variable.types = vapply(data.set, variableType, character(1)),
+         variable.categories = lapply(data.set, attr, "labels",
+                                      exact = TRUE),
+         n.variables = length(data.set),
+         data.set.name = dataSetNameWithoutPath(data.set.name))
+}
+
 metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
 {
     result <- metadataFromDataSet(stacked.data.set, stacked.data.set.name)
@@ -942,6 +1053,33 @@ metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
     result$stacking.input.variable.labels <- lapply(stacked.data.set, attr,
                                                     "stacking.input.variable.labels")
     result
+}
+
+variableType <- function(variable)
+{
+    if (is.null(variable))
+        NA_character_
+    else if (!is.null(attr(variable, "labels", exact = TRUE)))
+    {
+        if (is.numeric(attr(variable, "labels", exact = TRUE)))
+            "Categorical"
+        else
+            "Categorical with string values"
+    }
+    else if (is.numeric(variable))
+        "Numeric"
+    else if (is.character(variable))
+        "Text"
+    else if (inherits(variable, "POSIXct") ||
+             inherits(variable, "POSIXt") ||
+             inherits(variable, "Date"))
+        "Date/Time"
+    else if (inherits(variable, "difftime"))
+        "Duration"
+    else
+    {
+        stop("Variable type not recognised")
+    }
 }
 
 allIdentical <- function(x)

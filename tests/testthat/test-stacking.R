@@ -12,13 +12,26 @@ common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
 test_that("no stacking", {
     result <- StackData(findInstDirFile("Cola.sav"), automatic.common.labels = FALSE)
     expect_false(any(result$stacked.data.set.metadata$is.stacked.variable))
-    # check stuff!
+    expect_equal(result$stacked.data.set.metadata$n.variables, 198)
 })
 
-test_that("stacking", {
-    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
-
-    # Check stacked values!
+test_that("common label stacking", {
+    result.auto <- StackData(findInstDirFile("Cola.sav"))
+    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels,
+                        automatic.common.labels = FALSE,
+                        include.stacked.data.set.in.output = TRUE)
+    expect_true(all(c("Q1_", "Q5_5_", "Q5_7_") %in%
+                        result.auto$stacked.data.set.metadata$variable.names))
+    expect_true(all(c("Q1.", "Q5. [feminine]", "Q5. [health-conscious]") %in%
+                        result.auto$stacked.data.set.metadata$variable.labels))
+    expect_true(setequal(result.auto$stacked.data.set.metadata$variable.names,
+                         result$stacked.data.set.metadata$variable.names))
+    input <- readDataSets(findInstDirFile("Cola.sav"))[[1]]
+    expect_equal(c(result$stacked.data.set$Q1_),
+                 c(rbind(input$Q1_F, input$Q1_E, input$Q1_D, input$Q1_C,
+                         input$Q1_A, input$Q1_B, rep(NA, nrow(input)))))
+    expect_equal(as.numeric(result$stacked.data.set$Q2),
+                 as.numeric(rep(input$Q2, each = 7)))
 })
 
 test_that("omitted variables", {

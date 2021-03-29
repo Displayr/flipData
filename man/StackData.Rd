@@ -9,10 +9,11 @@ StackData(
   stacked.data.set.name = NULL,
   automatic.common.labels = TRUE,
   common.labels = NULL,
-  specify.by = NULL,
+  specify.by = "Variable",
   manual.stacking = NULL,
   variables.to.omit = NULL,
-  write.data.set = TRUE
+  write.data.set = TRUE,
+  include.stacked.data.set.in.output = FALSE
 )
 }
 \arguments{
@@ -25,7 +26,7 @@ the Displayr Cloud Drive (if run from Displayr) or saved locally.}
 \item{common.labels}{A character vector of common labels to be used to
 identify variables to stack. To be identified, a set of variables to be
 stacked must contain these labels, have the same prefix and suffix before
-and after these labels and be contiguous.}
+and after these labels.}
 
 \item{specify.by}{"Variable" or "Observation".}
 
@@ -39,6 +40,9 @@ variable respectively. Wildcards in variable names can be specified
 with an asterisk '*'.}
 
 \item{write.data.set}{Whether to write the stacked data set.}
+
+\item{include.stacked.data.set.in.output}{Whether to include the stacked
+data set in the output.}
 }
 \description{
 Stacks variables in a data set.
