@@ -22,7 +22,7 @@ StackData <- function(input.data.set.name,
                       stacked.data.set.name = NULL,
                       automatic.common.labels = TRUE,
                       common.labels = NULL,
-                      specify.by = NULL,
+                      specify.by = "Variable",
                       manual.stacking = NULL,
                       variables.to.omit = NULL,
                       write.data.set = TRUE)
@@ -268,15 +268,19 @@ stackManually <- function(stacking.groups, manual.stacking,
 
     stacking.groups <- if (specify.by == "Variable")
         stackingSpecifiedByVariable(stacking.groups, manual.stacking,
-                                    variable.names, has.na.variable)
+                                    input.data.set.metadata, has.na.variable)
     else
         stackingSpecifiedByObservation(stacking.groups, manual.stacking,
-                                       variable.names, has.na.variable)
+                                       input.data.set.metadata, has.na.variable)
 }
 
 stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
-                                        variable.names, has.na.variable)
+                                        input.data.set.metadata, has.na.variable)
 {
+    v.names <- input.data.set.metadata$variable.names
+    v.types <- input.data.set.metadata$variable.types
+    v.categories <- input.data.set.metadata$variable.categories
+
     permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
 
     manual.stacking.groups <- list()
@@ -295,11 +299,11 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, variable.names, "manual stacking", on.fail)
+                parseRange(t, v.names, "manual stacking", on.fail)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, variable.names, "manual stacking", on.fail)
+                parseWildcard(t, v.names, "manual stacking", on.fail)
             else
-                parseVariableName(t, variable.names, "manual stacking",
+                parseVariableName(t, v.names, "manual stacking",
                                   on.fail)
             if (length(parsed) == 0)
             {
@@ -334,7 +338,17 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
         ind <- which(!is.na(group.names))
         group.names <- group.names[seq_len(ind[length(ind)])]
 
-        group.ind <- vapply(group.names, match, integer(1), variable.names)
+        group.ind <- vapply(group.names, match, integer(1), v.names)
+
+        # Check for mismatching variable types and categories
+        if (!allIdentical(v.types[removeNA(group.ind)]) ||
+            !allIdentical(v.categories[removeNA(group.ind)]))
+        {
+            warning("The manual stacking input '", input.text,
+                    "' has been ignored as it contains variables with ",
+                    "mismatching types or categories.")
+            next
+        }
 
         # Check for overlap with previous manual stacking inputs
         if (length(manual.stacking.groups) > 0)
@@ -401,7 +415,8 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
 }
 
 stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
-                                           variable.names, has.na.variable)
+                                           input.data.set.metadata,
+                                           has.na.variable)
 {
     if (length(manual.stacking) < 2)
     {
@@ -410,6 +425,10 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
                 "required.")
         return(stacking.groups)
     }
+
+    v.names <- input.data.set.metadata$variable.names
+    v.types <- input.data.set.metadata$variable.types
+    v.categories <- input.data.set.metadata$variable.categories
 
     permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
 
@@ -431,11 +450,11 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, variable.names, "manual stacking", on.fail)
+                parseRange(t, v.names, "manual stacking", on.fail)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, variable.names, "manual stacking", on.fail)
+                parseWildcard(t, v.names, "manual stacking", on.fail)
             else
-                parseVariableName(t, variable.names, "manual stacking",
+                parseVariableName(t, v.names, "manual stacking",
                                   on.fail)
             if (length(parsed) == 0)
                 return(stacking.groups)
@@ -466,7 +485,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
         obs.group.names <- obs.group.names[seq_len(ind[length(ind)])]
 
         obs.group.ind <- vapply(obs.group.names, match, integer(1),
-                                variable.names)
+                                v.names)
 
         # Check for overlap with previous manual stacking inputs
         if (length(manual.stacking.obs.groups) > 0)
@@ -494,6 +513,23 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
     if (is.null(stacking.groups))
         stacking.groups <- matrix(nrow = 0, ncol = 0)
 
+    n.manual.stacking <- max(vapply(manual.stacking.obs.groups, length,
+                                    integer(1)))
+
+    for (i in seq_len(n.manual.stacking))
+    {
+        ind <- removeNA(vapply(manual.stacking.obs.groups, `[`,
+                        integer(1), i))
+        if (!allIdentical(v.types[ind]) || !allIdentical(v.categories[ind]))
+        {
+            warning("No manual stacking was conducted as the manual ",
+                    "stacking input '", input.text, "' would result in the ",
+                    "stacking of variables with mismatching types or ",
+                    "categories.")
+            return(stacking.groups)
+        }
+    }
+
     # Remove rows in stacking.groups that contain overlap with
     # manual.stacking.groups
     for (manual.obs.group in manual.stacking.obs.groups)
@@ -514,14 +550,11 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
     new.stacking.groups[seq_len(n.rows), seq_len(n.cols)] <- stacking.groups
     stacking.groups <- new.stacking.groups
 
-    n.manual.stacking <- max(vapply(manual.stacking.obs.groups, length,
-                                    integer(1)))
-
     # Append manual.stacking.groups to stacking.groups
+    ind <- seq_along(manual.stacking.obs.groups)
     for (i in seq_len(n.manual.stacking))
     {
         new.group <- rep(NA_integer_, max.stacking)
-        ind <- seq_along(manual.stacking.obs.groups)
         new.group[ind] <- vapply(manual.stacking.obs.groups, `[`,
                                  integer(1), i)
         stacking.groups <- rbind(stacking.groups, new.group)
@@ -537,7 +570,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 stackedDataSet <- function(input.data.set, input.data.set.metadata,
                            stacking.groups)
 {
-    if (is.null(stacking.groups))
+    if (is.null(stacking.groups) || nrow(stacking.groups) == 0)
     {
         return(data.frame(lapply(input.data.set, function(v) {
             attr(v, "is.stacked") <- FALSE
@@ -828,7 +861,7 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
 
 #' @importFrom flipU EscapeRegexSymbols
 parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
-                          warning.if.not.found = FALSE)
+                          warning.if.not.found = TRUE)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -852,7 +885,7 @@ parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
 }
 
 parseVariableName <- function(variable.name.text, variable.names, purpose,
-                              on.fail, warning.if.not.found = FALSE)
+                              on.fail, warning.if.not.found = TRUE)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text

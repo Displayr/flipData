@@ -10,8 +10,8 @@ common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
                    "Diet Pepsi", "Pepsi Max", "None of these")
 
 test_that("no stacking", {
-    result <- StackData(findInstDirFile("Cola.sav"))
-
+    result <- StackData(findInstDirFile("Cola.sav"), automatic.common.labels = FALSE)
+    expect_false(any(result$stacked.data.set.metadata$is.stacked.variable))
     # check stuff!
 })
 
@@ -109,6 +109,13 @@ test_that("manual stacking by variables", {
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Variable",
+                             manual.stacking = c("LastResp,Q3")),
+                   paste0("The manual stacking input 'LastResp,Q3' has been ",
+                          "ignored as it contains variables with mismatching ",
+                          "types or categories."))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             specify.by = "Variable",
                              manual.stacking = "Q6_A,not_*_variable"),
                    paste0("No matches were found for the manual stacking ",
                           "input wildcard name 'not_*_variable'. Ensure that ",
@@ -162,6 +169,13 @@ test_that("manual stacking by observations", {
                  "Q5_23_", "Q5_25_", "Q5_31_")
     expect_true(all(v.names %in% md$variable.names))
     expect_true(all(md$is.stacked.variable[v.names]))
+
+    expect_warning(StackData(findInstDirFile("Cola.sav"),
+                             specify.by = "Observation",
+                             manual.stacking = c("LastResp", "Q3")),
+                   paste0("No manual stacking was conducted as the manual ",
+                          "stacking input 'Q3' would result in the stacking ",
+                          "of variables with mismatching types or categories."))
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Observation",
