@@ -36,7 +36,7 @@ StackData <- function(input.data.set.name,
     {
         if (!is.null(common.labels) && length(common.labels) > 0)
             warning("Input common labels have been ignored as automatic ",
-                    "common labels on.")
+                    "common labels are on.")
         common.labels <- automaticCommonLabels(input.data.set.metadata)
         if (!write.data.set)
         {
@@ -85,68 +85,58 @@ automaticCommonLabels <- function(input.data.set.metadata)
 
     split.lbls <- lapply(lbls, strsplit, "[^[:alnum:]]")
 
-    prefixes.suffixes <- matrix(nrow = 0, ncol = 2)
+    prefixes <- character(0)
 
     for (i in 2:length(lbls))
     {
         lbl.1 <- lbls[i - 1]
         lbl.2 <- lbls[i]
-        prefix.suffix <- c(getCommonPrefix(lbls[(i - 1):i]),
-                           getCommonSuffix(lbls[(i - 1):i]))
+        prefix <- getCommonPrefix(lbls[(i - 1):i], whole.words = TRUE)
 
-        if (any(prefix.suffix != ""))
-        {
-            is.row.match <- apply(prefixes.suffixes, 1,
-                                  function(row) all(row == prefix.suffix))
-            if (!any(is.row.match))
-                prefixes.suffixes <- rbind(prefixes.suffixes, prefix.suffix)
-        }
+        if (prefix != "" && !(prefix %in% prefixes))
+            prefixes <- rbind(prefixes, prefix)
     }
 
-    score <- vapply(seq_len(nrow(prefixes.suffixes)), function(i)
+    score <- vapply(seq_along(prefixes), function(i)
     {
-        prefix <- prefixes.suffixes[i, 1]
-        suffix <- prefixes.suffixes[i, 2]
+        prefix <- prefixes[i]
         nchar.prefix <- nchar(prefix)
-        nchar.suffix <- nchar(suffix)
 
         common.labels <- character(0)
 
         for (lbl in lbls)
         {
-            if (substr(lbl, 1, nchar.prefix) == prefix &&
-                substr(lbl, nchar(lbl) - nchar.suffix + 1,
-                       nchar(lbl)) == suffix)
+            if (substr(lbl, 1, nchar.prefix) == prefix)
             {
-                middle.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl) - nchar.suffix)
-                common.labels <- c(common.labels, middle.lbl)
+                remaining.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl))
+                common.labels <- c(common.labels, remaining.lbl)
             }
         }
         common.labels <- unique(common.labels)
 
         stacking.groups <- stackingGroupFromCommonLabels(common.labels, lbls)
 
-        sum(!is.na(stacking.groups)) - ncol(stacking.groups)
-    }, integer(1))
+        ratio <- (sum(!is.na(stacking.groups)) - ncol(stacking.groups)) / length(stacking.groups)
+        if (ratio < 0.5)
+            0
+        else
+            sum(!is.na(stacking.groups)) - ncol(stacking.groups)
+    }, numeric(1))
 
 
     ind <- which.max(score)
 
-    prefix <- prefixes.suffixes[ind, 1]
-    suffix <- prefixes.suffixes[ind, 2]
+    prefix <- prefixes[ind]
     nchar.prefix <- nchar(prefix)
-    nchar.suffix <- nchar(suffix)
 
     common.labels <- character(0)
 
     for (lbl in lbls)
     {
-        if (substr(lbl, 1, nchar.prefix) == prefix &&
-            substr(lbl, nchar(lbl) - nchar.suffix + 1,
-                   nchar(lbl)) == suffix)
+        if (substr(lbl, 1, nchar.prefix) == prefix)
         {
-            middle.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl) - nchar.suffix)
-            common.labels <- c(common.labels, middle.lbl)
+            remaining.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl))
+            common.labels <- c(common.labels, remaining.lbl)
         }
     }
 
@@ -662,7 +652,7 @@ stackedVariableText <- function(stacking.groups, variable.text,
     result
 }
 
-getCommonPrefix <- function(nms)
+getCommonPrefix <- function(nms, whole.words = FALSE)
 {
     common_prefix <- ""
     for (i in 1:min(nchar(nms)))
@@ -672,23 +662,14 @@ getCommonPrefix <- function(nms)
         else
             break
     }
-    common_prefix
-}
 
-getCommonSuffix <- function(nms)
-{
-    common_suffix <- ""
-    for (i in 1:min(nchar(nms)))
+    if (whole.words)
     {
-        suffixes <- vapply(tolower(nms), function(nm) {
-            substr(nm, nchar(nm) - i + 1, nchar(nm))
-        }, character(1))
-        if (allIdentical(suffixes))
-            common_suffix <- substr(nms[1], nchar(nms[1]) - i + 1, nchar(nms[1]))
-        else
-            break
+        ind <- gregexpr("[^[:alnum:]]", common_prefix)[[1]]
+        substr(common_prefix, 1, ind[length(ind)] - 1)
     }
-    common_suffix
+    else
+        common_prefix
 }
 
 parseVariablesToOmit <- function(variables.to.omit, variable.names)
