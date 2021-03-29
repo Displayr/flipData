@@ -25,15 +25,22 @@ test_that("omitted variables", {
     result <- StackData(findInstDirFile("Cola.sav"),
                         variables.to.omit = "Q2, Q4_A, Q9_*,-Progress, GZfrequentCola-,Q29-Q31")
 
-    omitted.variables <- c("URLID", "Type", "Progress", "Q2", "Q4_A", "Q9_A", "Q9_", "Q9_E",
-                           "Q29", "Q29_G_O", "Q30_A", "Q30_B", "Q30_C", "Q30_D",
-                           "Q30_E", "Q30_F", "Q30_G", "Q30_H", "Q31", "GZfrequentCola",
-                           "GZletters", "GZloopTextQ5", "GZrandomCola", "GZstatus", "GZtopPrefs")
+    omitted.variables <- c("URLID", "Type", "Progress", "Q2", "Q4_A", "Q9_A", "Q9_B",
+                           "Q9_C", "Q9_D", "Q9_E", "Q9_F", "Q29", "Q29_G_O", "Q30_A", "Q30_B",
+                           "Q30_C", "Q30_D", "Q30_E", "Q30_F", "Q30_G", "Q30_H", "Q31",
+                           "GZfrequentCola", "GZletters", "GZloopTextQ5", "GZrandomCola",
+                           "GZstatus", "GZtopPrefs")
 
     expect_equal(result$omitted.variables, omitted.variables)
-    expect_equal(result$omitted.stacked.variables, "Q9_")
     expect_true(!any(omitted.variables %in%
                          result$stacked.data.set.metadata$variable.names))
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        variables.to.omit = "Q2, Q4_A, Q9_,-Progress, GZfrequentCola-,Q29-Q31")
+
+    expect_equal(result$omitted.stacked.variables, "Q9_")
+    expect_true("Q9_" %in% result$omitted.variables)
+    expect_false("Q9_" %in% result$stacked.data.set.metadata$variable.names)
 
     # variables.to.omit with multiple entries
     result <- StackData(findInstDirFile("Cola.sav"),

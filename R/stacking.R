@@ -7,7 +7,7 @@
 #' @param common.labels A character vector of common labels to be used to
 #'   identify variables to stack. To be identified, a set of variables to be
 #'   stacked must contain these labels, have the same prefix and suffix before
-#'   and after these labels and be contiguous.
+#'   and after these labels.
 #' @param specify.by "Variable" or "Observation".
 #' @param manual.stacking To be filled
 #' @param variables.to.omit String of comma-separated variable names to omit.
@@ -28,6 +28,13 @@ StackData <- function(input.data.set.name,
                       write.data.set = TRUE)
 {
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
+    variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
+    parsed.variables.to.omit <- parseVariablesToOmit(variables.to.omit,
+                                                     names(input.data.set),
+                                                     FALSE)
+    input.data.set <- omitVariablesFromDataSet(input.data.set,
+                                               parsed.variables.to.omit)
+
     input.data.set.metadata <- metadataFromDataSet(input.data.set,
                                                    input.data.set.name)
     n.vars <- input.data.set.metadata$n.variables
@@ -46,14 +53,21 @@ StackData <- function(input.data.set.name,
                                      specify.by, input.data.set.metadata)
 
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
-                                       stacking.groups, variables.to.omit)
+                                       stacking.groups)
 
-    variables.to.omit <- parseVariablesToOmit(variables.to.omit,
-                                              names(stacked.data.set))
-    omitted.stacked.variables <-  omittedStackedVariables(variables.to.omit,
+    # Need to check for variables to omit a second time in case stacked
+    # variables need to be omitted
+    parse.status <- attr(parsed.variables.to.omit, "parse.status")
+    variables.to.omit <- variables.to.omit[parse.status != "bad format"]
+    parse.status <- parse.status[parse.status != "bad format"]
+    warning.if.not.found <- parse.status == "variable(s) not found"
+    parsed.variables.to.omit.2 <- parseVariablesToOmit(variables.to.omit,
+                                                       names(stacked.data.set),
+                                                       warning.if.not.found)
+    omitted.stacked.variables <-  omittedStackedVariables(parsed.variables.to.omit.2,
                                                           stacked.data.set)
     stacked.data.set <- omitVariablesFromDataSet(stacked.data.set,
-                                                 variables.to.omit)
+                                                 parsed.variables.to.omit.2)
 
     stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
                                                      input.data.set.name)
@@ -67,7 +81,7 @@ StackData <- function(input.data.set.name,
     result <- list()
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
-    result$omitted.variables <- variables.to.omit
+    result$omitted.variables <- c(parsed.variables.to.omit, parsed.variables.to.omit.2)
     result$omitted.stacked.variables <- omitted.stacked.variables
     class(result) <- "StackedData"
     result
@@ -144,9 +158,6 @@ automaticCommonLabels <- function(input.data.set.metadata)
     common.labels <- unique(common.labels)
 }
 
-# Find contiguous groups of variables to stack given the common labels.
-# A group of variables to stack would have labels that contain the common
-# labels along with the same prefix and suffix.
 stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 {
     if (is.null(common.labels) || length(common.labels) == 0)
@@ -524,7 +535,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 }
 
 stackedDataSet <- function(input.data.set, input.data.set.metadata,
-                           stacking.groups, variables.to.omit)
+                           stacking.groups)
 {
     if (is.null(stacking.groups))
     {
@@ -621,8 +632,10 @@ stackedVariableText <- function(stacking.groups, variable.text,
         ind <- removeNA(group.ind)
         text <- variable.text[ind]
         common.prefix <- trimws(getCommonPrefix(text))
-        if (common.prefix != "")
-            common.prefix
+        common.suffix <- trimws(getCommonSuffix(text))
+        candidate <- trimws(paste(common.prefix, common.suffix))
+        if (candidate != "")
+            candidate
         else
             "stacked_var"
     })
@@ -672,37 +685,83 @@ getCommonPrefix <- function(nms, whole.words = FALSE)
         common_prefix
 }
 
-parseVariablesToOmit <- function(variables.to.omit, variable.names)
+getCommonSuffix <- function(nms)
+{
+    common_suffix <- ""
+    for (i in 1:min(nchar(nms)))
+    {
+        suffixes <- vapply(tolower(nms), function(nm) {
+            substr(nm, nchar(nm) - i + 1, nchar(nm))
+        }, character(1))
+        if (allIdentical(suffixes))
+            common_suffix <- substr(nms[1], nchar(nms[1]) - i + 1, nchar(nms[1]))
+        else
+            break
+    }
+    common_suffix
+}
+
+splitVariablesToOmitText <- function(variables.to.omit)
 {
     if (is.null(variables.to.omit) || length(variables.to.omit) == 0 ||
         variables.to.omit == "")
         return(character(0))
 
+    unlist(lapply(variables.to.omit, splitByComma))
+}
+
+parseVariablesToOmit <- function(variables.to.omit, variable.names,
+                                 warning.if.not.found)
+{
+    if (length(variables.to.omit) == 0)
+        return(character(0))
+
+    if (length(warning.if.not.found) == 1)
+        warning.if.not.found <- rep(warning.if.not.found, length(variables.to.omit))
+
     purpose <- "omitted variable"
 
+    parse.status <- character(length(variables.to.omit))
+
     result <- character(0)
-    for (input.text in variables.to.omit)
+    for (i in seq_along(variables.to.omit))
     {
-        split.text <- splitByComma(input.text)
-        for (t in split.text)
+        t <- variables.to.omit[i]
+        parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
+            parseRange(t, variable.names, purpose,
+                       "The input range has been ignored.",
+                       warning.if.not.found[i])
+        else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+            parseWildcard(t, variable.names, purpose,
+                          "This input has been ignored.",
+                          warning.if.not.found[i])
+        else
+            parseVariableName(t, variable.names, purpose,
+                              "This input has been ignored.",
+                              warning.if.not.found[i])
+
+        result <- c(result, parsed)
+        if (length(parsed) > 0)
+            parse.status[i] <- "parsed"
+        else
         {
-            result <- if (grepl("-", t, fixed = TRUE)) # contains range
-                c(result, parseRange(t, variable.names, purpose,
-                                     "The input range has been ignored."))
-            else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                c(result, parseWildcard(t, variable.names, purpose,
-                                        "This input has been ignored."))
+            is.not.found <- !is.null(attr(parsed, "is.not.found")) &&
+                            attr(parsed, "is.not.found")
+            if (is.not.found)
+                parse.status[i] <- "variable(s) not found"
             else
-                c(result, parseVariableName(t, variable.names, purpose,
-                                            "This input has been ignored."))
+                parse.status[i] <- "bad format"
         }
     }
 
     # Order omitted variables according to variable.names
-    result[order(vapply(result, match, integer(1), variable.names))]
+    result <- result[order(vapply(result, match, integer(1), variable.names))]
+    attr(result, "parse.status") <- parse.status
+    result
 }
 
-parseRange <- function(range.text, variable.names, purpose, on.fail)
+parseRange <- function(range.text, variable.names, purpose, on.fail,
+                       warning.if.not.found = TRUE)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
     start.var.text <- trimws(substr(range.text, 1, dash.ind - 1))
@@ -734,17 +793,27 @@ parseRange <- function(range.text, variable.names, purpose, on.fail)
 
     if (is.na(start.ind))
     {
-        warning("The start variable from the ", purpose, " input range '",
-                range.text, "' ", "could not be identified. ",on.fail,
-                " Ensure that the variable name is correctly specified.")
-        return(character(0))
+        if (warning.if.not.found)
+        {
+            warning("The start variable from the ", purpose, " input range '",
+                    range.text, "' ", "could not be identified. ",on.fail,
+                    " Ensure that the variable name is correctly specified.")
+        }
+        result <- character(0)
+        attr(result, "is.not.found") <- TRUE
+        return(result)
     }
     if (is.na(end.ind))
     {
-        warning("The end variable from the ", purpose, " input range '",
-                range.text, "' ", "could not be identified. ",on.fail,
-                " Ensure that the variable name is correctly specified.")
-        return(character(0))
+        if (warning.if.not.found)
+        {
+            warning("The end variable from the ", purpose, " input range '",
+                    range.text, "' ", "could not be identified. ",on.fail,
+                    " Ensure that the variable name is correctly specified.")
+        }
+        result <- character(0)
+        attr(result, "is.not.found") <- TRUE
+        return(result)
     }
     if (start.ind > end.ind)
     {
@@ -758,7 +827,8 @@ parseRange <- function(range.text, variable.names, purpose, on.fail)
 }
 
 #' @importFrom flipU EscapeRegexSymbols
-parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail)
+parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
+                          warning.if.not.found = FALSE)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -769,25 +839,31 @@ parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail)
     is.match <- grepl(pattern, variable.names)
     if (!any(is.match))
     {
-        warning("No matches were found for the ", purpose,
-                " input wildcard name '",
-                wildcard.text, "'. Ensure that the wildcard variable name ",
-                "has been correctly specified. ", on.fail)
-        return(character(0))
+        if (warning.if.not.found)
+            warning("No matches were found for the ", purpose,
+                    " input wildcard name '",
+                    wildcard.text, "'. Ensure that the wildcard variable name ",
+                    "has been correctly specified. ", on.fail)
+        result <- character(0)
+        attr(result, "is.not.found") <- TRUE
+        return(result)
     }
     variable.names[is.match]
 }
 
 parseVariableName <- function(variable.name.text, variable.names, purpose,
-                              on.fail)
+                              on.fail, warning.if.not.found = FALSE)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text
     else
     {
-        warning("The ", purpose, " input varible name '", variable.name.text,
-                "' could not be identified. ", on.fail)
-        return(character(0))
+        if (warning.if.not.found)
+            warning("The ", purpose, " input varible name '", variable.name.text,
+                    "' could not be identified. ", on.fail)
+        result <- character(0)
+        attr(result, "is.not.found") <- TRUE
+        return(result)
     }
 }
 
