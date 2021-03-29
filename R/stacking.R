@@ -38,10 +38,6 @@ StackData <- function(input.data.set.name,
             warning("Input common labels have been ignored as automatic ",
                     "common labels are on.")
         common.labels <- automaticCommonLabels(input.data.set.metadata)
-        if (!write.data.set)
-        {
-            return(common.labels)
-        }
     }
 
     stacking.groups <- stackWithCommonLabels(common.labels,
@@ -187,53 +183,53 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 
 stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
 {
-    nchar.labels <- nchar(common.labels)
+    n.common.labels <- length(common.labels)
+    common.label.prefixes.suffixes <- list()
+    match.ind <- list()
 
-    stacking.groups <- matrix(nrow = 0, ncol = length(common.labels))
-
-    current.group <- rep(NA_integer_, length(common.labels))
-    current.prefix <- NA_character_
-    current.suffix <- NA_character_
-    for (i in seq_along(variable.labels))
+    for (i in seq_len(n.common.labels))
     {
-        lbl <- variable.labels[i]
-        ind <- which(vapply(common.labels, grepl, logical(1), lbl, fixed = TRUE))
-        ind <- ind[which.max(nchar.labels[ind])]
+        common.lbl <- common.labels[i]
+        matches <- gregexpr(common.lbl, variable.labels, fixed = TRUE)
+        ind <- which(vapply(matches, function(m) m[[1]][1], integer(1)) != -1)
+        common.label.prefixes.suffixes[[i]] <- t(vapply(ind, function(j) {
+            lbl <- variable.labels[j]
+            start.ind <- matches[[j]][1]
+            c(substr(lbl, 1, start.ind - 1),
+              substr(lbl, start.ind + nchar(common.lbl), nchar(lbl)))
+        }, character(2)))
+        match.ind[[i]] <- ind
+    }
 
-        if (length(ind) == 0)
+    unique.prefixes.suffixes <- do.call("rbind", common.label.prefixes.suffixes)
+    unique.prefixes.suffixes <- unique.prefixes.suffixes[!duplicated(unique.prefixes.suffixes,
+                                                                     MARGIN = 1), , drop = FALSE]
+    ord <- do.call("order", data.frame(nchar(unique.prefixes.suffixes)))
+    unique.prefixes.suffixes <- unique.prefixes.suffixes[ord, , drop = FALSE]
+
+    stacking.groups <- matrix(nrow = 0, ncol = n.common.labels)
+    for (i in seq_len(nrow(unique.prefixes.suffixes)))
+    {
+        prefix.suffix <- unique.prefixes.suffixes[i, ]
+        common.labels.ind <- lapply(seq_len(n.common.labels), function(j) {
+            common.label.prefix.suffix <- common.label.prefixes.suffixes[[j]]
+            ind <- which(colSums(t(common.label.prefix.suffix) == prefix.suffix) == 2)
+            if (length(ind) > 0)
+                match.ind[[j]][ind]
+            else
+                NULL
+        })
+        new.rows <- matrix(NA_integer_,
+                           nrow = max(vapply(common.labels.ind, length, integer(1))),
+                           ncol = n.common.labels)
+        for (j in seq_len(n.common.labels))
+            new.rows[seq_along(common.labels.ind[[j]]), j] <- common.labels.ind[[j]]
+
+        for (j in seq_len(nrow(new.rows)))
         {
-            if (any(!is.na(current.group)))
-            {
-                stacking.groups <- rbind(stacking.groups, current.group)
-                current.group <- rep(NA_integer_, length(common.labels))
-                current.prefix <- NA_character_
-                current.suffix <- NA_character_
-            }
-            next
+            if (!(any(removeNA(new.rows[j, ]) %in% removeNA(stacking.groups))))
+                stacking.groups <- rbind(stacking.groups, new.rows[j, ])
         }
-
-        if (!is.na(current.group[ind]))
-        {
-            stacking.groups <- rbind(stacking.groups, current.group)
-            current.group <- rep(NA_integer_, length(common.labels))
-            current.prefix <- NA_character_
-            current.suffix <- NA_character_
-        }
-
-        matched.common.label <- common.labels[ind]
-        start.ind <- gregexpr(matched.common.label, lbl, fixed = TRUE)[[1]]
-        prefix <- substr(lbl, 1, start.ind - 1)
-        suffix <- substr(lbl, start.ind + nchar(matched.common.label), nchar(lbl))
-
-        if (all(is.na(current.group)))
-        {
-            current.group[ind] <- i
-            current.prefix <- prefix
-            current.suffix <- suffix
-        }
-
-        if (prefix == current.prefix && suffix == current.suffix)
-            current.group[ind] <- i
     }
 
     # Remove groups with only one element
