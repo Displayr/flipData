@@ -83,18 +83,21 @@ automaticCommonLabels <- function(input.data.set.metadata)
 {
     lbls <- input.data.set.metadata$variable.labels
 
-    split.lbls <- lapply(lbls, strsplit, "[^[:alnum:]]")
+    first.words <- vapply(lapply(lbls, strsplit, " "),
+                          function(splt) splt[[1]][1], character(1))
 
     prefixes <- character(0)
 
-    for (i in 2:length(lbls))
+    for (i in 1:(length(lbls) - 1))
     {
-        lbl.1 <- lbls[i - 1]
-        lbl.2 <- lbls[i]
-        prefix <- getCommonPrefix(lbls[(i - 1):i], whole.words = TRUE)
-
-        if (prefix != "" && !(prefix %in% prefixes))
-            prefixes <- rbind(prefixes, prefix)
+        ind <- (i + 1):length(lbls)
+        match.ind <- ind[which(first.words[i] == first.words[ind])]
+        for (j in match.ind)
+        {
+            prefix <- getCommonPrefix(lbls[c(i, j)], whole.words = TRUE)
+            if (prefix != "" && !(prefix %in% prefixes))
+                prefixes <- rbind(prefixes, prefix)
+        }
     }
 
     score <- vapply(seq_along(prefixes), function(i)
@@ -120,7 +123,9 @@ automaticCommonLabels <- function(input.data.set.metadata)
         if (ratio < 0.5)
             0
         else
+        {
             sum(!is.na(stacking.groups)) - ncol(stacking.groups)
+        }
     }, numeric(1))
 
 
@@ -141,7 +146,6 @@ automaticCommonLabels <- function(input.data.set.metadata)
     }
 
     common.labels <- unique(common.labels)
-
 }
 
 # Find contiguous groups of variables to stack given the common labels.
@@ -666,7 +670,7 @@ getCommonPrefix <- function(nms, whole.words = FALSE)
     if (whole.words)
     {
         ind <- gregexpr("[^[:alnum:]]", common_prefix)[[1]]
-        substr(common_prefix, 1, ind[length(ind)] - 1)
+        substr(common_prefix, 1, ind[length(ind)])
     }
     else
         common_prefix

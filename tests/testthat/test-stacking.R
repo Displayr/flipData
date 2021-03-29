@@ -10,7 +10,7 @@ common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
                    "Diet Pepsi", "Pepsi Max", "None of these")
 
 test_that("no stacking", {
-    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels)
+    result <- StackData(findInstDirFile("Cola.sav"))
 
     # check stuff!
 })
