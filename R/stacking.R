@@ -5,7 +5,7 @@
 #' @param stacked.data.set.name Name of the stacked data file to be saved in
 #'   the Displayr Cloud Drive (if run from Displayr) or saved locally.
 #' @param stack.with.common.labels \code{"Automatically"},
-#'   \code{"Using common labels from variables"},
+#'   \code{"Using a set of variables to stack as reference"},
 #'   \code{"Using manually input common labels"},
 #'   \code{"Disabled"}.
 #' @param common.labels.variables A string of variables used to generate the
@@ -79,7 +79,7 @@ StackData <- function(input.data.set.name,
                     "are to be generated automatically.")
         common.labels <- automaticCommonLabels(input.data.set.metadata)
     }
-    else if (stack.with.common.labels == "Using common labels from variables")
+    else if (stack.with.common.labels == "Using a set of variables to stack as reference")
     {
         if (!is.null(common.labels) && length(common.labels) > 0)
             warning("Input common labels have been ignored as common labels ",

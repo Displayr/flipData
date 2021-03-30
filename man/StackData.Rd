@@ -27,7 +27,7 @@ local file or file in the Displayr Cloud Drive}
 the Displayr Cloud Drive (if run from Displayr) or saved locally.}
 
 \item{stack.with.common.labels}{\code{"Automatically"},
-\code{"Using common labels from variables"},
+\code{"Using a set of variables to stack as reference"},
 \code{"Using manually input common labels"},
 \code{"Disabled"}.}
 
