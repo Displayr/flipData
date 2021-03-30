@@ -396,7 +396,7 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 
 stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
 {
-    variable.labels.lowercase <- tolower(variable.labels.lowercase)
+    variable.labels.lowercase <- tolower(variable.labels)
     n.common.labels <- length(common.labels)
     common.label.prefixes.suffixes <- list()
     match.ind <- list()
