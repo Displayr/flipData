@@ -856,6 +856,7 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
 
     names(merged.data.set) <- merge.map$merged.names
 
+  # TODO: deal with case where mergesrc already exists
     merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, data.set.names)
 
     merged.data.set
