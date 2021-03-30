@@ -922,7 +922,7 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
     repeat
     {
         candidate.name <- paste0(new.name, delimiter, i)
-        if (!(new.name %in% existing.names))
+        if (!(candidate.name %in% existing.names))
             return(candidate.name)
         i <- i + 1
     }
