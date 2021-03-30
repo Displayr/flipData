@@ -23,7 +23,8 @@ Imports: CVXR (>= 1.0.0),
  lubridate,
  stats,
  stringr,
- survey
+ survey,
+ verbs
 RoxygenNote: 7.1.1
 Encoding: UTF-8
 Suggests: foreign,
@@ -35,4 +36,5 @@ Remotes: Displayr/flipExampleData,
  Displayr/flipImputation,
  Displayr/flipTime,
  Displayr/flipTransformations,
- Displayr/flipU
+ Displayr/flipU,
+ Displayr/verbs
