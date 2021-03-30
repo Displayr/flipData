@@ -306,8 +306,6 @@ automaticCommonLabels <- function(input.data.set.metadata)
         }
     }
 
-    # mention auto common labels in the notes?
-
     common.labels <- unique(common.labels)
 }
 
@@ -398,6 +396,7 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 
 stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
 {
+    variable.labels.lowercase <- tolower(variable.labels.lowercase)
     n.common.labels <- length(common.labels)
     common.label.prefixes.suffixes <- list()
     match.ind <- list()
@@ -405,7 +404,8 @@ stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
     for (i in seq_len(n.common.labels))
     {
         common.lbl <- common.labels[i]
-        matches <- gregexpr(common.lbl, variable.labels, fixed = TRUE)
+        matches <- gregexpr(tolower(common.lbl), variable.labels.lowercase, # case insensitive match
+                            fixed = TRUE)
         ind <- which(vapply(matches, function(m) m[[1]][1], integer(1)) != -1)
         common.label.prefixes.suffixes[[i]] <- t(vapply(ind, function(j) {
             lbl <- variable.labels[j]
