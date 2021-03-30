@@ -7,13 +7,16 @@
 StackData(
   input.data.set.name,
   stacked.data.set.name = NULL,
-  automatic.common.labels = TRUE,
+  stack.with.common.labels = "Automatically",
+  common.labels.variables = NULL,
   common.labels = NULL,
   specify.by = "Variable",
   manual.stacking = NULL,
   variables.to.omit = NULL,
   write.data.set = TRUE,
-  include.stacked.data.set.in.output = FALSE
+  include.stacked.data.set.in.output = FALSE,
+  include.original.case.variable = TRUE,
+  include.observation.variable = TRUE
 )
 }
 \arguments{
@@ -23,10 +26,20 @@ local file or file in the Displayr Cloud Drive}
 \item{stacked.data.set.name}{Name of the stacked data file to be saved in
 the Displayr Cloud Drive (if run from Displayr) or saved locally.}
 
+\item{stack.with.common.labels}{\code{"Automatically"},
+\code{"Using common labels from variables"},
+\code{"Using manually input common labels"},
+\code{"Disabled"}.}
+
+\item{common.labels.variables}{A string of variables used to generate the
+common labels used for stacking. This can be a combination of
+comma-separated names, wildcards and ranges.}
+
 \item{common.labels}{A character vector of common labels to be used to
-identify variables to stack. To be identified, a set of variables to be
-stacked must contain these labels, have the same prefix and suffix before
-and after these labels.}
+identify variables to stack. Only used when \code{stack.with.common.labels}
+is \code{"Using manually input common labels"}. To be identified, a set of
+variables to be stacked must contain these labels, have the same prefix
+and suffix before and after these labels.}
 
 \item{specify.by}{"Variable" or "Observation".}
 
@@ -43,6 +56,29 @@ with an asterisk '*'.}
 
 \item{include.stacked.data.set.in.output}{Whether to include the stacked
 data set in the output.}
+
+\item{include.original.case.variable}{Whether to include the \code{original_case}
+variable in the stacked data set.}
+
+\item{include.observation.variable}{Whether to include the \code{observation}
+variable in the stacked data set.}
+}
+\value{
+A list with the following elements:
+\itemize{
+  \item \code{stacked.data.set.metadata} A list containing metadata on the
+    the stacked data set such as variable names, labels etc.
+  \item \code{unstackable names} A list of character vectors containing
+    names of the variables that could not be stacked using common labels due
+    to mismatching types or categories.
+  \item \code{omitted.variables} A character vector of omitted variables.
+  \item \code{omitted.stacked.variables} A character vector of omitted
+    stacked variables.
+  \item \code{common.labels} A character vector of common labels used for
+    stacking.
+  \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
+    the Displayr cloud drive.
+ }
 }
 \description{
 Stacks variables in a data set.

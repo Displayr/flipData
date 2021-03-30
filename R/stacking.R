@@ -4,10 +4,18 @@
 #'   local file or file in the Displayr Cloud Drive
 #' @param stacked.data.set.name Name of the stacked data file to be saved in
 #'   the Displayr Cloud Drive (if run from Displayr) or saved locally.
+#' @param stack.with.common.labels \code{"Automatically"},
+#'   \code{"Using common labels from variables"},
+#'   \code{"Using manually input common labels"},
+#'   \code{"Disabled"}.
+#' @param common.labels.variables A string of variables used to generate the
+#'   common labels used for stacking. This can be a combination of
+#'   comma-separated names, wildcards and ranges.
 #' @param common.labels A character vector of common labels to be used to
-#'   identify variables to stack. To be identified, a set of variables to be
-#'   stacked must contain these labels, have the same prefix and suffix before
-#'   and after these labels.
+#'   identify variables to stack. Only used when \code{stack.with.common.labels}
+#'   is \code{"Using manually input common labels"}. To be identified, a set of
+#'   variables to be stacked must contain these labels, have the same prefix
+#'   and suffix before and after these labels.
 #' @param specify.by "Variable" or "Observation".
 #' @param manual.stacking To be filled
 #' @param variables.to.omit String of comma-separated variable names to omit.
@@ -19,16 +27,38 @@
 #' @param write.data.set Whether to write the stacked data set.
 #' @param include.stacked.data.set.in.output Whether to include the stacked
 #'   data set in the output.
+#' @param include.original.case.variable Whether to include the \code{original_case}
+#'   variable in the stacked data set.
+#' @param include.observation.variable Whether to include the \code{observation}
+#'   variable in the stacked data set.
+#' @return A list with the following elements:
+#' \itemize{
+#'   \item \code{stacked.data.set.metadata} A list containing metadata on the
+#'     the stacked data set such as variable names, labels etc.
+#'   \item \code{unstackable names} A list of character vectors containing
+#'     names of the variables that could not be stacked using common labels due
+#'     to mismatching types or categories.
+#'   \item \code{omitted.variables} A character vector of omitted variables.
+#'   \item \code{omitted.stacked.variables} A character vector of omitted
+#'     stacked variables.
+#'   \item \code{common.labels} A character vector of common labels used for
+#'     stacking.
+#'   \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
+#'     the Displayr cloud drive.
+#'  }
 #' @export
 StackData <- function(input.data.set.name,
                       stacked.data.set.name = NULL,
-                      automatic.common.labels = TRUE,
+                      stack.with.common.labels = "Automatically",
+                      common.labels.variables = NULL,
                       common.labels = NULL,
                       specify.by = "Variable",
                       manual.stacking = NULL,
                       variables.to.omit = NULL,
                       write.data.set = TRUE,
-                      include.stacked.data.set.in.output = FALSE)
+                      include.stacked.data.set.in.output = FALSE,
+                      include.original.case.variable = TRUE,
+                      include.observation.variable = TRUE)
 {
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
     variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
@@ -42,30 +72,53 @@ StackData <- function(input.data.set.name,
                                                    input.data.set.name)
     n.vars <- input.data.set.metadata$n.variables
 
-    if (automatic.common.labels)
+    if (stack.with.common.labels == "Automatically")
     {
         if (!is.null(common.labels) && length(common.labels) > 0)
-            warning("Input common labels have been ignored as automatic ",
-                    "common labels are on.")
+            warning("Input common labels have been ignored as common labels ",
+                    "are to be generated automatically.")
         common.labels <- automaticCommonLabels(input.data.set.metadata)
     }
+    else if (stack.with.common.labels == "Using common labels from variables")
+    {
+        if (!is.null(common.labels) && length(common.labels) > 0)
+            warning("Input common labels have been ignored as common labels ",
+                    "are to be obtained from a set of variables.")
+        common.labels <- commonLabelsFromVariables(common.labels.variables,
+                                                   input.data.set.metadata)
+    }
+    else if (stack.with.common.labels == "Using manually input common labels")
+    {
+        if (is.null(common.labels) || length(common.labels) == 0)
+            warning("No common labels were manually supplied. No stacking ",
+                    "was done using common labels.")
+    }
 
-    stacking.groups <- stackWithCommonLabels(common.labels,
-                                             input.data.set.metadata)
+    stacking.groups <- if (stack.with.common.labels != "Disabled")
+        stackWithCommonLabels(common.labels, input.data.set.metadata)
+    else
+        NULL
+
     stacking.groups <- stackManually(stacking.groups, manual.stacking,
                                      specify.by, input.data.set.metadata)
 
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
-                                       stacking.groups)
+                                       stacking.groups,
+                                       include.original.case.variable,
+                                       include.observation.variable)
 
     # Need to check for variables to omit a second time in case stacked
     # variables need to be omitted
     parse.status <- attr(parsed.variables.to.omit, "parse.status")
     variables.to.omit <- variables.to.omit[parse.status != "bad format"]
-    parse.status <- parse.status[parse.status != "bad format"]
-    warning.if.not.found <- parse.status == "variable(s) not found"
+    omittable.names <- omittableNames(names(stacked.data.set),
+                                      include.original.case.variable,
+                                      include.observation.variable)
+    warning.if.not.found <- parse.status[parse.status != "bad format"] ==
+                                "variable(s) not found"
+
     parsed.variables.to.omit.2 <- parseVariablesToOmit(variables.to.omit,
-                                                       names(stacked.data.set),
+                                                       omittable.names,
                                                        warning.if.not.found)
     omitted.stacked.variables <-  omittedStackedVariables(parsed.variables.to.omit.2,
                                                           stacked.data.set)
@@ -86,6 +139,8 @@ StackData <- function(input.data.set.name,
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$omitted.variables <- c(parsed.variables.to.omit, parsed.variables.to.omit.2)
     result$omitted.stacked.variables <- omitted.stacked.variables
+    result$common.labels <- common.labels
+    result$is.saved.to.cloud <- write.data.set && canAccessDisplayrCloudDrive()
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set
@@ -251,7 +306,60 @@ automaticCommonLabels <- function(input.data.set.metadata)
         }
     }
 
+    # mention auto common labels in the notes?
+
     common.labels <- unique(common.labels)
+}
+
+commonLabelsFromVariables <- function(common.labels.variables,
+                                      input.data.set.metadata)
+{
+    if (is.null(common.labels.variables) ||
+        length(common.labels.variables) == 0)
+    {
+        warning("No variables were supplied for common labels.")
+        return(NULL)
+    }
+
+    v.names <- input.data.set.metadata$variable.names
+    v.labels <- input.data.set.metadata$variable.labels
+    split.text <- splitByComma(common.labels.variables)
+
+    if (length(split.text) == 0)
+    {
+        warning("No variables were supplied for common labels.")
+        return(NULL)
+    }
+
+    on.fail <- "Common labels could not be obtained from the input variables."
+
+    parsed.var.names <- character(0)
+    for (t in split.text)
+    {
+        parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
+            parseRange(t, v.names, "common labels", on.fail)
+        else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+            parseWildcard(t, v.names, "common labels", on.fail)
+        else
+            parseVariableName(t, v.names, "common labels",
+                              on.fail)
+
+        if (length(parsed) == 0)
+            return(NULL)
+
+        parsed.var.names <- c(parsed.var.names, parsed)
+    }
+
+    lbls.containing.common.lbls <- vapply(parsed.var.names, function(nm) {
+        v.labels[match(nm, v.names)]
+    }, character(1))
+
+    nchar.prefix <- nchar(getCommonPrefix(lbls.containing.common.lbls, whole.words = TRUE))
+    nchar.suffix <- nchar(getCommonSuffix(lbls.containing.common.lbls, whole.words = TRUE))
+
+    vapply(lbls.containing.common.lbls, function(lbl) {
+        substr(lbl, nchar.prefix + 1, nchar(lbl) - nchar.suffix)
+    }, character(1))
 }
 
 stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
@@ -387,11 +495,11 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
         on.fail <- paste0("The manual stacking input '", input.text,
                           "' has been ignored.")
         split.text <- splitByComma(input.text)
+
         group.names <- character(0)
 
         for (t in split.text)
         {
-            # deal with NA
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
@@ -409,7 +517,7 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             else
                 group.names <- c(group.names, parsed)
         }
-        if (is.null(group.names))
+        if (is.null(group.names) || length(group.names) == 0)
             next
 
         if (all(is.na(group.names)))
@@ -542,7 +650,6 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 
         for (t in split.text)
         {
-            # deal with NA
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
@@ -664,7 +771,8 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 }
 
 stackedDataSet <- function(input.data.set, input.data.set.metadata,
-                           stacking.groups)
+                           stacking.groups, include.original.case.variable,
+                           include.observation.variable)
 {
     if (is.null(stacking.groups) || nrow(stacking.groups) == 0)
     {
@@ -728,7 +836,29 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         }
         v
     }))
-    names(stacked.data.set) <- stacked.data.set.var.names
+
+    names(stacked.data.set) <- c(stacked.data.set.var.names)
+
+    if (include.original.case.variable)
+    {
+        original.case <- rep(seq_len(nrow(input.data.set)), each = n.stacked)
+        attr(original.case, "label") <- "Original case number (pre stacking)"
+        attr(original.case, "is.stacked") <- FALSE
+        attr(original.case, "is.manually.stacked") <- NA
+        stacked.data.set[[uniqueName("original_case",
+                                     stacked.data.set.var.names)]] <- original.case
+    }
+
+    if (include.observation.variable)
+    {
+        observation <- rep(seq_len(n.stacked), nrow(input.data.set))
+        attr(observation, "label") <- "Observation # (from stacking)"
+        attr(observation, "is.stacked") <- FALSE
+        attr(observation, "is.manually.stacked") <- NA
+        stacked.data.set[[uniqueName("observation",
+                                     stacked.data.set.var.names)]] <- observation
+    }
+
     stacked.data.set
 }
 
@@ -778,21 +908,24 @@ stackedVariableText <- function(stacking.groups, variable.text,
 
     dup <- which(duplicated(result))
     for (i in dup)
-    {
-        j <- 2
-        repeat
-        {
-            candidate.name <- paste0(result[i], "_", j)
-            if (!(candidate.name %in% result))
-            {
-                result[i] <- candidate.name
-                break
-            }
-            j <- j + 1
-        }
-    }
+        result[i] <- uniqueName(result[i], result[-i], "_")
 
     result
+}
+
+uniqueName <- function(new.name, existing.names, delimiter = "")
+{
+    if (!(new.name %in% existing.names))
+        return (new.name)
+
+    i <- 1
+    repeat
+    {
+        candidate.name <- paste0(new.name, delimiter, i)
+        if (!(new.name %in% existing.names))
+            return(candidate.name)
+        i <- i + 1
+    }
 }
 
 getCommonPrefix <- function(nms, whole.words = FALSE)
@@ -809,13 +942,16 @@ getCommonPrefix <- function(nms, whole.words = FALSE)
     if (whole.words)
     {
         ind <- gregexpr("[^[:alnum:]]", common_prefix)[[1]]
-        substr(common_prefix, 1, ind[length(ind)])
+        if (setequal(ind, -1))
+            ""
+        else
+            substr(common_prefix, 1, ind[length(ind)])
     }
     else
         common_prefix
 }
 
-getCommonSuffix <- function(nms)
+getCommonSuffix <- function(nms, whole.words = FALSE)
 {
     common_suffix <- ""
     for (i in 1:min(nchar(nms)))
@@ -828,7 +964,17 @@ getCommonSuffix <- function(nms)
         else
             break
     }
-    common_suffix
+
+    if (whole.words)
+    {
+        ind <- gregexpr("[^[:alnum:]]", common_suffix)[[1]]
+        if (setequal(ind, -1))
+            ""
+        else
+            substr(common_suffix, ind[1], nchar(common_suffix))
+    }
+    else
+        common_suffix
 }
 
 splitVariablesToOmitText <- function(variables.to.omit)
@@ -838,6 +984,16 @@ splitVariablesToOmitText <- function(variables.to.omit)
         return(character(0))
 
     unlist(lapply(variables.to.omit, splitByComma))
+}
+
+omittableNames <- function(variable.names, include.original.case.variable,
+                           include.observation.variable)
+{
+    if (include.original.case.variable)
+        variable.names <- variable.names[-length(variable.names)]
+    if (include.observation.variable)
+        variable.names <- variable.names[-length(variable.names)]
+    variable.names
 }
 
 parseVariablesToOmit <- function(variables.to.omit, variable.names,
@@ -1105,5 +1261,7 @@ print.StackedData <- function(x, ...)
     StackingWidget(x$stacked.data.set.metadata,
                    x$unstackable.names,
                    x$omitted.variables,
-                   x$omitted.stacked.variables)
+                   x$omitted.stacked.variables,
+                   x$common.labels,
+                   x$is.saved.to.cloud)
 }

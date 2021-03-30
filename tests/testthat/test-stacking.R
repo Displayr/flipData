@@ -10,7 +10,8 @@ common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
                    "Diet Pepsi", "Pepsi Max", "None of these")
 
 test_that("no stacking", {
-    result <- StackData(findInstDirFile("Cola.sav"), automatic.common.labels = FALSE)
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        stack.with.common.labels = "Disabled")
     expect_false(any(result$stacked.data.set.metadata$is.stacked.variable))
     expect_equal(result$stacked.data.set.metadata$n.variables, 198)
 })
@@ -18,7 +19,7 @@ test_that("no stacking", {
 test_that("common label stacking", {
     result.auto <- StackData(findInstDirFile("Cola.sav"))
     result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels,
-                        automatic.common.labels = FALSE,
+                        stack.with.common.labels = "Using manually input common labels",
                         include.stacked.data.set.in.output = TRUE)
     expect_true(all(c("Q1_", "Q5_5_", "Q5_7_") %in%
                         result.auto$stacked.data.set.metadata$variable.names))
@@ -32,6 +33,21 @@ test_that("common label stacking", {
                          input$Q1_A, input$Q1_B, rep(NA, nrow(input)))))
     expect_equal(as.numeric(result$stacked.data.set$Q2),
                  as.numeric(rep(input$Q2, each = 7)))
+    expect_equal(as.numeric(result$stacked.data.set$original_case), rep(1:327, each = 7))
+    expect_equal(as.numeric(result$stacked.data.set$observation), rep(1:7, 327))
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        stack.with.common.labels = "Using common labels from variables",
+                        common.labels.variables = "Q5_5_*",
+                        include.stacked.data.set.in.output = TRUE)
+    expect_true(setequal(result.auto$stacked.data.set.metadata$variable.names,
+                         result$stacked.data.set.metadata$variable.names))
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        include.original.case.variable = FALSE,
+                        include.observation.variable = FALSE)
+    expect_false("original_case" %in% result$stacked.data.set.metadata$variable.names)
+    expect_false("observation" %in% result$stacked.data.set.metadata$variable.names)
 })
 
 test_that("omitted variables", {
