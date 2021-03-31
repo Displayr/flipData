@@ -312,7 +312,7 @@ commonLabelsFromVariables <- function(common.labels.variables,
         length(common.labels.variables) == 0)
     {
         warning("No reference variables to stack were supplied for common ",
-                "labels. No stacking was conducted using common labels. ")
+                "labels. No stacking was conducted using common labels.")
         return(NULL)
     }
 
@@ -322,7 +322,8 @@ commonLabelsFromVariables <- function(common.labels.variables,
 
     if (length(split.text) == 0)
     {
-        warning("No variables were supplied for common labels.")
+        warning("No reference variables to stack were supplied for common ",
+                "labels. No stacking was conducted using common labels.")
         return(NULL)
     }
 
