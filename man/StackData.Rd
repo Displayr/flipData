@@ -70,7 +70,7 @@ A list with the following elements:
     the stacked data set such as variable names, labels etc.
   \item \code{unstackable names} A list of character vectors containing
     names of the variables that could not be stacked using common labels due
-    to mismatching types or categories.
+    to mismatching types or value attributes.
   \item \code{omitted.variables} A character vector of omitted variables.
   \item \code{omitted.stacked.variables} A character vector of omitted
     stacked variables.
