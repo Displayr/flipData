@@ -242,20 +242,21 @@ checkFileNameCharacters <- function(file.name)
 
 automaticCommonLabels <- function(input.data.set.metadata)
 {
-    lbls <- input.data.set.metadata$variable.labels
+    v.names <- input.data.set.metadata$variable.names
+    v.labels <- input.data.set.metadata$variable.labels
 
-    first.words <- vapply(lapply(lbls, strsplit, " "),
+    first.words <- vapply(lapply(v.labels, strsplit, " "),
                           function(splt) splt[[1]][1], character(1))
 
     prefixes <- character(0)
 
-    for (i in 1:(length(lbls) - 1))
+    for (i in 1:(length(v.labels) - 1))
     {
-        ind <- (i + 1):length(lbls)
+        ind <- (i + 1):length(v.labels)
         match.ind <- ind[which(first.words[i] == first.words[ind])]
         for (j in match.ind)
         {
-            prefix <- getCommonPrefix(lbls[c(i, j)], whole.words = TRUE)
+            prefix <- getCommonPrefix(v.labels[c(i, j)], whole.words = TRUE)
             if (prefix != "" && !(prefix %in% prefixes))
                 prefixes <- rbind(prefixes, prefix)
         }
@@ -268,7 +269,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
 
         common.labels <- character(0)
 
-        for (lbl in lbls)
+        for (lbl in v.labels)
         {
             if (substr(lbl, 1, nchar.prefix) == prefix)
             {
@@ -278,7 +279,8 @@ automaticCommonLabels <- function(input.data.set.metadata)
         }
         common.labels <- unique(common.labels)
 
-        stacking.groups <- stackingGroupFromCommonLabels(common.labels, lbls)
+        stacking.groups <- stackingGroupFromCommonLabels(common.labels,
+                                                         v.labels, v.names)
 
         ratio <- (sum(!is.na(stacking.groups)) - ncol(stacking.groups)) / length(stacking.groups)
         if (ratio < 0.5)
@@ -297,7 +299,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
 
     common.labels <- character(0)
 
-    for (lbl in lbls)
+    for (lbl in v.labels)
     {
         if (substr(lbl, 1, nchar.prefix) == prefix)
         {
@@ -362,6 +364,8 @@ commonLabelsFromVariables <- function(common.labels.variables,
 
 stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 {
+    # TODO: handle case with just one common label
+
     if (is.null(common.labels) || length(common.labels) == 0)
         return(NULL)
 
@@ -371,7 +375,8 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
     v.categories <- input.data.set.metadata$variable.categories
     nchar.labels <- nchar(common.labels)
 
-    stacking.groups <- stackingGroupFromCommonLabels(common.labels, v.labels)
+    stacking.groups <- stackingGroupFromCommonLabels(common.labels, v.labels,
+                                                     v.names)
 
     # Remove groups with mismatching variable types and categories
     unstackable.ind <- which(apply(stacking.groups, 1, function(ind) {
@@ -394,7 +399,7 @@ stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
     stacking.groups
 }
 
-stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
+stackingGroupFromCommonLabels <- function(common.labels, variable.labels, v.names)
 {
     variable.labels.lowercase <- tolower(variable.labels)
     n.common.labels <- length(common.labels)
@@ -434,12 +439,8 @@ stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
             else
                 NULL
         })
-        new.rows <- matrix(NA_integer_,
-                           nrow = max(vapply(common.labels.ind, length, integer(1))),
-                           ncol = n.common.labels)
-        for (j in seq_len(n.common.labels))
-            new.rows[seq_along(common.labels.ind[[j]]), j] <- common.labels.ind[[j]]
 
+        new.rows <- matchIndicesBasedOnName(common.labels.ind, v.names)
         for (j in seq_len(nrow(new.rows)))
         {
             if (!(any(removeNA(new.rows[j, ]) %in% removeNA(stacking.groups))))
@@ -452,6 +453,74 @@ stackingGroupFromCommonLabels <- function(common.labels, variable.labels)
                                        drop = FALSE]
 
     stacking.groups
+}
+
+# Match together indices from elements in a list based on their names to
+# create a rows of the output matrix, where each row represents a stacked
+# variable. Names are considered matching if after their common prefixes and
+# suffixes are removed, the remaining text is either numbers or letters but
+# not both (since enumerations occur with letters or numbers but usually not
+# both).
+matchIndicesBasedOnName <- function(ind.list, nms)
+{
+    # Trivial case: each element in the list is at most length 1
+    if (all(vapply(ind.list, length, integer(1)) < 2))
+        return(t(matrix(vapply(ind.list, function(ind) {
+            if (length(ind) == 0)
+                NA_integer_
+            else
+                ind[[1]]
+        }, integer(1)))))
+
+    n.list <- length(ind.list)
+    result <- matrix(nrow = 0, ncol = n.list)
+    repeat
+    {
+        first.name <- NA_character_
+        new.row <- rep(NA_integer_, n.list)
+        for (i in seq_len(n.list))
+        {
+            ind <- ind.list[[i]]
+            if (length(ind) == 0)
+                next
+
+            if (is.na(first.name))
+            {
+                first.name <- nms[ind[1]]
+                new.row[i] <- ind[1]
+                ind.list[[i]] <- ind.list[[i]][-1]
+                next
+            }
+
+            matched.ind <- NA_integer_
+            for (j in seq_along(ind))
+            {
+                nm <- nms[ind[j]]
+                prefix <- getCommonPrefix(c(first.name, nm))
+                suffix <- getCommonSuffix(c(first.name, nm))
+
+                # prefix and suffix removed
+                middle <- substr(nm, nchar(prefix) + 1,
+                                 nchar(nm) - nchar(suffix))
+
+                # The middle part of variable names to stack needs to be either
+                # numbers or letters and not both
+                if (!grepl("^[[:digit:]]+$", middle) &&
+                    !grepl("^[[:alpha:]]+$", middle))
+                {
+                    matched.ind <- ind[j]
+                    ind.list[[i]] <- ind.list[[i]][-j]
+                    break
+                }
+            }
+            new.row[i] <- matched.ind
+        }
+        result <- rbind(result, new.row)
+
+        if (all(vapply(ind.list, function(ind) length(ind) == 0, logical(1))))
+            break
+    }
+    result
 }
 
 stackManually <- function(stacking.groups, manual.stacking,
