@@ -504,9 +504,9 @@ matchIndicesBasedOnName <- function(ind.list, nms)
                                  nchar(nm) - nchar(suffix))
 
                 # The middle part of variable names to stack needs to be either
-                # numbers or letters and not both
-                if (!grepl("^[[:digit:]]+$", middle) &&
-                    !grepl("^[[:alpha:]]+$", middle))
+                # numbers or letters (or empty) and not both
+                if (grepl("^[[:digit:]]*$", middle) ||
+                    grepl("^[[:alpha:]]*$", middle))
                 {
                     matched.ind <- ind[j]
                     ind.list[[i]] <- ind.list[[i]][-j]
