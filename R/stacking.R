@@ -311,7 +311,8 @@ commonLabelsFromVariables <- function(common.labels.variables,
     if (is.null(common.labels.variables) ||
         length(common.labels.variables) == 0)
     {
-        warning("No variables were supplied for common labels.")
+        warning("No reference variables to stack were supplied for common ",
+                "labels. No stacking was conducted using common labels. ")
         return(NULL)
     }
 
@@ -325,7 +326,8 @@ commonLabelsFromVariables <- function(common.labels.variables,
         return(NULL)
     }
 
-    on.fail <- "Common labels could not be obtained from the input variables."
+    on.fail <- paste0("Common labels could not be obtained from the input variables. ",
+                      "No stacking was conducted using common labels.")
 
     parsed.var.names <- character(0)
     for (t in split.text)
@@ -369,7 +371,7 @@ tidyManualCommonLabels <- function(common.labels)
     if (is.null(common.labels))
     {
         warning("No common labels were manually supplied. No stacking ",
-                "was done using common labels.")
+                "was conducted using common labels.")
         return(NULL)
     }
     common.labels <- trimws(common.labels)
@@ -377,13 +379,13 @@ tidyManualCommonLabels <- function(common.labels)
     if (length(common.labels) == 0)
     {
         warning("No common labels were manually supplied. No stacking ",
-                "was done using common labels.")
+                "was conducted using common labels.")
         return(NULL)
     }
     else if (length(common.labels) == 1)
     {
         warning("Only one common label was manually supplied whereas two or ",
-                "more are required. No stacking was done using common labels.")
+                "more are required. No stacking was conducted using common labels.")
         return(NULL)
     }
     common.labels
