@@ -37,7 +37,7 @@
 #'     the stacked data set such as variable names, labels etc.
 #'   \item \code{unstackable names} A list of character vectors containing
 #'     names of the variables that could not be stacked using common labels due
-#'     to mismatching types or categories.
+#'     to mismatching types or value attributes.
 #'   \item \code{omitted.variables} A character vector of omitted variables.
 #'   \item \code{omitted.stacked.variables} A character vector of omitted
 #'     stacked variables.
@@ -70,7 +70,6 @@ StackData <- function(input.data.set.name,
 
     input.data.set.metadata <- metadataFromDataSet(input.data.set,
                                                    input.data.set.name)
-    n.vars <- input.data.set.metadata$n.variables
 
     if (stack.with.common.labels == "Automatically")
     {
@@ -88,11 +87,7 @@ StackData <- function(input.data.set.name,
                                                    input.data.set.metadata)
     }
     else if (stack.with.common.labels == "Using manually input common labels")
-    {
-        if (is.null(common.labels) || length(common.labels) == 0)
-            warning("No common labels were manually supplied. No stacking ",
-                    "was done using common labels.")
-    }
+        common.labels <- tidyManualCommonLabels(common.labels)
 
     stacking.groups <- if (stack.with.common.labels != "Disabled")
         stackWithCommonLabels(common.labels, input.data.set.metadata)
@@ -149,7 +144,10 @@ StackData <- function(input.data.set.name,
     result
 }
 
-# TODO: check for places where drop = FALSE is needed!
+# TODO: show original variable numbers in output
+# TODO: speed up automatic categories
+# TODO: multiple sets of common labels
+# TODO: variables to not stack
 
 readDataSets <- function(data.set.names, min.data.sets = 1)
 {
@@ -197,12 +195,6 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 #' @importFrom flipAPI QSaveData
 writeDataSet <- function(data.set, data.set.name)
 {
-    # Remove extra attributes that are not needed for writing
-    data.set <- data.frame(lapply(data.set, function(v) {
-        attr(v, "input.category.values") <- NULL
-        v
-    }))
-
     if (canAccessDisplayrCloudDrive())
         QSaveData(data.set, data.set.name)
     else
@@ -253,7 +245,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
     for (i in 1:(length(v.labels) - 1))
     {
         ind <- (i + 1):length(v.labels)
-        match.ind <- ind[which(first.words[i] == first.words[ind])]
+        match.ind <- ind[first.words[i] == first.words[ind]]
         for (j in match.ind)
         {
             prefix <- getCommonPrefix(v.labels[c(i, j)], whole.words = TRUE)
@@ -266,7 +258,6 @@ automaticCommonLabels <- function(input.data.set.metadata)
     {
         prefix <- prefixes[i]
         nchar.prefix <- nchar(prefix)
-
         common.labels <- character(0)
 
         for (lbl in v.labels)
@@ -278,19 +269,24 @@ automaticCommonLabels <- function(input.data.set.metadata)
             }
         }
         common.labels <- unique(common.labels)
+        if (length(common.labels) == 1)
+            return(-Inf)
 
         stacking.groups <- stackingGroupFromCommonLabels(common.labels,
                                                          v.labels, v.names)
 
         ratio <- (sum(!is.na(stacking.groups)) - ncol(stacking.groups)) / length(stacking.groups)
         if (ratio < 0.5)
-            0
+            -Inf
         else
-        {
             sum(!is.na(stacking.groups)) - ncol(stacking.groups)
-        }
     }, numeric(1))
 
+    if (max(score) == -Inf)
+    {
+        warning("Common labels could not be found automatically.")
+        return(NULL)
+    }
 
     ind <- which.max(score)
 
@@ -298,7 +294,6 @@ automaticCommonLabels <- function(input.data.set.metadata)
     nchar.prefix <- nchar(prefix)
 
     common.labels <- character(0)
-
     for (lbl in v.labels)
     {
         if (substr(lbl, 1, nchar.prefix) == prefix)
@@ -307,8 +302,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
             common.labels <- c(common.labels, remaining.lbl)
         }
     }
-
-    common.labels <- unique(common.labels)
+    unique(common.labels)
 }
 
 commonLabelsFromVariables <- function(common.labels.variables,
@@ -350,6 +344,14 @@ commonLabelsFromVariables <- function(common.labels.variables,
         parsed.var.names <- c(parsed.var.names, parsed)
     }
 
+    if (length(parsed.var.names) == 1)
+    {
+        warning("Only one variable was supplied for extracting common labels ",
+                "whereas more than one variable is required. No stacking was ",
+                "performed.")
+        return(NULL)
+    }
+
     lbls.containing.common.lbls <- vapply(parsed.var.names, function(nm) {
         v.labels[match(nm, v.names)]
     }, character(1))
@@ -362,46 +364,69 @@ commonLabelsFromVariables <- function(common.labels.variables,
     }, character(1))
 }
 
+tidyManualCommonLabels <- function(common.labels)
+{
+    if (is.null(common.labels))
+    {
+        warning("No common labels were manually supplied. No stacking ",
+                "was done using common labels.")
+        return(NULL)
+    }
+    common.labels <- trimws(common.labels)
+    common.labels <- common.labels[common.labels != ""]
+    if (length(common.labels) == 0)
+    {
+        warning("No common labels were manually supplied. No stacking ",
+                "was done using common labels.")
+        return(NULL)
+    }
+    else if (length(common.labels) == 1)
+    {
+        warning("Only one common label was manually supplied whereas two or ",
+                "more are required. No stacking was done using common labels.")
+        return(NULL)
+    }
+    common.labels
+}
+
 stackWithCommonLabels <- function(common.labels, input.data.set.metadata)
 {
-    # TODO: handle case with just one common label
-
     if (is.null(common.labels) || length(common.labels) == 0)
         return(NULL)
 
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
     v.types <- input.data.set.metadata$variable.types
-    v.categories <- input.data.set.metadata$variable.categories
+    v.val.attr <- input.data.set.metadata$variable.value.attributes
     nchar.labels <- nchar(common.labels)
 
     stacking.groups <- stackingGroupFromCommonLabels(common.labels, v.labels,
                                                      v.names)
 
-    # Remove groups with mismatching variable types and categories
+    # Remove groups with mismatching variable types and value attributes
     unstackable.ind <- which(apply(stacking.groups, 1, function(ind) {
         ind <- removeNA(ind)
-        !allIdentical(v.types[ind]) || !allIdentical(v.categories[ind])
+        !allIdentical(v.types[ind]) || !allIdentical(v.val.attr[ind])
     }))
     unstackable.names <- lapply(unstackable.ind, function(ind) {
         v.names[removeNA(stacking.groups[ind, ])]
     })
     if (length(unstackable.names) > 0)
         warning("Variables could not be stacked due ",
-                "to mismatching variable types or categories. ",
+                "to mismatching variable types or value attributes. ",
                 "See Notes section in output for more details.")
 
     if (length(unstackable.ind) > 0)
-        stacking.groups <- stacking.groups[-unstackable.ind, ]
+        stacking.groups <- stacking.groups[-unstackable.ind, , drop = FALSE]
     attr(stacking.groups, "unstackable.names") <- unstackable.names
     attr(stacking.groups, "is.manually.stacked") <- rep(FALSE,
                                                        nrow(stacking.groups))
     stacking.groups
 }
 
-stackingGroupFromCommonLabels <- function(common.labels, variable.labels, v.names)
+stackingGroupFromCommonLabels <- function(common.labels, v.labels, v.names)
 {
-    variable.labels.lowercase <- tolower(variable.labels)
+    v.labels.lowercase <- tolower(v.labels)
     n.common.labels <- length(common.labels)
     common.label.prefixes.suffixes <- list()
     match.ind <- list()
@@ -409,11 +434,11 @@ stackingGroupFromCommonLabels <- function(common.labels, variable.labels, v.name
     for (i in seq_len(n.common.labels))
     {
         common.lbl <- common.labels[i]
-        matches <- gregexpr(tolower(common.lbl), variable.labels.lowercase, # case insensitive match
+        matches <- gregexpr(tolower(common.lbl), v.labels.lowercase, # case insensitive match
                             fixed = TRUE)
         ind <- which(vapply(matches, function(m) m[[1]][1], integer(1)) != -1)
         common.label.prefixes.suffixes[[i]] <- t(vapply(ind, function(j) {
-            lbl <- variable.labels[j]
+            lbl <- v.labels[j]
             start.ind <- matches[[j]][1]
             c(substr(lbl, 1, start.ind - 1),
               substr(lbl, start.ind + nchar(common.lbl), nchar(lbl)))
@@ -530,9 +555,7 @@ stackManually <- function(stacking.groups, manual.stacking,
         setequal(manual.stacking, ""))
         return(stacking.groups)
 
-    variable.names <- input.data.set.metadata$variable.names
-
-    na.ind <- match("NA", variable.names)
+    na.ind <- match("NA", input.data.set.metadata$variable.names)
     has.na.variable <- !is.na(na.ind)
     if (has.na.variable)
         warning("There is an input variable named 'NA'. To avoid confusion, ",
@@ -552,7 +575,7 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
 {
     v.names <- input.data.set.metadata$variable.names
     v.types <- input.data.set.metadata$variable.types
-    v.categories <- input.data.set.metadata$variable.categories
+    v.val.attr <- input.data.set.metadata$variable.value.attributes
 
     permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
 
@@ -613,13 +636,13 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
 
         group.ind <- vapply(group.names, match, integer(1), v.names)
 
-        # Check for mismatching variable types and categories
+        # Check for mismatching variable types and value attributes
         if (!allIdentical(v.types[removeNA(group.ind)]) ||
-            !allIdentical(v.categories[removeNA(group.ind)]))
+            !allIdentical(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
                     "' has been ignored as it contains variables with ",
-                    "mismatching types or categories.")
+                    "mismatching types or value attributes.")
             next
         }
 
@@ -658,7 +681,7 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
         is.overlapping <- apply(stacking.groups, 1, function(group) {
             any(manual.group.without.na %in% group)
         })
-        stacking.groups <- stacking.groups[!is.overlapping, ]
+        stacking.groups <- stacking.groups[!is.overlapping, , drop = FALSE]
     }
 
     # Increase number of columns in stacking.groups if necessary to fit
@@ -701,7 +724,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 
     v.names <- input.data.set.metadata$variable.names
     v.types <- input.data.set.metadata$variable.types
-    v.categories <- input.data.set.metadata$variable.categories
+    v.val.attr <- input.data.set.metadata$variable.value.attributes
 
     permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
 
@@ -792,12 +815,12 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
     {
         ind <- removeNA(vapply(manual.stacking.obs.groups, `[`,
                         integer(1), i))
-        if (!allIdentical(v.types[ind]) || !allIdentical(v.categories[ind]))
+        if (!allIdentical(v.types[ind]) || !allIdentical(v.val.attr[ind]))
         {
             warning("No manual stacking was conducted as the manual ",
                     "stacking input '", input.text, "' would result in the ",
                     "stacking of variables with mismatching types or ",
-                    "categories.")
+                    "value attributes.")
             return(stacking.groups)
         }
     }
@@ -810,7 +833,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
         is.overlapping <- apply(stacking.groups, 1, function(obs.group) {
             any(manual.obs.group.without.na %in% obs.group)
         })
-        stacking.groups <- stacking.groups[!is.overlapping, ]
+        stacking.groups <- stacking.groups[!is.overlapping, , drop = FALSE]
     }
 
     # Increase number of columns in stacking.groups if necessary to fit
@@ -852,25 +875,25 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         })))
     }
 
-    input.var.names <- input.data.set.metadata$variable.names
-    input.var.labels <- input.data.set.metadata$variable.labels
+    input.v.names <- input.data.set.metadata$variable.names
+    input.v.labels <- input.data.set.metadata$variable.labels
     retained.indices <- retainedIndices(stacking.groups,
                                         input.data.set.metadata$n.variables)
     stacked.indices <- stackedIndices(stacking.groups, retained.indices)
 
-    # TODO: refactor this, don't like the name "stackedVariableText"
-    stacked.data.set.var.names <- stackedVariableText(stacking.groups,
-                                                      input.var.names,
-                                                      retained.indices,
-                                                      stacked.indices, TRUE)
-    stacked.data.set.var.labels <- stackedVariableText(stacking.groups,
-                                                       input.var.labels,
-                                                       retained.indices,
-                                                       stacked.indices)
+    stacked.data.set.v.names <- stackedDataSetVariableNames(stacking.groups,
+                                                            input.v.names,
+                                                            retained.indices,
+                                                            stacked.indices)
+    stacked.data.set.v.labels <- stackedDataSetVariableLabels(stacking.groups,
+                                                              input.v.labels,
+                                                              retained.indices,
+                                                              stacked.indices,
+                                                              stacked.data.set.v.names)
 
     n.stacked <- ncol(stacking.groups)
     is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
-    stacked.data.set <- data.frame(lapply(seq_along(stacked.data.set.var.names), function(i) {
+    stacked.data.set <- data.frame(lapply(seq_along(stacked.data.set.v.names), function(i) {
         ind <- match(i, stacked.indices)
         if (!is.na(ind)) # Stacked variable
         {
@@ -884,29 +907,29 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             v <- c(t(matrix(v, nrow = nrow(input.data.set))))
             attr(v, "is.stacked") <- TRUE
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
-            attr(v, "stacking.input.variable.names") <- input.var.names[group.ind]
-            attr(v, "stacking.input.variable.labels") <- input.var.labels[group.ind]
-            categories <- attr(input.data.set[[removeNA(group.ind)[1]]],
-                               "labels", exact = TRUE)
+            attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
+            attr(v, "stacking.input.variable.labels") <- input.v.labels[group.ind]
+            val.attr <- attr(input.data.set[[removeNA(group.ind)[1]]],
+                             "labels", exact = TRUE)
         }
         else # Not stacked variable
         {
-            input.var <- input.data.set[[stacked.data.set.var.names[i]]]
+            input.var <- input.data.set[[stacked.data.set.v.names[i]]]
             v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
-            categories <- attr(input.var, "labels", exact = TRUE)
+            val.attr <- attr(input.var, "labels", exact = TRUE)
         }
-        attr(v, "label") <- stacked.data.set.var.labels[i]
-        if (!is.null(categories))
+        attr(v, "label") <- stacked.data.set.v.labels[i]
+        if (!is.null(val.attr))
         {
-            attr(v, "labels") <- categories
+            attr(v, "labels") <- val.attr
             class(v) <- c(class(v), "haven_labelled")
         }
         v
     }))
 
-    names(stacked.data.set) <- c(stacked.data.set.var.names)
+    names(stacked.data.set) <- c(stacked.data.set.v.names)
 
     if (include.original.case.variable)
     {
@@ -915,7 +938,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         attr(original.case, "is.stacked") <- FALSE
         attr(original.case, "is.manually.stacked") <- NA
         stacked.data.set[[uniqueName("original_case",
-                                     stacked.data.set.var.names)]] <- original.case
+                                     stacked.data.set.v.names)]] <- original.case
     }
 
     if (include.observation.variable)
@@ -925,7 +948,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         attr(observation, "is.stacked") <- FALSE
         attr(observation, "is.manually.stacked") <- NA
         stacked.data.set[[uniqueName("observation",
-                                     stacked.data.set.var.names)]] <- observation
+                                     stacked.data.set.v.names)]] <- observation
     }
 
     stacked.data.set
@@ -944,24 +967,23 @@ retainedIndices <- function(stacking.groups, n.vars)
 # Indices of stacked variables in stacked data set
 stackedIndices <- function(stacking.groups, retained.indices)
 {
-    # TODO: rename stacking.ind to avoid confusion with stacked.indices
-    stacking.ind <- apply(stacking.groups, 1, function(group.ind) {
+    first.ind <- apply(stacking.groups, 1, function(group.ind) {
         ind <- removeNA(group.ind)
         ind[which.min(ind)]
     })
 
-    vapply(stacking.ind, match, integer(1), retained.indices)
+    vapply(first.ind, match, integer(1), retained.indices)
 }
 
-stackedVariableText <- function(stacking.groups, variable.text,
-                                retained.indices, stacked.indices,
-                                prevent.duplicates = FALSE)
+stackedDataSetVariableNames <- function(stacking.groups, input.variable.names,
+                                        retained.indices, stacked.indices)
 {
-    stacked.text <- apply(stacking.groups, 1, function(group.ind) {
+    result <- input.variable.names[retained.indices]
+    result[stacked.indices] <- apply(stacking.groups, 1, function(group.ind) {
         ind <- removeNA(group.ind)
-        text <- variable.text[ind]
-        common.prefix <- trimws(getCommonPrefix(text))
-        common.suffix <- trimws(getCommonSuffix(text))
+        nm <- input.variable.names[ind]
+        common.prefix <- trimws(getCommonPrefix(nm))
+        common.suffix <- trimws(getCommonSuffix(nm))
         candidate <- trimws(paste(common.prefix, common.suffix))
         if (candidate != "")
             candidate
@@ -969,16 +991,32 @@ stackedVariableText <- function(stacking.groups, variable.text,
             "stacked_var"
     })
 
-    result <- variable.text[retained.indices]
-    result[stacked.indices] <- stacked.text
-
-    if (!prevent.duplicates)
-        return(result)
-
     dup <- which(duplicated(result))
     for (i in dup)
         result[i] <- uniqueName(result[i], result[-i], "_")
 
+    result
+}
+
+stackedDataSetVariableLabels <- function(stacking.groups,
+                                         input.variable.labels,
+                                         retained.indices, stacked.indices,
+                                         stacked.data.set.variable.names)
+{
+    result <- input.variable.labels[retained.indices]
+    result[stacked.indices] <- apply(stacking.groups, 1, function(group.ind) {
+        ind <- removeNA(group.ind)
+        nm <- input.variable.labels[ind]
+        common.prefix <- trimws(getCommonPrefix(nm))
+        common.suffix <- trimws(getCommonSuffix(nm))
+        candidate <- trimws(paste(common.prefix, common.suffix))
+        if (candidate != "")
+            candidate
+        else
+            NA_character_
+    })
+    require.label <- is.na(result)
+    result[require.label] <- stacked.data.set.variable.names[require.label]
     result
 }
 
@@ -1260,7 +1298,7 @@ metadataFromDataSet <- function(data.set, data.set.name)
              ifelse(!is.null(lbl), lbl, "")
          }, character(1)),
          variable.types = vapply(data.set, variableType, character(1)),
-         variable.categories = lapply(data.set, attr, "labels",
+         variable.value.attributes = lapply(data.set, attr, "labels",
                                       exact = TRUE),
          n.variables = length(data.set),
          data.set.name = dataSetNameWithoutPath(data.set.name))

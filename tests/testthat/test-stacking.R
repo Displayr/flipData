@@ -141,7 +141,7 @@ test_that("manual stacking by variables", {
                              manual.stacking = c("LastResp,Q3")),
                    paste0("The manual stacking input 'LastResp,Q3' has been ",
                           "ignored as it contains variables with mismatching ",
-                          "types or categories."))
+                          "types or value attributes."))
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Variable",
@@ -204,7 +204,7 @@ test_that("manual stacking by observations", {
                              manual.stacking = c("LastResp", "Q3")),
                    paste0("No manual stacking was conducted as the manual ",
                           "stacking input 'Q3' would result in the stacking ",
-                          "of variables with mismatching types or categories."))
+                          "of variables with mismatching types or value attributes."))
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Observation",
