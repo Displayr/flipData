@@ -144,9 +144,9 @@ StackData <- function(input.data.set.name,
     result
 }
 
-# TODO: show original variable numbers in output
+# TODO: show original variable numbers in output?
 # TODO: speed up automatic categories
-# TODO: multiple sets of common labels
+# TODO: multiple sets of common labels?
 # TODO: variables to not stack
 
 readDataSets <- function(data.set.names, min.data.sets = 1)
@@ -987,7 +987,7 @@ stackedDataSetVariableNames <- function(stacking.groups, input.variable.names,
         nm <- input.variable.names[ind]
         common.prefix <- trimws(getCommonPrefix(nm))
         common.suffix <- trimws(getCommonSuffix(nm))
-        candidate <- trimws(paste(common.prefix, common.suffix))
+        candidate <- trimws(paste0(common.prefix, common.suffix))
         if (candidate != "")
             candidate
         else
