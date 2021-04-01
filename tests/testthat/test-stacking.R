@@ -38,15 +38,20 @@ test_that("common label stacking", {
 
     result <- StackData(findInstDirFile("Cola.sav"),
                         stack.with.common.labels = "Using a set of variables to stack as reference",
-                        common.labels.variables = "Q5_5_*",
+                        reference.variables.to.stack = "Q5_5_*",
                         include.stacked.data.set.in.output = TRUE)
     expect_true(setequal(result.auto$stacked.data.set.metadata$variable.names,
                          result$stacked.data.set.metadata$variable.names))
+    expect_equal(attr(result$stacked.data.set$observation, "labels"),
+                 structure(1:7, .Names = c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
+                                           "Diet Pepsi", "Pepsi Max", "None of these")))
 
     result <- StackData(findInstDirFile("Cola.sav"),
-                        include.original.case.variable = FALSE,
-                        include.observation.variable = FALSE)
+                        include.original.case.variable = FALSE)
     expect_false("original_case" %in% result$stacked.data.set.metadata$variable.names)
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        include.observation.variable = FALSE)
     expect_false("observation" %in% result$stacked.data.set.metadata$variable.names)
 })
 
