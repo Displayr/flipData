@@ -69,6 +69,8 @@ StackData <- function(input.data.set.name,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
 {
+    tt <<- 0
+
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
     variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
     omitted.variables <- parseVariablesToOmit(variables.to.omit,
@@ -127,7 +129,6 @@ StackData <- function(input.data.set.name,
     result
 }
 
-# TODO: speed up automatic categories
 # TODO: multiple sets of common labels?
 
 readDataSets <- function(data.set.names, min.data.sets = 1)
@@ -254,38 +255,47 @@ automaticCommonLabels <- function(input.data.set.metadata)
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
 
-    first.words <- vapply(lapply(v.labels, strsplit, " "),
-                          function(splt) splt[[1]][1], character(1))
+    words <- strsplit(v.labels," ")
+    is.multiple.words <- vapply(words, length, integer(1)) > 1
+    words <- words[is.multiple.words]
+    first.words <- vapply(words, `[`, character(1), 1)
 
     prefixes <- character(0)
+    prefix.count <- integer(0)
 
-    for (i in 1:(length(v.labels) - 1))
+    for (i in 1:(length(first.words) - 1))
     {
-        ind <- (i + 1):length(v.labels)
+        words.i <- words[[i]]
+        n.words.i <- length(words.i)
+        ind <- (i + 1):length(first.words)
         match.ind <- ind[first.words[i] == first.words[ind]]
         for (j in match.ind)
         {
-            prefix <- getCommonPrefix(v.labels[c(i, j)], whole.words = TRUE)
-            if (prefix != "" && !(prefix %in% prefixes))
+            words.j <- words[[j]]
+
+            min.ind <- 1:min(n.words.i, length(words.j))
+            last.match <- match(TRUE, words.i[min.ind] != words.j[min.ind]) - 1
+            prefix <- if (!is.na(last.match))
+                paste(words.i[seq_len(last.match)], collapse = " ")
+            else
+                next # not really a prefix since one is a subset of another
+
+            prefix.ind <- match(prefix, prefixes)
+            if (is.na(prefix.ind))
+            {
                 prefixes <- rbind(prefixes, prefix)
+                prefix.count <- c(prefix.count, 1)
+            }
+            else
+                prefix.count[prefix.ind] <- prefix.count[prefix.ind] + 1
         }
     }
+    prefixes <- prefixes[prefix.count > 5]
 
     score <- vapply(seq_along(prefixes), function(i)
     {
-        prefix <- prefixes[i]
-        nchar.prefix <- nchar(prefix)
-        common.labels <- character(0)
+        common.labels <- commonLabelsByRemovingPrefix(prefixes[i], v.labels)
 
-        for (lbl in v.labels)
-        {
-            if (substr(lbl, 1, nchar.prefix) == prefix)
-            {
-                remaining.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl))
-                common.labels <- c(common.labels, remaining.lbl)
-            }
-        }
-        common.labels <- unique(common.labels)
         if (length(common.labels) == 1)
             return(-Inf)
 
@@ -305,21 +315,17 @@ automaticCommonLabels <- function(input.data.set.metadata)
         return(NULL)
     }
 
-    ind <- which.max(score)
+    commonLabelsByRemovingPrefix(prefixes[which.max(score)], v.labels)
+}
 
-    prefix <- prefixes[ind]
+commonLabelsByRemovingPrefix <- function(prefix, v.labels)
+{
+    prefix <- paste0(prefix, " ")
     nchar.prefix <- nchar(prefix)
-
-    common.labels <- character(0)
-    for (lbl in v.labels)
-    {
-        if (substr(lbl, 1, nchar.prefix) == prefix)
-        {
-            remaining.lbl <- substr(lbl, nchar.prefix + 1, nchar(lbl))
-            common.labels <- c(common.labels, remaining.lbl)
-        }
-    }
-    unique(common.labels)
+    lbls.with.prefix <- v.labels[substr(v.labels, 1, nchar.prefix) == prefix]
+    common.labels <- substr(lbls.with.prefix, nchar.prefix + 1,
+                            max(nchar(lbls.with.prefix)))
+    common.labels <- unique(common.labels)
 }
 
 # Given a user-input string of variable names, parse it and extract common
@@ -549,12 +555,12 @@ matchIndicesBasedOnName <- function(ind.list, nms)
                 next
             }
 
-            matched.ind <- NA_integer_
             for (j in seq_along(ind))
             {
                 nm <- nms[ind[j]]
-                prefix <- getCommonPrefix(c(first.name, nm))
-                suffix <- getCommonSuffix(c(first.name, nm))
+
+                prefix <- getCommonPrefixTwoNames(c(first.name, nm))
+                suffix <- getCommonSuffixTwoNames(c(first.name, nm))
 
                 # prefix and suffix removed
                 middle <- substr(nm, nchar(prefix) + 1,
@@ -565,16 +571,15 @@ matchIndicesBasedOnName <- function(ind.list, nms)
                 if (grepl("^[[:digit:]]*$", middle) ||
                     grepl("^[[:alpha:]]*$", middle))
                 {
-                    matched.ind <- ind[j]
+                    new.row[i] <- ind[j]
                     ind.list[[i]] <- ind.list[[i]][-j]
                     break
                 }
             }
-            new.row[i] <- matched.ind
         }
         result <- rbind(result, new.row)
 
-        if (all(vapply(ind.list, function(ind) length(ind) == 0, logical(1))))
+        if (all(vapply(ind.list, length, integer(1)) == 0))
             break
     }
     result
@@ -1001,7 +1006,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         }
         attr(observation, "is.stacked") <- FALSE
         attr(observation, "is.manually.stacked") <- NA
-        attr(original.case, "is.observation") <- TRUE
+        attr(observation, "is.observation") <- TRUE
 
         stacked.data.set[[uniqueName("observation",
                                      stacked.data.set.v.names)]] <- observation
@@ -1119,6 +1124,34 @@ getCommonPrefix <- function(nms, whole.words = FALSE)
         common_prefix
 }
 
+# Faster than getCommonPrefix but only works on character vectors of length 2
+getCommonPrefixTwoNames <- function(nms)
+{
+    n.chars <- nchar(nms)
+    min.n.chars <- min(n.chars)
+    split.nms <-  strsplit(nms, "")
+    char.ind <- seq_len(min.n.chars)
+    last.ind <- match(TRUE, split.nms[[1]][char.ind] != split.nms[[2]][char.ind]) - 1
+    if (is.na(last.ind)) # one is a subset of the other
+        nms[which.min(n.chars)]
+    else
+        paste0(split.nms[[1]][seq_len(last.ind)], collapse = "")
+}
+
+# Faster than getCommonSuffix but only works on character vectors of length 2
+getCommonSuffixTwoNames <- function(nms)
+{
+    n.chars <- nchar(nms)
+    min.n.chars <- min(n.chars)
+    split.nms <- lapply(strsplit(nms, ""), rev)
+    char.ind <- seq_len(min.n.chars)
+    first.ind <- match(TRUE, split.nms[[1]][char.ind] != split.nms[[2]][char.ind]) - 1
+    if (is.na(first.ind)) # one is a subset of the other
+        nms[which.min(n.chars)]
+    else
+        paste0(rev(split.nms[[1]][seq_len(first.ind)]), collapse = "")
+}
+
 # Common suffix from a character vector of names.
 # If whole.words is TRUE, the prefix is truncated so that it does not end
 # halfway into a word or number.
@@ -1165,8 +1198,8 @@ omittableNames <- function(data.set)
     is.omittable <- vapply(data.set, function(v) {
         is.original.case <- attr(v, "is.original.case")
         is.observation <- attr(v, "is.observation")
-        (!is.null(is.original.case) && is.original.case) ||
-            (!is.null(is.observation) && is.observation)
+        (is.null(is.original.case) || !is.original.case) &&
+            (is.null(is.observation) || !is.observation)
     }, logical(1))
     names(data.set)[is.omittable]
 }
