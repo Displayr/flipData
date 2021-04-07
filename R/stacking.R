@@ -69,8 +69,6 @@ StackData <- function(input.data.set.name,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
 {
-    tt <<- 0
-
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
     variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
     omitted.variables <- parseVariablesToOmit(variables.to.omit,
