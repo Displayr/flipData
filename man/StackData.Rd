@@ -9,7 +9,7 @@ StackData(
   stacked.data.set.name = NULL,
   stack.with.common.labels = "Automatically",
   reference.variables.to.stack = NULL,
-  common.labels = NULL,
+  manual.common.labels = NULL,
   specify.by = "Variable",
   manual.stacking = NULL,
   variables.to.omit = NULL,
@@ -31,16 +31,16 @@ the Displayr Cloud Drive (if run from Displayr) or saved locally.}
 \code{"Using manually input common labels"},
 \code{"Disabled"}.}
 
-\item{reference.variables.to.stack}{A string of variables to stack used
-as a reference to generate the common labels used for stacking. This can
-be a combination of comma-separated names, wildcards and ranges.
-Variable ranges can be specified by supplying the start and end variables
-separated by a dash '-'. If the start or end variables are left out, then
-the range is assumed to start from the first variable or end at the last
-variable respectively. Wildcards in variable names can be specified
-with an asterisk '*'.}
+\item{reference.variables.to.stack}{A character vector of sets of variables
+to stack to be used as a reference to generate the common labels used for
+stacking. This can be a combination of comma-separated names, wildcards
+and ranges. Variable ranges can be specified by supplying the start and
+end variables separated by a dash '-'. If the start or end variables are
+left out, then the range is assumed to start from the first variable or
+end at the last variable respectively. Wildcards in variable names can be
+specified with an asterisk '*'.}
 
-\item{common.labels}{A character vector of common labels to be used to
+\item{manual.common.labels}{A list of sets of common labels to be used to
 identify variables to stack. Only used when \code{stack.with.common.labels}
 is \code{"Using manually input common labels"}. To be identified, a set of
 variables to be stacked must contain these labels, have the same prefix

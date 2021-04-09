@@ -6,9 +6,6 @@ findInstDirFile <- function(file)
               file)
 }
 
-common.labels <- c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
-                   "Diet Pepsi", "Pepsi Max", "None of these")
-
 test_that("no stacking", {
     result <- StackData(findInstDirFile("Cola.sav"),
                         stack.with.common.labels = "Disabled")
@@ -18,7 +15,10 @@ test_that("no stacking", {
 
 test_that("common label stacking", {
     result.auto <- StackData(findInstDirFile("Cola.sav"))
-    result <- StackData(findInstDirFile("Cola.sav"), common.labels = common.labels,
+
+    common.labels <- list(c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
+                            "Diet Pepsi", "Pepsi Max", "None of these"))
+    result <- StackData(findInstDirFile("Cola.sav"), manual.common.labels = common.labels,
                         stack.with.common.labels = "Using manually input common labels",
                         include.stacked.data.set.in.output = TRUE)
     expect_true(all(c("Q1_", "Q5_5_", "Q5_7_") %in%
@@ -53,6 +53,27 @@ test_that("common label stacking", {
     result <- StackData(findInstDirFile("Cola.sav"),
                         include.observation.variable = FALSE)
     expect_false("observation" %in% result$stacked.data.set.metadata$variable.names)
+})
+
+test_that("Multiple common labels", {
+    common.labels <- list(c("Coca Cola", "Diet Coke", "Coke Zero", "Pepsi",
+                            "Pepsi Light", "Pepsi Max"),
+                          c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
+                            "Diet Pepsi", "Pepsi Max", "None of these"))
+    result <- StackData(findInstDirFile("Cola.sav"), manual.common.labels = common.labels,
+                        stack.with.common.labels = "Using manually input common labels")
+    expect_equal(result$stacked.data.set.metadata$stacking.input.variable.names$Q6,
+                 c("Q6_A", "Q6_B", "Q6_C", "Q6_D", "Q6_E", "Q6_F", NA))
+    expect_equal(result$stacked.data.set.metadata$stacking.input.variable.names$Q9,
+                 c("Q9_A", "Q9_B", "Q9_C", "Q9_D", "Q9_E", "Q9_F", NA))
+
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        stack.with.common.labels = "Using a set of variables to stack as reference",
+                        reference.variables.to.stack = c("Q5_5_*", "Q6_*"))
+    expect_equal(result$stacked.data.set.metadata$stacking.input.variable.names$Q6,
+                 c("Q6_A", "Q6_B", "Q6_C", "Q6_D", "Q6_E", "Q6_F", NA))
+    expect_equal(result$stacked.data.set.metadata$stacking.input.variable.names$Q9,
+                 c("Q9_A", "Q9_B", "Q9_C", "Q9_D", "Q9_E", "Q9_F", NA))
 })
 
 test_that("omitted variables", {
