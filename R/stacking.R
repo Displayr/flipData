@@ -1179,7 +1179,7 @@ stackedDataSetVariableLabels <- function(stacking.groups,
         lbl <- input.variable.labels[ind]
         common.prefix <- trimws(getCommonPrefix(lbl))
         common.suffix <- trimws(getCommonSuffix(lbl))
-        if (common.prefix == "" && common.prefix == "")
+        if (common.prefix == "" && common.suffix == "")
             NA_character_
         else if (common.prefix == common.suffix)
             common.prefix
