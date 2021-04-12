@@ -639,9 +639,15 @@ matchIndicesBasedOnName <- function(ind.list, nms)
                 prefix <- getCommonPrefixTwoNames(c(first.name, nm))
                 suffix <- getCommonSuffixTwoNames(c(first.name, nm))
 
+                nchar.prefix <- nchar(prefix)
+                nchar.suffix <- nchar(suffix)
+
+                if (nchar.prefix == 0)
+                    next
+
                 # prefix and suffix removed
-                middle <- substr(nm, nchar(prefix) + 1,
-                                 nchar(nm) - nchar(suffix))
+                middle <- substr(nm, nchar.prefix + 1,
+                                 nchar(nm) - nchar.suffix)
 
                 # The middle part of variable names to stack needs to be either
                 # numbers or letters (or empty) and not both
