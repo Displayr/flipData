@@ -1112,7 +1112,9 @@ checkStackedDataSetSize <- function(input.data.set, stacking.groups,
             object.size(input.data.set[[stacked.data.set.v.names[i]]]) * n.stacked
     }, numeric(1))
 
-    if (sum(v.sizes) > 16 * 1e9)
+    # Set to 4GB as I found that memory issues start to occur around here.
+    # May have to lower this if we find that users still get memory errors.
+    if (sum(v.sizes) > 4 * 1e9)
     {
         msg <- paste0("The stacked data set is too large to create. Omit unnecessary ",
                       "variables to reduce its size.")
