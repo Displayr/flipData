@@ -9,8 +9,8 @@ MergeDataSetsByCase(
   merged.data.set.name = NULL,
   match.by = "Automatic",
   min.match.percentage = 100,
-  variables.to.match = NULL,
-  variables.to.not.match = NULL,
+  variables.to.combine = NULL,
+  variables.to.not.combine = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
   write.data.set = TRUE,
@@ -33,19 +33,20 @@ Variable and value labels}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
-\item{variables.to.match}{A character vector of pairs of comma-separated
-variable names indicating which variables are to be matched together.
+\item{variables.to.combine}{A character vector of pairs of comma-separated
+variable names indicating which variables are to be combined together.
 Ranges of variables can be specified by separating variable names by '-'.
 Variables can be specified from specific data sets by appending '(x)' to
 the variable name where x is the data set index.}
 
-\item{variables.to.not.match}{A character vector of comma-separated variable
-names specifying variables that should never be matched together, with
-variable names suffixed with the data set index in parentheses, e.g., 'Q2(3)'.}
+\item{variables.to.not.combine}{A character vector of comma-separated variable
+names specifying variables that should never be combined together.
+To specify variables from a specific data set, suffix variable names
+with the data set index in parentheses, e.g., 'Q2(3)'.}
 
-\item{variables.to.omit}{A list of character vectors containing names of
-variables to omit from the merged data set. The vectors in the list
-correspond to the input data sets.}
+\item{variables.to.omit}{Character vector of variable names to omit from
+the merged data set. To specify variables from a specific data set,
+suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.}
 
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}

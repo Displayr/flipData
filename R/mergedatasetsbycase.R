@@ -11,13 +11,13 @@
 #' @param match.by One of Automatic, All, Variable names, Variable labels,
 #'  Variable and value labels
 #' @param min.match.percentage To be decided, possibly a percentage.
-#' @param variables.to.match A character vector of pairs of comma-separated
-#'  variable names indicating which variables are to be matched together.
+#' @param variables.to.combine A character vector of pairs of comma-separated
+#'  variable names indicating which variables are to be combined together.
 #'  Ranges of variables can be specified by separating variable names by '-'.
 #'  Variables can be specified from specific data sets by appending '(x)' to
 #'  the variable name where x is the data set index.
-#' @param variables.to.not.match A character vector of comma-separated variable
-#'  names specifying variables that should never be matched together.
+#' @param variables.to.not.combine A character vector of comma-separated variable
+#'  names specifying variables that should never be combined together.
 #'  To specify variables from a specific data set, suffix variable names
 #'  with the data set index in parentheses, e.g., 'Q2(3)'.
 #' @param variables.to.omit Character vector of variable names to omit from
@@ -41,8 +41,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
                                 match.by = "Automatic",
                                 min.match.percentage = 100,
-                                variables.to.match = NULL,
-                                variables.to.not.match = NULL,
+                                variables.to.combine = NULL,
+                                variables.to.not.combine = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
                                 write.data.set = TRUE,
@@ -54,8 +54,8 @@ MergeDataSetsByCase <- function(data.set.names,
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
     matched.names <- matchVariables(input.data.sets.metadata, match.by,
-                                    min.match.percentage, variables.to.match,
-                                    variables.to.not.match,
+                                    min.match.percentage, variables.to.combine,
+                                    variables.to.not.combine,
                                     variables.to.omit, data.sets,
                                     required.data.sets)
     merge.map <- mergeMap(matched.names, input.data.sets.metadata,
@@ -123,32 +123,23 @@ metadataFromDataSets <- function(data.sets)
 }
 
 matchVariables <- function(input.data.set.metadata, match.by,
-                           min.match.percentage, variables.to.match,
-                           variables.to.not.match, variables.to.omit,
+                           min.match.percentage, variables.to.combine,
+                           variables.to.not.combine, variables.to.omit,
                            data.sets, required.data.sets)
 {
-    variables.to.not.match <- parseVariablesToNotMatch(variables.to.not.match,
-                                                       input.data.set.metadata)
-    variables.to.omit <- parseVariablesToOmit(variables.to.omit,
-                                              input.data.set.metadata)
-
-    checkVariablesToOmit(input.data.set.metadata, variables.to.omit)
-
-    # matched.names is a matrix where the columns correspond to the data
-    # sets and each row contains the names of variables that have been matched
-    # together. NA is used if a variable is absent in a match.
-    matched.names <- matrix(nrow = 0, ncol = input.data.set.metadata$n.data.sets)
-    matched.names <- applyManualMatches(matched.names,
-                                        input.data.set.metadata,
-                                        variables.to.match,
-                                        variables.to.not.match,
-                                        variables.to.omit)
-
-    # TODO: perhaps move call to remainingVarsNames outside of matchVariableNames
+    variables.to.combine <- parseVariablesToCombine(variables.to.combine,
+                                                    input.data.set.metadata)
+    variables.to.not.combine <- parseVariablesToNotCombine(variables.to.not.combine,
+                                                           input.data.set.metadata)
+    variables.to.omit <- parseVariablesToOmitForMerging(variables.to.omit,
+                                                        input.data.set.metadata)
+    checkInputVariables(variables.to.combine, variables.to.not.combine,
+                        variables.to.omit)
 
     if (match.by == "Variable names")
-        matched.names <- matchVariableNames(matched.names,
-                                            input.data.set.metadata,
+        matched.names <- matchVariableNames(input.data.set.metadata,
+                                            variables.to.combine,
+                                            variables.to.not.combine,
                                             variables.to.omit)
     else if (match.by == "Variable labels")
     {
@@ -174,257 +165,307 @@ matchVariables <- function(input.data.set.metadata, match.by,
     matched.names
 }
 
-parseVariablesToMatch
-
-#
-parseVariablesToNotMatch <- function(variables.to.not.match, input.data.set.metadata)
+# Parse the character vector variables.to.combine and return a matrix where
+# each row contains a set of variables to be combined, with the columns
+# corresponding to the input data sets.
+parseVariablesToCombine <- function(variables.to.combine, input.data.set.metadata)
 {
-    var.names <- input.data.set.metadata$variable.names
+    result <- do.call("rbind",
+                      lapply(variables.to.combine, parseInputVariableText,
+                             input.data.set.metadata))
 
-
-
-    # var.names <- input.data.set.metadata$variable.names
-    # n.data.sets <- input.data.set.metadata$n.data.sets
-    # result <- matrix(nrow = 0, ncol = n.data.sets)
-    # for (i in seq_along(variables.to.not.match))
-    # {
-    #     split.text <- splitByComma(t)
-    #     if (length(split.text) != 2)
-    #         stop("A pair of variables or variable ranges need to be specified ",
-    #              "for the variables to not match.")
-    #     dash.ind.1 <- match("-", strsplit(split.text[1], "")[[1]])
-    #     dash.ind.2 <- match("-", strsplit(split.text[2], "")[[1]])
-    #     if (is.na(dash.ind.1) && !is.na(dash.ind.2) ||
-    #         !is.na(dash.ind.1) && is.na(dash.ind.2))
-    #         stop("Ranges need to be specified for either none or both of the ",
-    #              "inputs to variables to not match.")
-    #     else if (is.na(dash.ind.1) && is.na(dash.ind.2))
-    #     {
-    #         data.set.ind.1 <- parseDataSetIndex(split.text[1])
-    #         data.set.ind.2 <- parseDataSetIndex(split.text[2])
-    #         if (is.na(data.set.ind.1) || is.na(data.set.ind.2))
-    #             stop("Data set indices need to be specified for the variables ",
-    #                  "to not match, e.g. 'Q2(2)' for variable 'Q2' from data ",
-    #                  "2.")
-    #         nm.1 <- removeDataSetIndex(split.text[1])
-    #         nm.2 <- removeDataSetIndex(split.text[2])
-    #         if (!(nm.1 %in% var.names[[data.set.ind.1]]))
-    #             stop("Variable ", nm.1, " (variable to not match) could not ",
-    #                  "be found in data set ", data.set.ind.1)
-    #         if (!(nm.2 %in% var.names[[data.set.ind.2]]))
-    #             stop("Variable ", nm.2, " (variable to not match) could not ",
-    #                  "be found in data set ", data.set.ind.2)
-    #         new.row <- rep(NA_character_, n.data.sets)
-    #         new.row[data.set.ind.1] <-
-    #         result <- rbind(result, new.row)
-    #     }
-    #     else # ranges
-    #     {
-    #
-    #     }
-    # }
-    # result
-
-
-    # lapply(variables.to.not.match, function(t) {
-    #     split.text <- trimws(strsplit(t, ",")[[1]])
-    #     split.text <- split.text[split.text != ""]
-    #
-    # })
-}
-
-#
-parseVariablesToOmit <- function()
-{
-
-}
-
-applyManualMatches <- function(matched.names, input.data.set.metadata,
-                               variables.to.match, variables.to.not.match,
-                               variables.to.omit)
-{
-    if (is.null(variables.to.match))
-        return (matched.names)
-
-    for (match.text in variables.to.match)
+    # Check that variables to combine have not been specified multiple times
+    for (i in seq_len(input.data.set.metadata$n.data.sets))
     {
-        manual.matched.names <- parseManualMatchText(match.text,
-                                                     input.data.set.metadata,
-                                                     variables.to.omit)
-        matched.names <- rbind(matched.names,
-                               manual.matched.names)
+        date.set.vars.names <- result[, i]
+        names.table <- table(date.set.vars.names)
+        if (any(names.table > 1))
+        {
+            duplicate.name <- names(names.table)[names.table > 1][1]
+            duplicate.match.source <- variables.to.combine[date.set.vars.names == duplicate.name]
+            stop("The variable '", duplicate.name, "' has been specified to ",
+                 "be combined in multiple inputs: ",
+                 paste0(paste0("'", duplicate.match.source, "'"), collapse = ", "),
+                 ". Ensure that any of the variables to be combined are ",
+                 "specified in at most one input.")
+        }
     }
-    checkMatchForDuplication(matched.names, variables.to.match)
-
-    matched.names
+    result
 }
 
-# Parses a string of comma-separated variable names to be manually matched
-# and returns matrix of matched names where columns correspond to input data
-parseManualMatchText <- function(manual.match.text, input.data.set.metadata,
-                                 variables.to.omit)
+# Parse the character vector variables.to.not.combine and return a matrix where
+# each row contains a set of variables that should not be combined, with the
+# columns corresponding to the input data sets.
+parseVariablesToNotCombine <- function(variables.to.not.combine,
+                                       input.data.set.metadata)
+{
+    do.call("rbind", lapply(variables.to.not.combine, parseInputVariableText,
+                            input.data.set.metadata))
+}
+
+# Parse the character vector variables.to.omit and return a matrix where
+# each row contains a set of variables that should be omitted, with the
+# columns corresponding to the input data sets.
+parseVariablesToOmitForMerging <- function(variables.to.omit,
+                                           input.data.set.metadata)
+{
+    split.text <- unlist(lapply(variables.to.omit, splitByComma),
+                         use.names = FALSE)
+    do.call("rbind", lapply(split.text, parseVariablesToOmitText,
+                            input.data.set.metadata))
+}
+
+parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
 {
     n.data.sets <- input.data.set.metadata$n.data.sets
     var.names <- input.data.set.metadata$variable.names
     data.set.names <- input.data.set.metadata$data.set.names
-    split.text <- splitByComma(manual.match.text)
 
-    if (sum(split.text != "") < 2)
-        stop("The manual match input '", manual.match.text, "' is invalid as ",
-             "it needs to contain two or more variables.")
+    dash.ind <- match("-", strsplit(input.text, "")[[1]])
+    if (!is.na(dash.ind)) # range of variables
+    {
+        range.start <- trimws(substr(input.text, 1, dash.ind - 1))
+        range.end <- trimws(substr(input.text, dash.ind + 1, nchar(input.text)))
+
+        data.set.ind <- parseDataSetIndicesForRange(range.start,
+                                                    range.end,
+                                                    n.data.sets)
+        if (!is.na(data.set.ind)) # data set index supplied for range
+        {
+            range.start.without.index <- removeDataSetIndex(range.start)
+            range.end.without.index <- removeDataSetIndex(range.end)
+            range.vars <- variablesFromRange(var.names[[data.set.ind]],
+                                             range.start.without.index,
+                                             range.end.without.index,
+                                             data.set.names[data.set.ind],
+                                             input.text)
+
+            result <- matrix(NA_character_, nrow = end.ind - start.ind + 1,
+                             ncol = n.data.sets)
+            result[, data.set.ind] <- range.vars
+            return(result)
+        }
+        else # data set index not supplied for range
+        {
+            parsed.names <- lapply(seq_len(n.data.sets), function(i) {
+                variablesFromRange(var.names[[i]], range.start, range.end,
+                                   data.set.names[i], input.text, FALSE)
+            })
+            range.lengths <- vapply(parsed.names, length, integer(1))
+
+            if (all(range.lengths == 0))
+                stop("The input range '", input.text, "' was not found ",
+                     "in any of the input data sets. Ensure that the ",
+                     "range has been correctly specified.")
+
+            if (!allIdentical(range.lengths))
+                stop("The input '", input.text, "' contains ",
+                     "variable ranges with differing numbers of variables. ",
+                     "Ensure that the ranges have been correctly specified ",
+                     "so that they all contain the same number of variables.")
+
+            return(do.call("cbind", lapply(parsed.names, function(nms) {
+                if (is.null(nms))
+                    rep(NA_character_, max(range.lengths))
+                else
+                    nms
+            })))
+        }
+    }
+    else # single variable (not range)
+    {
+        data.set.ind <- parseDataSetIndex(input.text, n.data.sets)
+        if (!is.na(data.set.ind)) # data set index supplied
+        {
+            input.text.without.index <- removeDataSetIndex(input.text)
+            if (!(input.text.without.index %in% var.names[[data.set.ind]]))
+                variableNotFoundError(input.text.without.index,
+                                      data.set.names[data.set.ind])
+
+            result <- matrix(nrow = 1, ncol = n.data.sets)
+            result[data.set.ind] <- input.text.without.index
+            return(result)
+        }
+        else # data set index not supplied
+        {
+            ind.with.match <- which(vapply(var.names, function(nms) {
+                input.text %in% nms
+            }, logical(1)))
+
+            if (length(ind.with.match) == 0)
+                variableNotFoundError(input.text)
+
+            result <- matrix(nrow = 1, ncol = n.data.sets)
+            result[ind.with.match] <- input.text
+            return(result)
+        }
+    }
+}
+
+checkInputVariables <- function(variables.to.combine, variables.to.not.combine,
+                                variables.to.omit)
+{
+    # Check variables.to.combine against variables.to.not.combine
+    if (!is.null(variables.to.combine) && !is.null(variables.to.not.combine))
+    {
+        for (i in seqRow(variables.to.combine))
+        {
+            row.to.combine <- variables.to.combine[i, ]
+            for (j in seqRow(variables.to.not.combine))
+            {
+                row.to.not.combine <- variables.to.not.combine[j, ]
+                ind <- which(row.to.combine == row.to.not.combine)
+                if (length(ind) > 1)
+                    stop("The variables ",
+                         paste0(paste0("'", row.to.combine[ind], "'"),
+                                collapse = ", "),
+                         " have been specified to be both combined and not ",
+                         "combined. Ensure that they are specified to be ",
+                         "either combined or not combined.")
+            }
+        }
+    }
+
+    # Check variables.to.combine against variables.to.omit
+    if (!is.null(variables.to.combine) && !is.null(variables.to.omit))
+    {
+        for (i in seq_len(ncol(variables.to.combine)))
+        {
+            ind <- which(variables.to.combine[, i] %in%
+                         removeNA(variables.to.omit[, i]))
+            v <- unique(variables.to.combine[ind, i])
+
+            if (length(v) == 1)
+                stop("The variable ",
+                     paste0("'", v, "'"),
+                     " has been specified to be both combined and omitted. ",
+                     "Ensure that it is specified to be either combined or ",
+                     "or omitted.")
+            else if (length(v) > 1)
+                stop("The variable(s) ",
+                     paste0(paste0("'", v, "'"), collapse = ", "),
+                     " have been specified to be both combined and omitted. ",
+                     "Ensure that they are specified to be either combined ",
+                     "or omitted.")
+        }
+    }
+}
+
+# Parses a string of comma-separated names of variables and returns a matrix
+# of names where columns correspond to input data. Ranges of variables can be
+# specified with a dash. Variables are specified to be from a data set when
+# their names have the suffix consisting of the data set index in parentheses.
+parseInputVariableText <- function(input.text, input.data.set.metadata)
+{
+    n.data.sets <- input.data.set.metadata$n.data.sets
+    var.names <- input.data.set.metadata$variable.names
+    data.set.names <- input.data.set.metadata$data.set.names
+    split.text <- splitByComma(input.text)
 
     parsed.names <- vector(mode = "list", length = n.data.sets)
     source.text <- rep(NA_character_, n.data.sets)
     for (i in seq_along(split.text))
     {
-        input.text <- split.text[i]
-
-        dash.ind <- match("-", strsplit(input.text, "")[[1]])
+        t <- split.text[i]
+        dash.ind <- match("-", strsplit(t, "")[[1]])
 
         if (!is.na(dash.ind)) # range of variables
         {
-            input.text.start <- trimws(substr(input.text, 1, dash.ind - 1))
-            input.text.end <- trimws(substr(input.text, dash.ind + 1, nchar(input.text)))
+            range.start <- trimws(substr(t, 1, dash.ind - 1))
+            range.end <- trimws(substr(t, dash.ind + 1, nchar(t)))
 
-            if (input.text.start == "" || input.text.end == "")
-                stop("The manual match input '", manual.match.text,
-                     "' is invalid as it contains an incorrectly specified ",
-                     "variable range: '", input.text, "'.")
-
-            data.set.ind <- parseDataSetIndicesForRange(input.text.start,
-                                                        input.text.end,
+            data.set.ind <- parseDataSetIndicesForRange(range.start,
+                                                        range.end,
                                                         n.data.sets)
 
-            if (!is.na(data.set.ind))
+            if (!is.na(data.set.ind)) # data set index supplied for range
             {
-                nms <- var.names[[data.set.ind]]
-                input.text.start.without.index <- removeDataSetIndex(input.text.start)
-                input.text.end.without.index <- removeDataSetIndex(input.text.end)
-                start.ind <- match(input.text.start.without.index, nms)
-                end.ind <- match(input.text.end.without.index, nms)
-                if (is.na(start.ind))
-                    variableNotFoundError(input.text.start.without.index,
-                                          data.set.names[data.set.ind])
-                if (is.na(end.ind))
-                    variableNotFoundError(input.text.end.without.index,
-                                          data.set.names[data.set.ind])
-                if (start.ind > end.ind)
-                    rangeVariablesOrderError(input.text.start.without.index,
-                                             input.text.end.without.index,
-                                             data.set.names[data.set.ind],
-                                             input.text)
-
-                parsed.names <- addToParsedNames(parsed.names,
-                                                 nms[start.ind:end.ind],
-                                                 data.set.ind,
-                                                 data.set.names,
-                                                 source.text, input.text)
+                range.start.without.index <- removeDataSetIndex(range.start)
+                range.end.without.index <- removeDataSetIndex(range.end)
+                range.vars <- variablesFromRange(var.names[[data.set.ind]],
+                                                 range.start.without.index,
+                                                 range.end.without.index,
+                                                 data.set.names[data.set.ind],
+                                                 t)
+                parsed.names <- addToParsedNames(parsed.names, range.vars,
+                                                 data.set.ind, data.set.names,
+                                                 source.text, t)
             }
-            else
+            else # data set index not supplied for range
             {
                 is.range.found <- FALSE
                 for (j in seq_len(n.data.sets))
                 {
-                    nms <- var.names[[j]]
-                    start.ind <- match(input.text.start, nms)
-                    end.ind <- match(input.text.end, nms)
-                    if (is.na(start.ind) || is.na(end.ind))
+                    range.vars <- variablesFromRange(var.names[[j]], range.start, range.end,
+                                       data.set.names[j], t, FALSE)
+                    if (is.null(range.vars))
                         next
 
-                    if (start.ind > end.ind)
-                        rangeVariablesOrderError(input.text.start,
-                                                 input.text.end,
-                                                 data.set.names[j],
-                                                 input.text)
-
                     parsed.names <- addToParsedNames(parsed.names,
-                                                     nms[start.ind:end.ind],
-                                                     j, data.set.names,
-                                                     source.text, input.text)
+                                                     range.vars, j, data.set.names,
+                                                     source.text, t)
                     is.range.found <- TRUE
                 }
                 if (!is.range.found)
-                    stop("The input range '", input.text, "' was not found ",
+                    stop("The input range '", t, "' was not found ",
                          "in any of the input data sets. Ensure that the ",
                          "range has been correctly specified.")
             }
         }
         else # single variable (not range)
         {
-            data.set.ind <- parseDataSetIndex(input.text, n.data.sets)
-            if (!is.na(data.set.ind))
+            data.set.ind <- parseDataSetIndex(t, n.data.sets)
+            if (!is.na(data.set.ind)) # data set index supplied
             {
-                input.text.without.index <- removeDataSetIndex(input.text)
-                if (!(input.text.without.index %in% var.names[[data.set.ind]]))
-                    variableNotFoundError(input.text.without.index,
+                t.without.index <- removeDataSetIndex(t)
+                if (!(t.without.index %in% var.names[[data.set.ind]]))
+                    variableNotFoundError(t.without.index,
                                           data.set.names[data.set.ind])
 
                 parsed.names <- addToParsedNames(parsed.names,
-                                                 input.text.without.index,
+                                                 t.without.index,
                                                  data.set.ind,
                                                  data.set.names,
-                                                 source.text, input.text)
-                source.text[data.set.ind] <- input.text
+                                                 source.text, t)
+                source.text[data.set.ind] <- t
             }
-            else
+            else # data set index not supplied
             {
                 ind.with.match <- which(vapply(var.names, function(nms) {
-                    input.text %in% nms
+                    t %in% nms
                 }, logical(1)))
 
                 if (length(ind.with.match) == 0)
-                    variableNotFoundError(input.text)
+                    variableNotFoundError(t)
 
                 for (j in ind.with.match)
                 {
-                    parsed.names <- addToParsedNames(parsed.names, input.text,
+                    parsed.names <- addToParsedNames(parsed.names, t,
                                                      j, data.set.names,
-                                                     source.text, input.text)
-                    source.text[data.set.ind] <- input.text
+                                                     source.text, t)
+                    source.text[j] <- t
                     is.var.found <- TRUE
                 }
             }
         }
     }
 
+    # TODO: error if length(parsed.names) == 1, and 0?
+
     n.vars <- vapply(parsed.names, length, integer(1))
     if (!allIdentical(n.vars[n.vars > 0]))
-        stop("The manual match input '", manual.match.text, "' contains ",
+        stop("The input '", input.text, "' contains ",
              "variable ranges with differing numbers of variables. ",
              "Ensure that the ranges have been correctly specified ",
              "so that they all contain the same number of variables.")
 
-    if (!is.null(variables.to.omit))
-        for (i in seq_len(n.data.sets))
-        {
-            is.omitted <- parsed.names[[i]] %in% variables.to.omit[[i]]
-            if (sum(is.omitted) == 1)
-                stop("The variable ", parsed.names[[i]][is.omitted],
-                     " has been specified in both a manual match and to be ",
-                     "omitted. It needs to be removed from the manual match ",
-                     "or the variables to be omitted.")
-            else if (sum(is.omitted) > 1)
-                stop("The variable(s) ",
-                     paste0(parsed.names[[i]][is.omitted], collapse = ", "),
-                     " have been specified in both manual matches both and ",
-                     "to be omitted. They need to be removed from the manual ",
-                     "matches or the variables to be omitted.")
-        }
-
     n.var <- max(vapply(parsed.names, length, integer(1)))
-    result <- vapply(parsed.names, function(nms) {
+    do.call("cbind", lapply(parsed.names, function(nms) {
         if (is.null(nms))
             rep(NA_character_, n.var)
         else
             nms
-    }, character(n.var))
-
-    # If there is only one variable, vapply returns a vector,
-    # so we need to transpose
-    if (!is.matrix(result))
-        t(result)
-    else
-        result
+    }))
 }
 
 # Parse variable names with '(x)' appended where 'x' is a data set index
@@ -478,15 +519,41 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
         NA
 }
 
+variablesFromRange <- function(variable.names, range.start, range.end,
+                               data.set.name, input.text,
+                               error.if.not.found = TRUE)
+{
+    start.ind <- ifelse(range.start != "", match(range.start, variable.names), 1)
+    end.ind <- ifelse(range.end != "", match(range.end, variable.names),
+                      length(variable.names))
+
+    if (error.if.not.found)
+    {
+        if (is.na(start.ind))
+            variableNotFoundError(range.start, data.set.name)
+        if (is.na(end.ind))
+            variableNotFoundError(range.end, data.set.name)
+    }
+    else
+    {
+        if (is.na(start.ind) || is.na(end.ind))
+            return(NULL)
+    }
+
+    if (start.ind > end.ind)
+        rangeVariablesOrderError(range.start, range.end, data.set.name, input.text)
+    variable.names[start.ind:end.ind]
+}
+
 variableNotFoundError <- function(var.name, data.set.name = NULL)
 {
     data.set.text <- if(is.null(data.set.name))
-        "any of the input data sets. "
+        "any of the input data sets."
     else
-        paste0("the input data set '", data.set.name, "'. ")
+        paste0("the input data set '", data.set.name, "'.")
 
-    stop("The input variable '", var.name, "' specified for manual matching ",
-         "could not be found in ", data.set.text, "Ensure that the variable ",
+    stop("The input variable '", var.name, "' could not be found in ",
+         data.set.text, " Ensure that the variable ",
          "has been correctly specified.")
 }
 
@@ -514,67 +581,27 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
              "' are both present in data set '",
              data.set.names[data.set.ind], "' and cannot be matched. ",
              "To specify a variable from a specific data set, append '(x)' ",
-             "to the variable name when specifying it in a manual match, ",
+             "to the variable name when specifying it, ",
              "where 'x' is replaced with the data set index, e.g., use 2 for ",
              "the 2nd input data set.")
 }
 
-# Check that manual matches have not been specified multiple times
-checkMatchForDuplication <- function(matched.names, match.source)
+matchVariableNames <- function(input.data.set.metadata, variables.to.combine,
+                               variables.to.not.combine, variables.to.omit)
 {
-    n.data.sets <- ncol(matched.names)
-    for (i in seq_len(n.data.sets))
-    {
-        date.set.vars.names <- matched.names[, i]
-        names.table <- table(date.set.vars.names)
-        if (any(names.table > 1))
-        {
-            duplicate.name <- names(names.table)[names.table > 1][1]
-            duplicate.match.source <- match.source[date.set.vars.names == duplicate.name]
-            stop("The variable '", duplicate.name, "' has been specified in ",
-                 "multiple manual match inputs: ",
-                 paste0(paste0("'", duplicate.match.source, "'"), collapse = ", "),
-                 ". Ensure that all variables are only specified in at most ",
-                 "one manual match.")
-        }
-    }
+    remaining.vars.to.match <- remainingVarsToMatch(input.data.set.metadata,
+                                                    variables.to.combine,
+                                                    variables.to.omit)
+
+    matched.names <- matchNamesExactly(remaining.vars.to.match,
+                                       variables.to.combine,
+                                       variables.to.not.combine)
 }
 
-checkVariablesToOmit <- function(input.data.set.metadata, variables.to.omit)
+matchNamesExactly <- function(names.list, variables.to.combine,
+                              variables.to.not.combine)
 {
-    if (is.null(variables.to.omit))
-        return()
-
-    if (length(variables.to.omit) != input.data.set.metadata$n.data.sets)
-        stop("variables.to.omit must be specified as a list whose elements ",
-             "are the variables to omit in the corresponding data sets.")
-
-    for (i in seq_len(input.data.set.metadata$n.data.sets))
-    {
-        var.names <- input.data.set.metadata$variable.names[[i]]
-        ind <- which(!(variables.to.omit[[i]] %in% var.names))
-        if (length(ind) > 0)
-        {
-            stop("The following variable(s) were specified to be omitted but ",
-                 "could not be found in the data set ",
-                 input.data.set.metadata$data.set.names[i], ": ",
-                 paste0(variables.to.omit[[i]][ind], collapse = ", "), ".")
-        }
-    }
-}
-
-matchVariableNames <- function(matched.names, input.data.set.metadata,
-                               variables.to.omit)
-{
-    remaining.vars.names <- remainingVarsNames(matched.names,
-                                               input.data.set.metadata,
-                                               variables.to.omit)
-    rbind(matched.names, matchNamesExactly(remaining.vars.names))
-}
-
-matchNamesExactly <- function(names.list)
-{
-    n.list.entries <- length(names.list)
+    n.data.sets <- length(names.list)
     unlisted.names <- unlist(names.list)
     unique.names <- unique(unlisted.names)
 
@@ -582,21 +609,35 @@ matchNamesExactly <- function(names.list)
     data.set.ind <- rep(seq_along(names.list),
                         vapply(names.list, length, integer(1)))
 
-    t(vapply(unique.names, function(nm) {
-        result <- rep(NA, n.list.entries)
-        result[data.set.ind[unlisted.names == nm]] <- nm
-        result
-    }, character(n.list.entries)))
+    matched.names <- do.call("rbind", lapply(unique.names, function(nm) {
+        if (nm %in% variables.to.not.combine)
+        {
+            do.call("rbind", lapply(data.set.ind[unlisted.names == nm], function(ind) {
+                rw <- rep(NA_character_, n.data.sets)
+                rw[ind] <- nm
+                rw
+            }))
+        }
+        else
+        {
+            rw <- rep(NA, n.data.sets)
+            rw[data.set.ind[unlisted.names == nm]] <- nm
+            rw
+        }
+    }))
+    rbind(variables.to.combine, matched.names)
 }
 
-remainingVarsNames <- function(matched.names, input.data.set.metadata,
-                               variables.to.omit)
+remainingVarsToMatch <- function(input.data.set.metadata, variables.to.combine,
+                                 variables.to.omit)
 {
     lapply(seq_len(input.data.set.metadata$n.data.sets), function(i) {
-        excluded.variables <- matched.names[, i]
+        result <- input.data.set.metadata$variable.names[[i]]
+        if (!is.null(variables.to.combine))
+            result <- setdiff(result, variables.to.combine[, i])
         if (!is.null(variables.to.omit))
-            excluded.variables <- c(excluded.variables, variables.to.omit[[i]])
-        setdiff(input.data.set.metadata$variable.names[[i]], excluded.variables)
+            result <- setdiff(result, variables.to.omit[, i])
+        result
     })
 }
 
@@ -617,8 +658,9 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
 {
     n.data.sets <- length(data.sets)
     result <- matrix(nrow = 0, ncol = n.data.sets)
-    unmatched.names <- matrix(nrow = 0, ncol = n.data.sets)
-    for (i in seq_len(nrow(matched.names)))
+    non.combinable.variables <- matrix(nrow = 0, ncol = n.data.sets)
+
+    for (i in seqRow(matched.names))
     {
         ind <- which(!is.na(matched.names[i, ]))
         var.list <- vector(mode = "list", length = n.data.sets)
@@ -693,6 +735,8 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             new.row[merge.ind] <- matched.names[i, merge.ind]
             result <- rbind(result, new.row, deparse.level = 0)
 
+            # Remove the merged indices from consideration and break if none
+            # are left, otherwise repeat.
             new.ind <- setdiff(ind, merge.ind)
             if (length(new.ind) == 0)
                 break
@@ -702,11 +746,10 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             k <- k + 1
         }
         if (k > 1)
-            unmatched.names <- rbind(unmatched.names, matched.names[i, ],
-                                     deparse.level = 0)
+            non.combinable.variables <- rbind(non.combinable.variables,
+                                              matched.names[i, ])
     }
-
-    attr(result, "unmatched.names") <- unmatched.names
+    attr(result, "non.combinable.variables") <- non.combinable.variables
     result
 }
 
@@ -742,20 +785,159 @@ isParsableAsDiffTime <- function(text)
 mergeMap <- function(matched.names, input.data.set.metadata,
                      prioritize.early.data.sets)
 {
-    unordered.merged.names <- mergedNamesFromMatchedNames(matched.names,
-                                                          prioritize.early.data.sets)
-    merged.names <- orderMergedNames(unordered.merged.names,
-                                     matched.names,
-                                     input.data.set.metadata,
-                                     prioritize.early.data.sets)
-    input.names <- orderMatchedNames(matched.names,
-                                     unordered.merged.names,
-                                     merged.names)
-    list(input.names = input.names,
+    ordered.matched.names <- orderMatchedNames(matched.names,
+                                               input.data.set.metadata,
+                                               prioritize.early.data.sets)
+
+    merged.names <- apply(ordered.matched.names, 1, function(nms) {
+        if (prioritize.early.data.sets)
+            removeNA(nms)[1]
+        else
+            removeNA(rev(nms))[1]
+    })
+
+    # Merged names may contain duplicate variable names due to the user
+    # specifying variables with the same name to not be combined or variables
+    # with the same name not being combined as their types are incompatible.
+    # We rename variables so that the names are unique.
+    renamed.variables <- list()
+    dup <- which(duplicated(merged.names))
+    for (i in dup)
+    {
+        new.name <- uniqueName(merged.names[i], merged.names, "_")
+        renamed.variables <- c(renamed.variables,
+                               list(list(original.name = merged.names[i],
+                                         new.name = new.name)))
+        merged.names[i] <- new.name
+    }
+
+    list(input.names = ordered.matched.names,
          merged.names = merged.names,
-         unmatched.names = attr(matched.names, "unmatched.names"),
-         unmatched.names.renamed = attr(unordered.merged.names,
-                                        "unmatched.names.renamed"))
+         non.combinable.variables = attr(matched.names, "non.combinable.variables"),
+         renamed.variables = renamed.variables)
+}
+
+orderMatchedNames <- function(matched.names, input.data.set.metadata,
+                              prioritize.early.data.sets)
+{
+    n.data.sets <- input.data.set.metadata$n.data.sets
+    v.names <- input.data.set.metadata$variable.names
+
+    v.indices <- lapply(seq_len(n.data.sets), function(i) {
+        removeNA(match(v.names[[i]], matched.names[, i]))
+    })
+
+    non.combinable.variables <- attr(matched.names, "non.combinable.variables")
+    indices.to.keep.togther <- do.call("rbind", lapply(seqRow(non.combinable.variables), function(i) {
+        vapply(seq_len(n.data.sets), function(j) {
+            if (!is.na(non.combinable.variables[i, j]))
+                match(non.combinable.variables[i, j], matched.names[, j])
+            else
+                NA_integer_
+        }, integer(1))
+    }))
+
+    ordering <- mergeIndicesList(v.indices, prioritize.early.data.sets,
+                                 indices.to.keep.togther)
+
+    # # Modify ordering so that non-combinable names appear consecutively.
+    # # We do this by moving a group of non-combinable names to be under
+    # # the name in the group that appears first.
+    # non.combinable.variables <- attr(matched.names, "non.combinable.variables")
+    # for (i in seqRow(non.combinable.variables))
+    # {
+    #     vars <- non.combinable.variables[i, ]
+    #     # Row indices of the non-combinable variables
+    #     row.indices <- unique(vapply(which(!is.na(vars)), function(i) {
+    #         match(vars[i], matched.names[, i])
+    #     }, integer(1)))
+    #     # Indices of where the non-combinable variables appear in the ordering
+    #     match.ind <- vapply(row.indices, match, integer(1), ordering)
+    #     # Remove all but the first non-combinable variables from the ordering
+    #     ordering <- ordering[-match.ind[-which.min(match.ind)]]
+    #     # Indices where the first non-combinable variable appears in the ordering
+    #     min.ind <- match(row.indices[which.min(match.ind)], ordering)
+    #     # Insert the row indices of all but the first non-combinable variables
+    #     # after the first in the ordering
+    #     ordering <- c(ordering[seq_len(min.ind)],
+    #                   row.indices[-which.min(match.ind)],
+    #                   ordering[-seq_len(min.ind)])
+    # }
+
+    ordered.matched.names <- matched.names[ordering, , drop = FALSE]
+}
+
+# Takes a list of character vectors each containing indices in a certain order
+# and merges them into a single integer vector, respecting the order in
+# each vector as much as possible, with earlier vectors taking precedence
+# in case of ties.
+mergeIndicesList <- function(indices.list, prioritize.early.elements,
+                             indices.to.keep.togther)
+{
+    if (!is.null(indices.to.keep.togther))
+    {
+        representative.indices <- apply(indices.to.keep.togther, 1,
+                                        function(indices) removeNA(indices)[1])
+        indices.list <- lapply(seq_along(indices.list), function(i) {
+            indices <- indices.list[[i]]
+            for (j in which(!is.na(indices.to.keep.togther[, j])))
+                indices[indices == indices.to.keep.togther[i, j]] <- representative.indices[j]
+            indices
+        })
+    }
+    else
+        representative.indices <- integer(0)
+
+    if (!prioritize.early.elements)
+        indices.list <- rev(indices.list)
+
+    merged.indices <- integer()
+    repeat
+    {
+        if (length(indices.list) == 0)
+            break
+        else if (length(indices.list) == 1)
+        {
+            merged.indices <- c(merged.indices, indices.list[[1]])
+            break
+        }
+
+        first.indices <- unique(vapply(indices.list, `[`, integer(1), 1))
+
+        ranks <- lapply(first.indices, function(candidate.index) {
+            vapply(indices.list, function(indices) match(candidate.index, indices),
+                   integer(1))
+        })
+
+        # Select the first of the indices in first.indices that aren't dominated
+        # by another index in first.indices. An index is dominated if another index
+        # is always ranked ahead of it whenever they appear together.
+        undominated <- vapply(seq_along(first.indices), function(i) {
+            all(vapply(seq_along(first.indices)[-i], function(j) {
+                i.beats.j <- removeNA(ranks[[i]] < ranks[[j]])
+                length(i.beats.j) == 0 || any(i.beats.j)
+            }, logical(1)))
+        }, logical(1))
+
+        selected.index <- if (any(undominated))
+            first.indices[undominated][1]
+        else
+            first.indices[1]
+
+        ind <- match(selected.index, representative.indices)
+        if (!is.na(ind))
+            merged.indices <- c(merged.indices,
+                                removeNA(indices.to.keep.togther[ind, ]))
+        else
+            merged.indices <- c(merged.indices, selected.index)
+
+        # Remove selected index from indices.list
+        indices.list <- lapply(indices.list, setdiff, selected.index)
+
+        # Remove empty list elements
+        indices.list <- indices.list[vapply(indices.list, length, integer(1)) > 0]
+    }
+    merged.indices
 }
 
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
@@ -778,153 +960,6 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
     merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, data.set.names)
 
     merged.data.set
-}
-
-# Merged names are the names shown in the merged data set.
-# They are obtained from the latest non-missing name in each row of
-# matched.names.
-mergedNamesFromMatchedNames <- function(matched.names,
-                                        prioritize.early.data.sets)
-{
-    .select.name <- if (prioritize.early.data.sets)
-        function(nms) removeNA(nms)[1]
-    else
-        function(nms) rev(removeNA(nms))[1]
-
-    unmatched.names <- attr(matched.names, "unmatched.names", exact = TRUE)
-    unmatched.names.renamed <- vector(mode = "list",
-                                      length = nrow(unmatched.names))
-
-    result <- apply(matched.names, 1, .select.name)
-
-    # As a result of calling unmatchVariablesOfDifferentTypes, two variables
-    # with the same name from different data sets could not be merged if they
-    # have incompatible types, and therefore become two separate variables in
-    # the merged data set. We need to rename one of these variables in the
-    # merged data set as names need to be unique.
-    dup <- duplicated(result)
-    if (any(dup))
-    {
-        ind <- which(dup)
-        for (i in ind)
-        {
-            base.name <- result[i]
-            j <- 2
-            repeat
-            {
-                nm <- paste0(base.name, "_", j)
-                if (!(nm %in% result))
-                {
-                    result[i] <- nm
-
-                    unmatched.ind <- which(vapply(seq_len(nrow(unmatched.names)), function(j) {
-                        any(unmatched.names[j, ] == matched.names[i, ])
-                    }, logical(1)))
-                    unmatched.names.renamed[[unmatched.ind]] <- c(unmatched.names.renamed[[unmatched.ind]],
-                                                                  list(nm))
-                    break
-                }
-                else
-                    j <- j + 1
-
-            }
-        }
-    }
-
-    attr(result, "unmatched.names.renamed") <- unmatched.names.renamed
-    result
-}
-
-# Produce an ordering of the matched variables based on the order if the
-# variables in the data set
-orderMergedNames <- function(unordered.merged.names, matched.names,
-                             input.data.set.metadata, prioritize.early.data.sets)
-{
-    n.data.sets <- input.data.set.metadata$n.data.sets
-    names.list <- lapply(seq_len(n.data.sets), function(i) {
-        ind <- match(input.data.set.metadata$variable.names[[i]], matched.names[, i])
-        unordered.merged.names[removeNA(ind)]
-    })
-
-    merged.names <- mergeNamesListRespectingOrder(names.list, prioritize.early.data.sets)
-
-    # Move deduplicated names to be just below the original ones
-    deduplicated.names <- attr(unordered.merged.names, "deduplicated.names")
-    if (!is.null(deduplicated.names))
-    {
-        for (i in seq_len(nrow(deduplicated.names)))
-        {
-            dedup.ind <- match(deduplicated.names[i, 2], merged.names)
-            merged.names <- merged.names[-dedup.ind]
-            original.ind <- match(deduplicated.names[i, 1], merged.names)
-            merged.names <- c(merged.names[seq_len(original.ind)],
-                              deduplicated.names[i, 2],
-                              merged.names[-seq_len(original.ind)])
-        }
-    }
-
-    merged.names
-}
-
-# Order the rows in the matched names matrix according to the (ordered) merged names
-orderMatchedNames <- function(matched.names, unordered.merged.names, merged.names)
-{
-    n.data.sets <- ncol(matched.names)
-    t(vapply(merged.names, function(nm) {
-        matched.names[match(nm, unordered.merged.names), ]
-    }, character(n.data.sets)))
-}
-
-# Takes a list of character vectors each containing names in a certain order
-# and merges them into a single character vector, respecting the order in
-# each vector as much as possible, with earlier vectors taking precedence
-# in case of ties.
-mergeNamesListRespectingOrder <- function(names.list, prioritize.early.elements)
-{
-    if (!prioritize.early.elements)
-        names.list <- rev(names.list)
-
-    merged.names <- character()
-    repeat
-    {
-        if (length(names.list) == 0)
-            break
-        else if (length(names.list) == 1)
-        {
-            merged.names <- c(merged.names, names.list[[1]])
-            break
-        }
-
-        first.names <- unique(vapply(names.list, `[`, character(1), 1))
-
-        ranks <- lapply(first.names, function(candidate.name) {
-            vapply(names.list, function(nms) match(candidate.name, nms), integer(1))
-        })
-
-        # Select the first of the names in first.names that aren't dominated
-        # by another name in first.names. A name is dominated if another name
-        # is always ranked ahead of it whenever they appear together.
-        undominated <- vapply(seq_along(first.names), function(i) {
-            all(vapply(seq_along(first.names)[-i], function(j) {
-                i.beats.j <- removeNA(ranks[[i]] < ranks[[j]])
-                length(i.beats.j) == 0 || any(i.beats.j)
-            }, logical(1)))
-        }, logical(1))
-
-        selected.name <- if (any(undominated))
-            first.names[undominated][1]
-        else
-            first.names[1]
-
-        merged.names <- c(merged.names, selected.name)
-
-        # Remove selected variable from names.list
-        names.list <- lapply(names.list, setdiff, selected.name)
-
-        # Remove empty list elements
-        names.list <- names.list[vapply(names.list, length, integer(1)) > 0]
-    }
-    merged.names
 }
 
 # Combine variables from different data sets (end-to-end) to create a
@@ -1315,7 +1350,7 @@ remapValuesInVariable <- function(variable, map)
 {
     result <- variable
     if (!is.null(map))
-        for (i in seq_len(nrow(map)))
+        for (i in seqRow(map))
             result[variable == map[i, 1]] <- map[i, 2]
     result
 }
@@ -1380,6 +1415,12 @@ omittedVariables <- function(input.data.set.metadata, merge.map)
         ind <- !(nms %in% merge.map$input.names[, i])
         nms[ind]
     })
+}
+
+# Convenience function: seq_len of nrow of matrix m
+seqRow <- function(m)
+{
+    seq_len(nrow(m))
 }
 
 #' @importFrom flipFormat DataSetMergingWidget
