@@ -613,25 +613,57 @@ matchNamesExactly <- function(names.list, variables.to.combine,
     data.set.ind <- rep(seq_along(names.list),
                         vapply(names.list, length, integer(1)))
 
-    matched.names <- do.call("rbind", lapply(unique.names, function(nm) {
-        if (nm %in% variables.to.not.combine)
-        {
-            do.call("rbind", lapply(data.set.ind[unlisted.names == nm], function(ind) {
-                rw <- rep(NA_character_, n.data.sets)
-                rw[ind] <- nm
-                rw
-            }))
-        }
-        else
+    matched.names <- if (!is.null(variables.to.combine))
+        variables.to.combine
+    else
+        matrix(nrow = 0, ncol = n.data.sets)
+
+    for (nm in unique.names)
+    {
+        if (is.null(variables.to.not.combine))
         {
             rw <- rep(NA, n.data.sets)
             rw[data.set.ind[unlisted.names == nm]] <- nm
-            rw
+            matched.names <- rbind(matched.names, rw)
+            next
         }
-    }))
-    rbind(variables.to.combine, matched.names)
+
+        # Combine variables provided they can be combined
+        remaining.ind <- data.set.ind[unlisted.names == nm]
+        repeat
+        {
+            rw.ind <- remaining.ind[1]
+            remaining.ind <- remaining.ind[-1]
+            ind.to.consider.adding <- remaining.ind
+
+            for (ind in ind.to.consider.adding)
+            {
+                isnt.combinable <- apply(variables.to.not.combine, 1, function(nms) {
+                    sum(nms[c(rw.ind, ind)] == nm, na.rm = TRUE) > 1
+                })
+                # Add data set index to row if it is combinable with current
+                # indices in the row
+                if (!any(isnt.combinable))
+                {
+                    rw.ind <- c(rw.ind, ind)
+                    remaining.ind <- remaining.ind[remaining.ind != ind]
+                }
+            }
+
+            rw <- rep(NA, n.data.sets)
+            rw[rw.ind] <- nm
+            matched.names <- rbind(matched.names, rw)
+
+            if (length(remaining.ind) == 0)
+                break
+        }
+    }
+
+    matched.names
 }
 
+# Returns list of variables in each data set that remain to be matched,
+# i.e., not already combined or omitted.
 remainingVarsToMatch <- function(input.data.set.metadata, variables.to.combine,
                                  variables.to.omit)
 {
@@ -827,10 +859,16 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
     n.data.sets <- input.data.set.metadata$n.data.sets
     v.names <- input.data.set.metadata$variable.names
 
+    # Convert list of variable names to list of row indices relative to the
+    # matched names matrix, removing any names that do not appear in
+    # matched.names (i.e., those that have been omitted).
     v.indices <- lapply(seq_len(n.data.sets), function(i) {
         removeNA(match(v.names[[i]], matched.names[, i]))
     })
 
+    # We require non-combinable names to appear consecutively. Therefore
+    # we pass a matrix of row indices (relative to the matched names matrix)
+    # where each row specifies which variables should be kept together.
     non.combinable.variables <- attr(matched.names, "non.combinable.variables")
     indices.to.keep.togther <- do.call("rbind", lapply(seqRow(non.combinable.variables), function(i) {
         vapply(seq_len(n.data.sets), function(j) {
@@ -844,30 +882,6 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
     ordering <- mergeIndicesList(v.indices, prioritize.early.data.sets,
                                  indices.to.keep.togther)
 
-    # # Modify ordering so that non-combinable names appear consecutively.
-    # # We do this by moving a group of non-combinable names to be under
-    # # the name in the group that appears first.
-    # non.combinable.variables <- attr(matched.names, "non.combinable.variables")
-    # for (i in seqRow(non.combinable.variables))
-    # {
-    #     vars <- non.combinable.variables[i, ]
-    #     # Row indices of the non-combinable variables
-    #     row.indices <- unique(vapply(which(!is.na(vars)), function(i) {
-    #         match(vars[i], matched.names[, i])
-    #     }, integer(1)))
-    #     # Indices of where the non-combinable variables appear in the ordering
-    #     match.ind <- vapply(row.indices, match, integer(1), ordering)
-    #     # Remove all but the first non-combinable variables from the ordering
-    #     ordering <- ordering[-match.ind[-which.min(match.ind)]]
-    #     # Indices where the first non-combinable variable appears in the ordering
-    #     min.ind <- match(row.indices[which.min(match.ind)], ordering)
-    #     # Insert the row indices of all but the first non-combinable variables
-    #     # after the first in the ordering
-    #     ordering <- c(ordering[seq_len(min.ind)],
-    #                   row.indices[-which.min(match.ind)],
-    #                   ordering[-seq_len(min.ind)])
-    # }
-
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
 }
 
@@ -876,8 +890,10 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
 # each vector as much as possible, with earlier vectors taking precedence
 # in case of ties.
 mergeIndicesList <- function(indices.list, prioritize.early.elements,
-                             indices.to.keep.togther)
+                             indices.to.keep.togther = NULL)
 {
+    # A set of indices are kept together by replacing all in a set with a
+    # representative, which is then replaced with the set after merging
     if (!is.null(indices.to.keep.togther))
     {
         representative.indices <- apply(indices.to.keep.togther, 1,
@@ -906,8 +922,10 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
             break
         }
 
+        # First index from each element in the list
         first.indices <- unique(vapply(indices.list, `[`, integer(1), 1))
 
+        # Rank (index) of each first index
         ranks <- lapply(first.indices, function(candidate.index) {
             vapply(indices.list, function(indices) match(candidate.index, indices),
                    integer(1))
@@ -930,6 +948,7 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
 
         ind <- match(selected.index, representative.indices)
         if (!is.na(ind))
+            # If selected.index is a representative, replace it with the set
             merged.indices <- c(merged.indices,
                                 removeNA(indices.to.keep.togther[ind, ]))
         else
