@@ -193,7 +193,8 @@ test_that("variables to combine", {
                                      include.merged.data.set.in.output = TRUE,
                                      variables.to.combine = "Q3_3",
                                      write.data.set = FALSE),
-                 "The input 'Q3_3' is invalid as it needs to contain two or more variables.")
+                 paste0("The input 'Q3_3' only specifies variables from one data set. ",
+                        "This input needs to specify variables from two or more data sets."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola4.sav")),

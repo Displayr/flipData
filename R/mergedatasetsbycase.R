@@ -92,13 +92,9 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Smarter merging of categories where labels are 'close'
 
-# Option to specify variables not to merge
-
 # Subtitle in output showing summary status?
 
 # Remove data set names in output and show row lines, improve spacing between notes
-
-# Wildcards variable inputs
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -450,7 +446,15 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
         }
     }
 
-    # TODO: error if length(parsed.names) == 1, and 0?
+    if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
+        stop("The input '", input.text, "' does not specify any variables. ",
+             "This input needs to specify variables from two or more ",
+             "data sets.")
+
+    if (sum(!vapply(parsed.names, is.null, logical(1))) == 1)
+      stop("The input '", input.text, "' only specifies variables from one ",
+           "data set. This input needs to specify variables from two or more ",
+           "data sets.")
 
     n.vars <- vapply(parsed.names, length, integer(1))
     if (!allIdentical(n.vars[n.vars > 0]))
@@ -956,8 +960,8 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
 
     names(merged.data.set) <- merge.map$merged.names
 
-  # TODO: deal with case where mergesrc already exists
-    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, data.set.names)
+    mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
+    merged.data.set[[mergesrc.name]] <- mergeSrc(n.data.set.cases, data.set.names)
 
     merged.data.set
 }
