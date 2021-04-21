@@ -878,10 +878,10 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
     {
         representative.indices <- apply(indices.to.keep.togther, 1,
                                         function(indices) removeNA(indices)[1])
-        indices.list <- lapply(seq_along(indices.list), function(i) {
-            indices <- indices.list[[i]]
-            for (j in which(!is.na(indices.to.keep.togther[, j])))
-                indices[indices == indices.to.keep.togther[i, j]] <- representative.indices[j]
+        indices.list <- lapply(seq_along(indices.list), function(j) {
+            indices <- indices.list[[j]]
+            for (i in which(!is.na(indices.to.keep.togther[, j])))
+                indices[indices == indices.to.keep.togther[i, j]] <- representative.indices[i]
             indices
         })
     }
