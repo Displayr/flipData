@@ -33,6 +33,9 @@
 #' @param category.value.with.multiple.labels How to deal with a single category value
 #'  with multiple labels. Either "Use first label" or "Create new values" for
 #'  each label.
+#' @param data.sets.whose.variables.are.kept An integer vector of indices of data
+#'  sets whose variables are to be kept. Any variable not in these data sets
+#'  will not be included in the merged data set.
 #' @param required.data.sets A logical vector indicating the data sets that
 #'  each variable in the merged data set is required to contain values from.
 #' @importFrom verbs Sum
@@ -48,6 +51,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 write.data.set = TRUE,
                                 prioritize.early.data.sets = TRUE,
                                 category.value.with.multiple.labels = "Use first label",
+                                data.sets.whose.variables.are.kept = NULL,
                                 required.data.sets = NULL)
 {
     data.sets <- readDataSets(data.set.names, 2)
@@ -57,7 +61,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                     min.match.percentage, variables.to.combine,
                                     variables.to.not.combine,
                                     variables.to.omit, data.sets,
-                                    required.data.sets)
+                                    required.data.sets,
+                                    data.sets.whose.variables.are.kept)
     merge.map <- mergeMap(matched.names, input.data.sets.metadata,
                           prioritize.early.data.sets)
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
@@ -121,7 +126,8 @@ metadataFromDataSets <- function(data.sets)
 matchVariables <- function(input.data.set.metadata, match.by,
                            min.match.percentage, variables.to.combine,
                            variables.to.not.combine, variables.to.omit,
-                           data.sets, required.data.sets)
+                           data.sets, required.data.sets,
+                           data.sets.whose.variables.are.kept)
 {
     variables.to.combine <- parseVariablesToCombine(variables.to.combine,
                                                     input.data.set.metadata)
@@ -156,8 +162,12 @@ matchVariables <- function(input.data.set.metadata, match.by,
 
     }
 
-    matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets)
-
+    matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets,
+                                                      variables.to.combine)
+    matched.names <- removeVariablesInOnlySomeDataSets(matched.names,
+                                                       data.sets.whose.variables.are.kept,
+                                                       input.data.set.metadata,
+                                                       variables.to.combine)
     matched.names
 }
 
@@ -302,23 +312,20 @@ checkInputVariables <- function(variables.to.combine, variables.to.not.combine,
                                 variables.to.omit)
 {
     # Check variables.to.combine against variables.to.not.combine
-    if (!is.null(variables.to.combine) && !is.null(variables.to.not.combine))
+    for (i in seqRow(variables.to.combine))
     {
-        for (i in seqRow(variables.to.combine))
+        row.to.combine <- variables.to.combine[i, ]
+        for (j in seqRow(variables.to.not.combine))
         {
-            row.to.combine <- variables.to.combine[i, ]
-            for (j in seqRow(variables.to.not.combine))
-            {
-                row.to.not.combine <- variables.to.not.combine[j, ]
-                ind <- which(row.to.combine == row.to.not.combine)
-                if (length(ind) > 1)
-                    stop("The variables ",
-                         paste0(paste0("'", row.to.combine[ind], "'"),
-                                collapse = ", "),
-                         " have been specified to be both combined and not ",
-                         "combined. Ensure that they are specified to be ",
-                         "either combined or not combined.")
-            }
+            row.to.not.combine <- variables.to.not.combine[j, ]
+            ind <- which(row.to.combine == row.to.not.combine)
+            if (length(ind) > 1)
+                stop("The variables ",
+                     paste0(paste0("'", row.to.combine[ind], "'"),
+                            collapse = ", "),
+                     " have been specified to be both combined and not ",
+                     "combined. Ensure that they are specified to be ",
+                     "either combined or not combined.")
         }
     }
 
@@ -597,69 +604,86 @@ matchVariableNames <- function(input.data.set.metadata, variables.to.combine,
                                                     variables.to.combine,
                                                     variables.to.omit)
 
-    matched.names <- matchNamesExactly(remaining.vars.to.match,
+    matched.names <- matchNamesExactly(input.data.set.metadata,
+                                       remaining.vars.to.match,
                                        variables.to.combine,
                                        variables.to.not.combine)
 }
 
-matchNamesExactly <- function(names.list, variables.to.combine,
+matchNamesExactly <- function(input.data.set.metadata,
+                              remaining.vars.to.match,
+                              variables.to.combine,
                               variables.to.not.combine)
 {
-    n.data.sets <- length(names.list)
-    unlisted.names <- unlist(names.list)
-    unique.names <- unique(unlisted.names)
+    n.data.sets <- input.data.set.metadata$n.data.sets
 
-    # Data set indices of variables in unlisted.vars
-    data.set.ind <- rep(seq_along(names.list),
-                        vapply(names.list, length, integer(1)))
+    unlisted.names <- unlist(remaining.vars.to.match)
+    data.set.ind <- rep(seq_along(remaining.vars.to.match),
+                        vapply(remaining.vars.to.match, length, integer(1)))
 
     matched.names <- if (!is.null(variables.to.combine))
         variables.to.combine
     else
         matrix(nrow = 0, ncol = n.data.sets)
 
-    for (nm in unique.names)
+    for (i in seq_along(unlisted.names))
     {
-        if (is.null(variables.to.not.combine))
+        nm <- unlisted.names[i]
+        ind <- which(apply(matched.names, 1, function(rw) any(nm %in% rw)))
+        if (length(ind) > 0)
         {
-            rw <- rep(NA, n.data.sets)
-            rw[data.set.ind[unlisted.names == nm]] <- nm
-            matched.names <- rbind(matched.names, rw)
-            next
-        }
-
-        # Combine variables provided they can be combined
-        remaining.ind <- data.set.ind[unlisted.names == nm]
-        repeat
-        {
-            rw.ind <- remaining.ind[1]
-            remaining.ind <- remaining.ind[-1]
-            ind.to.consider.adding <- remaining.ind
-
-            for (ind in ind.to.consider.adding)
+            is.combined <- FALSE
+            for (j in ind)
             {
-                isnt.combinable <- apply(variables.to.not.combine, 1, function(nms) {
-                    sum(nms[c(rw.ind, ind)] == nm, na.rm = TRUE) > 1
-                })
-                # Add data set index to row if it is combinable with current
-                # indices in the row
-                if (!any(isnt.combinable))
+                is.already.occupied <- !is.na(matched.names[j, data.set.ind[i]])
+                if (is.already.occupied)
+                    next
+
+                is.combinable <- isVariableCombinableIntoRow(nm,
+                                                             data.set.ind[i],
+                                                             matched.names[j, ],
+                                                             variables.to.not.combine)
+
+                if (is.combinable)
                 {
-                    rw.ind <- c(rw.ind, ind)
-                    remaining.ind <- remaining.ind[remaining.ind != ind]
+                    matched.names[j, data.set.ind[i]] <- nm
+                    is.combined <- TRUE
+                    break
                 }
             }
-
-            rw <- rep(NA, n.data.sets)
-            rw[rw.ind] <- nm
-            matched.names <- rbind(matched.names, rw)
-
-            if (length(remaining.ind) == 0)
-                break
+            if (!is.combined)
+            {
+                new.row <- rep(NA_character_, n.data.sets)
+                    new.row[data.set.ind[i]] <- nm
+                    matched.names <- rbind(matched.names, new.row)
+            }
+        }
+        else # length(ind) == 0
+        {
+            new.row <- rep(NA_character_, n.data.sets)
+            new.row[data.set.ind[i]] <- nm
+            matched.names <- rbind(matched.names, new.row)
         }
     }
-
     matched.names
+}
+
+# Checks that a variable doesn't violate variables.to.not.combine when it is
+# combined into a row of other variables. Doesn't check that variable types
+# are compatible (this is done later in unmatchVariablesOfDifferentTypes).
+isVariableCombinableIntoRow <- function(name.of.variable.to.combine,
+                                        data.set.ind,
+                                        row.of.variables,
+                                        variables.to.not.combine)
+{
+    if (is.null(variables.to.not.combine))
+        return(TRUE)
+
+    row.of.variables[data.set.ind] <- name.of.variable.to.combine
+
+    all(apply(variables.to.not.combine, 1, function(nms) {
+        sum(nms == row.of.variables, na.rm = TRUE) < 2
+    }))
 }
 
 # Returns list of variables in each data set that remain to be matched,
@@ -690,7 +714,8 @@ matchVariableAndValueLabels <- function(input.data.set.metadata)
 
 # Split variable match if variables have different types
 # and type conversion is not possible
-unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
+unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
+                                             variables.to.combine)
 {
     n.data.sets <- length(data.sets)
     result <- matrix(nrow = 0, ncol = n.data.sets)
@@ -698,14 +723,15 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
 
     for (i in seqRow(matched.names))
     {
-        ind <- which(!is.na(matched.names[i, ]))
+        matched.names.row <- matched.names[i, ]
+        ind <- which(!is.na(matched.names.row))
         var.list <- vector(mode = "list", length = n.data.sets)
-        var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names[i, j]]])
+        var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names.row[j]]])
 
         # Only one variable in the row
         if (length(ind) == 1)
         {
-            result <- rbind(result, matched.names[i, ])
+            result <- rbind(result, matched.names.row, deparse.level = 0)
             next
         }
 
@@ -714,7 +740,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
         # All variables have the same type
         if (allIdentical(removeNA(v.types)))
         {
-            result <- rbind(result, matched.names[i, ])
+            result <- rbind(result, matched.names.row, deparse.level = 0)
             next
         }
 
@@ -768,7 +794,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
                 merge.ind <- ind[v.types == v.types[1]]
 
             new.row <- rep(NA_character_, n.data.sets)
-            new.row[merge.ind] <- matched.names[i, merge.ind]
+            new.row[merge.ind] <- matched.names.row[merge.ind]
             result <- rbind(result, new.row, deparse.level = 0)
 
             # Remove the merged indices from consideration and break if none
@@ -777,15 +803,67 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets)
             if (length(new.ind) == 0)
                 break
 
+            # Check that no variables.to.combine are being split
+            for (j in seqRow(variables.to.combine))
+            {
+                rw <- variables.to.combine[j, ]
+                if (any(matched.names.row[merge.ind] %in% rw) &&
+                    any(matched.names.row[new.ind] %in% rw))
+                    warning("The variables named ",
+                            paste0("'", unique(removeNA(rw)), "'", collapse = ", "),
+                            " specified to be combined could not be ",
+                            "combined due to incompatible variable types.")
+            }
+
             v.types <- v.types[ind %in% new.ind]
             ind <- new.ind
             k <- k + 1
         }
         if (k > 1)
             non.combinable.variables <- rbind(non.combinable.variables,
-                                              matched.names[i, ])
+                                              matched.names.row,
+                                              deparse.level = 0)
     }
     attr(result, "non.combinable.variables") <- non.combinable.variables
+    result
+}
+
+#' @importFrom flipU CopyAttributes
+removeVariablesInOnlySomeDataSets <- function(matched.names,
+                                              data.sets.whose.variables.are.kept,
+                                              input.data.set.metadata,
+                                              variables.to.combine)
+{
+    if (is.null(data.sets.whose.variables.are.kept))
+        return(matched.names)
+
+    if (length(data.sets.whose.variables.are.kept) == 0)
+    {
+        warning("There are no specified data sets whose variables are to be ",
+                "kept. All variables have been retained.")
+        return(matched.names)
+    }
+
+    n.data.sets <- input.data.set.metadata$n.data.sets
+    if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
+        stop("The input for 'data.sets.whose.variables.are.kept' contains ",
+             "invalid data set indices. Ensure that it contains only indices ",
+             "from 1 to the number of input data sets.")
+
+    data.sets.whose.variables.are.kept <- unique(data.sets.whose.variables.are.kept)
+
+    for (i in seqRow(variables.to.combine))
+        if (all(is.na(variables.to.combine[i, data.sets.whose.variables.are.kept])))
+            stop("The variables named ",
+                 paste0("'", unique(removeNA(variables.to.combine[i, ])),
+                        "'", collapse = ", "),
+                 " specified to be combined have been removed as they are not ",
+                 "in the data sets whose variables are to be kept.")
+
+    is.row.kept <- rowSums(!is.na(matched.names[, data.sets.whose.variables.are.kept,
+                                                drop = FALSE])) > 0
+    result <- matched.names[is.row.kept, , drop = FALSE]
+    result <- CopyAttributes(result, matched.names)
     result
 }
 
@@ -1372,9 +1450,8 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 remapValuesInVariable <- function(variable, map)
 {
     result <- variable
-    if (!is.null(map))
-        for (i in seqRow(map))
-            result[variable == map[i, 1]] <- map[i, 2]
+    for (i in seqRow(map))
+        result[variable == map[i, 1]] <- map[i, 2]
     result
 }
 
@@ -1443,7 +1520,10 @@ omittedVariables <- function(input.data.set.metadata, merge.map)
 # Convenience function: seq_len of nrow of matrix m
 seqRow <- function(m)
 {
-    seq_len(nrow(m))
+    if (is.null(m))
+        integer(0)
+    else
+        seq_len(nrow(m))
 }
 
 #' @importFrom flipFormat DataSetMergingWidget

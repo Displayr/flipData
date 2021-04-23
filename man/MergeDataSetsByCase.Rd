@@ -16,6 +16,7 @@ MergeDataSetsByCase(
   write.data.set = TRUE,
   prioritize.early.data.sets = TRUE,
   category.value.with.multiple.labels = "Use first label",
+  data.sets.whose.variables.are.kept = NULL,
   required.data.sets = NULL
 )
 }
@@ -61,6 +62,10 @@ set in the output.}
 \item{category.value.with.multiple.labels}{How to deal with a single category value
 with multiple labels. Either "Use first label" or "Create new values" for
 each label.}
+
+\item{data.sets.whose.variables.are.kept}{An integer vector of indices of data
+sets whose variables are to be kept. Any variable not in these data sets
+will not be included in the merged data set.}
 
 \item{required.data.sets}{A logical vector indicating the data sets that
 each variable in the merged data set is required to contain values from.}

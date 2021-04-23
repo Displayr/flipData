@@ -130,14 +130,16 @@ test_that("create new values when a single categorical value has multiple labels
 
 test_that("variables to combine", {
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                              findInstDirFile("cola2.sav"),
                                                               findInstDirFile("cola4.sav")),
                                            match.by = "Variable names",
                                            include.merged.data.set.in.output = TRUE,
-                                           variables.to.combine = "Q3_3,Q3_3_new_name",
+                                           variables.to.combine = "Q3_3(1),Q3_3_new_name",
                                            write.data.set = FALSE)$merged.data.set
     expect_true("Q3_3" %in% names(merged.data.set))
     expect_false("Q3_3_new_name" %in% names(merged.data.set))
     expect_true(all(!is.na(merged.data.set$Q3_3)))
+
 
     # Data set index
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
@@ -280,7 +282,7 @@ test_that("omit variables", {
                  fixed = TRUE)
 })
 
-test_that("error messages", {
+test_that("Error when only 1 data set is supplied", {
     expect_error(MergeDataSetsByCase(data.set.names = findInstDirFile("cola1.sav"),
                                      write.data.set = FALSE),
                  "At least 2 data set(s) are required.", fixed = TRUE)
@@ -311,4 +313,32 @@ test_that("Non-combinable variables", {
                  structure(c("Q3_3", "Q3_3"), .Dim = 1:2))
     expect_equal(result$merge.map$renamed.variables,
                  list(list(original.name = "Q3_3", new.name = "Q3_3_1")))
+})
+
+test_that("Data sets whose variables are kept", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  match.by = "Variable names",
+                                  include.merged.data.set.in.output = TRUE,
+                                  write.data.set = FALSE,
+                                  data.sets.whose.variables.are.kept = c(1, 2))
+    expect_false("Q1_F" %in% names(result$merged.data.set))
+
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  match.by = "Variable names",
+                                  include.merged.data.set.in.output = TRUE,
+                                  write.data.set = FALSE,
+                                  data.sets.whose.variables.are.kept = 3)
+
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  match.by = "Variable names",
+                                  include.merged.data.set.in.output = TRUE,
+                                  write.data.set = FALSE,
+                                  data.sets.whose.variables.are.kept = 1)
+    expect_false("Q2" %in% names(result$merged.data.set))
 })
