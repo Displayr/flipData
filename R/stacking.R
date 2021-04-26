@@ -159,8 +159,8 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 {
     result <- lapply(data.set.names, function(nm) {
         if (!QFileExists(nm))
-            stop("The data file '", nm, "' does not exist in the Display ",
-                 "cloud drive. Ensure that the data file is in the Display ",
+            stop("The data file '", nm, "' does not exist in the Displayr ",
+                 "cloud drive. Ensure that the data file is in the Displayr ",
                  "cloud drive and its name has been correctly specified.",
                  call. = FALSE)
         QLoadData(nm)
