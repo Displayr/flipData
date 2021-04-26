@@ -30,9 +30,10 @@
 #'  given priority instead of later data sets when determining which
 #'  names and labels to use.
 #' # need to describe outputs!
-#' @param category.value.with.multiple.labels How to deal with a single category value
-#'  with multiple labels. Either "Use first label" or "Create new values" for
-#'  each label.
+#' @param use.first.value.label Whether to use the first label for a value if
+#'  there are multiple labels for the same value. Otherwise new values are
+#'  created for each label. If \code{prioritize.early.data.sets} is FALSE, the
+#'  last label is used instead of the first label.
 #' @param data.sets.whose.variables.are.kept An integer vector of indices of data
 #'  sets whose variables are to be kept. Any variable not in these data sets
 #'  will not be included in the merged data set.
@@ -50,7 +51,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 include.merged.data.set.in.output = FALSE,
                                 write.data.set = TRUE,
                                 prioritize.early.data.sets = TRUE,
-                                category.value.with.multiple.labels = "Use first label",
+                                use.first.value.label = TRUE,
                                 data.sets.whose.variables.are.kept = NULL,
                                 required.data.sets = NULL)
 {
@@ -68,7 +69,7 @@ MergeDataSetsByCase <- function(data.set.names,
     merged.data.set <- mergeDataSetsWithMergeMap(data.sets, merge.map,
                                                  prioritize.early.data.sets,
                                                  input.data.sets.metadata$data.set.names,
-                                                 category.value.with.multiple.labels)
+                                                 use.first.value.label)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
@@ -77,7 +78,7 @@ MergeDataSetsByCase <- function(data.set.names,
 
     outputForMergeDataSetsByCase(merged.data.set, input.data.sets.metadata, merge.map,
                                  include.merged.data.set.in.output,
-                                 merged.data.set.name)
+                                 merged.data.set.name, write.data.set)
 }
 
 # Fuzzy matching:
@@ -90,16 +91,10 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 
-# Checkbox to choose datasets where variables are excluded when they don't have matches
-
 # Option to merge mutually exclusive variables from same data set, e.g. Internet_provider
 # variables for US and Canada in Bain data sets?
 
 # Smarter merging of categories where labels are 'close'
-
-# Subtitle in output showing summary status?
-
-# Remove data set names in output and show row lines, improve spacing between notes
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -113,7 +108,7 @@ metadataFromDataSets <- function(data.sets)
                      ""
              }, character(1))
          }),
-         variable.categories = lapply(data.sets, function(data.set) {
+         variable.value.attributes = lapply(data.sets, function(data.set) {
              lapply(data.set, attr, "labels", exact = TRUE)
          }),
          variable.types = lapply(data.sets, function(data.set) {
@@ -776,13 +771,13 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
             {
                 cat.ind <- ind[v.types %in% cat.types]
 
-                n.category.values <- length(unique(unlist(lapply(cat.ind, function (j) {
+                n.values <- length(unique(unlist(lapply(cat.ind, function (j) {
                     as.character(attr(var.list[[j]], "labels", exact = TRUE))
                 }))))
 
                 num.or.text.ind <- ind[v.types %in% c("Numeric", "Text")]
                 num.or.text.merge.ind <- num.or.text.ind[vapply(num.or.text.ind, function(j) {
-                    length(unique(var.list[[j]])) <= max(20, n.category.values * 1.5)
+                    length(unique(var.list[[j]])) <= max(20, n.values * 1.5)
                 }, logical(1))]
 
                 merge.ind <- c(cat.ind, num.or.text.merge.ind)
@@ -839,8 +834,8 @@ removeVariablesInOnlySomeDataSets <- function(matched.names,
 
     if (length(data.sets.whose.variables.are.kept) == 0)
     {
-        warning("There are no specified data sets whose variables are to be ",
-                "kept. All variables have been retained.")
+        warning("No data sets have been specified for the data sets whose ",
+                "variables are to be kept. All variables have been retained.")
         return(matched.names)
     }
 
@@ -1044,7 +1039,7 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
 mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
                                       prioritize.early.data.sets,
                                       data.set.names,
-                                      category.value.with.multiple.labels)
+                                      use.first.value.label)
 {
     n.vars <- nrow(merge.map$input.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
@@ -1052,7 +1047,7 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
         compositeVariable(merge.map$input.names[i, ], data.sets,
                           prioritize.early.data.sets,
-                          category.value.with.multiple.labels)
+                          use.first.value.label)
     }))
 
     names(merged.data.set) <- merge.map$merged.names
@@ -1067,7 +1062,7 @@ mergeDataSetsWithMergeMap <- function(data.sets, merge.map,
 # composite variable
 compositeVariable <- function(variable.names, data.sets,
                               prioritize.early.data.sets,
-                              category.value.with.multiple.labels)
+                              use.first.value.label)
 {
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
@@ -1081,7 +1076,7 @@ compositeVariable <- function(variable.names, data.sets,
     result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
         combineCategoricalVariables(var.list, data.sets,
                                     prioritize.early.data.sets, v.types,
-                                    category.value.with.multiple.labels)
+                                    use.first.value.label)
     else
         combineNonCategoricalVariables(var.list, data.sets, v.types)
 
@@ -1121,32 +1116,32 @@ variableType <- function(variable)
 
 combineCategoricalVariables <- function(var.list, data.sets,
                                         prioritize.early.data.sets, v.types,
-                                        category.value.with.multiple.labels)
+                                        use.first.value.label)
 {
-    string.values <- "Categorical with string values" %in% v.types
+    is.string.values <- "Categorical with string values" %in% v.types
 
-    if (string.values)
+    if (is.string.values)
     {
         ind <- !is.na(v.types) & v.types == "Categorical"
         var.list[ind] <- lapply(var.list[ind], function(v) {
-            categories <- attr(v, "labels", exact = TRUE)
+            val.attr <- attr(v, "labels", exact = TRUE)
             result <- as.character(v)
-            lbls <- names(categories)
-            categories <- as.character(categories)
-            names(categories) <- lbls
-            attr(result, "labels") <- categories
+            lbls <- names(val.attr)
+            val.attr <- as.character(val.attr)
+            names(val.attr) <- lbls
+            attr(result, "labels") <- val.attr
             result
         })
     }
 
-    categories.list <- lapply(var.list, attr, "labels")
+    val.attr.list <- lapply(var.list, attr, "labels")
 
     cat.types <- c("Categorical", "Categorical with string values")
     cat.ind <- which(v.types %in% cat.types)
     if (!prioritize.early.data.sets)
         cat.ind <- rev(cat.ind)
 
-    merged.categories <- categories.list[[cat.ind[1]]]
+    merged.val.attr <- val.attr.list[[cat.ind[1]]]
     value.map <- vector("list", length = length(var.list))
 
     for (i in cat.ind)
@@ -1156,15 +1151,13 @@ combineCategoricalVariables <- function(var.list, data.sets,
         # the new value
         map <- matrix(nrow = 0, ncol = 2)
 
-        categories <- categories.list[[i]]
-        for (category.label in names(categories))
+        val.attr <- val.attr.list[[i]]
+        for (lbl in names(val.attr))
         {
-            category.value <- categoryValue(categories, category.label)
-            output <- mergeCategory(category.value, category.label,
-                                    merged.categories, map,
-                                    category.value.with.multiple.labels)
-            merged.categories <- output$merged.categories
-            map <- output$map
+            val <- labelValue(val.attr, lbl)
+            merged.val.attr <- mergeValueAttribute(val, lbl, merged.val.attr, map,
+                                          use.first.value.label)
+            map <- attr(merged.val.attr, "map")
         }
         if (nrow(map) > 0)
             value.map[[i]] <- map
@@ -1172,21 +1165,21 @@ combineCategoricalVariables <- function(var.list, data.sets,
 
     n.data.sets <- length(data.sets)
 
-    # List containing input category values where elements are category values
-    # of a variable of an input data set that correspond to merged categories.
-    # This is used to show the category values table in the output. This list
-    # is attached as an attribute to the returned variable.
-    input.category.values <- vector(mode = "list", length = n.data.sets)
+    # List containing input value attributes where elements are values of a
+    # variable of an input data set that correspond to values in the merged
+    # data set. This is used to show the value attributes table in the output.
+    # This list is attached as an attribute to the returned variable.
+    input.val.attr <- vector(mode = "list", length = n.data.sets)
 
     # Create composite categorical variable
     result <- NULL
     for (i in seq_len(n.data.sets))
     {
         v <- var.list[[i]]
-        if (string.values || v.types[i] %in% "Text") # use %in% instead of == to work with NA
-            input.category.values[[i]] <- rep(NA_character_, length(merged.categories))
+        if (is.string.values || v.types[i] %in% "Text") # use %in% instead of == to work with NA
+            input.val.attr[[i]] <- rep(NA_character_, length(merged.val.attr))
         else
-            input.category.values[[i]] <- rep(NA_real_, length(merged.categories))
+            input.val.attr[[i]] <- rep(NA_real_, length(merged.val.attr))
 
         if (is.null(v))
             result <- c(result, rep(NA, nrow(data.sets[[i]])))
@@ -1195,8 +1188,8 @@ combineCategoricalVariables <- function(var.list, data.sets,
             is.missing <- isMissingValue(v)
             unique.v <- unique(v[!is.missing])
 
-            # text becomes category (numeric) values
-            if (!string.values && isParsableAsNumeric(unique.v))
+            # text becomes categorical (numeric) values
+            if (!is.string.values && isParsableAsNumeric(unique.v))
             {
                 var.values <- suppressWarnings(as.numeric(v))
                 var.values[is.missing] <- NA
@@ -1204,65 +1197,65 @@ combineCategoricalVariables <- function(var.list, data.sets,
 
                 for (val in as.numeric(unique.v))
                 {
-                    if (val %in% merged.categories)
-                        input.category.values[[i]][merged.categories == val] <- val
+                    if (val %in% merged.val.attr)
+                        input.val.attr[[i]][merged.val.attr == val] <- val
                     else
                     {
-                        ind <- length(merged.categories) + 1
-                        merged.categories[ind] <- val
-                        names(merged.categories)[ind] <- as.character(val)
-                        input.category.values[[i]][ind] <- val
+                        ind <- length(merged.val.attr) + 1
+                        merged.val.attr[ind] <- val
+                        names(merged.val.attr)[ind] <- as.character(val)
+                        input.val.attr[[i]][ind] <- val
                     }
                 }
             }
-            # text becomes category (string) values
-            else if (string.values && any(unique.v %in% merged.categories))
+            # text becomes categorical (string) values
+            else if (is.string.values && any(unique.v %in% merged.val.attr))
             {
                 result <- c(result, v)
                 for (val in unique.v)
                 {
-                    if (val %in% merged.categories)
-                        input.category.values[[i]][merged.categories == val] <- val
+                    if (val %in% merged.val.attr)
+                        input.val.attr[[i]][merged.val.attr == val] <- val
                     else
                     {
-                        ind <- length(merged.categories) + 1
-                        merged.categories[ind] <- val
-                        names(merged.categories)[ind] <- val
-                        input.category.values[[i]][ind] <- val
+                        ind <- length(merged.val.attr) + 1
+                        merged.val.attr[ind] <- val
+                        names(merged.val.attr)[ind] <- val
+                        input.val.attr[[i]][ind] <- val
                     }
                 }
             }
-            else # text becomes category labels
+            else # text becomes categorical labels
             {
                 for (lbl in unique.v)
                 {
-                    if (lbl %in% names(merged.categories))
+                    if (lbl %in% names(merged.val.attr))
                     {
-                        ind <- lbl == names(merged.categories)
-                        input.category.values[[i]][ind] <- unname(merged.categories[ind])
+                        ind <- lbl == names(merged.val.attr)
+                        input.val.attr[[i]][ind] <- unname(merged.val.attr[ind])
                     }
-                    else if (string.values)
+                    else if (is.string.values)
                     {
-                        merged.categories[lbl] <- lbl
-                        input.category.values[[i]][length(merged.categories)] <- lbl
+                        merged.val.attr[lbl] <- lbl
+                        input.val.attr[[i]][length(merged.val.attr)] <- lbl
                     }
                     else
                     {
-                        ind <- length(merged.categories) + 1
-                        val <- ceiling(max(merged.categories)) + 1
-                        merged.categories[ind] <- val
-                        names(merged.categories)[ind] <- lbl
-                        input.category.values[[i]][ind] <- lbl
+                        ind <- length(merged.val.attr) + 1
+                        val <- ceiling(max(merged.val.attr)) + 1
+                        merged.val.attr[ind] <- val
+                        names(merged.val.attr)[ind] <- lbl
+                        input.val.attr[[i]][ind] <- lbl
                     }
                 }
 
-                var.values <- if (string.values)
+                var.values <- if (is.string.values)
                     character(length(v))
                 else
                     numeric(length(v))
 
                 for (lbl in unique.v)
-                    var.values[lbl == v] <- merged.categories[lbl == names(merged.categories)]
+                    var.values[lbl == v] <- merged.val.attr[lbl == names(merged.val.attr)]
                 result <- c(result, var.values)
             }
         }
@@ -1270,7 +1263,7 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             unique.v <- unique(removeNA(v))
 
-            if (string.values)
+            if (is.string.values)
             {
                 result <- c(result, as.character(v))
                 unique.v <- as.character(unique.v)
@@ -1280,14 +1273,14 @@ combineCategoricalVariables <- function(var.list, data.sets,
 
             for (val in unique.v)
             {
-                if (val %in% merged.categories)
-                    input.category.values[[i]][merged.categories == val] <- val
+                if (val %in% merged.val.attr)
+                    input.val.attr[[i]][merged.val.attr == val] <- val
                 else
                 {
-                    new.ind <- length(merged.categories) + 1
-                    merged.categories[new.ind] <- val
-                    names(merged.categories)[new.ind] <- val
-                    input.category.values[[i]][new.ind] <- val
+                    new.ind <- length(merged.val.attr) + 1
+                    merged.val.attr[new.ind] <- val
+                    names(merged.val.attr)[new.ind] <- val
+                    input.val.attr[[i]][new.ind] <- val
                 }
             }
         }
@@ -1296,80 +1289,81 @@ combineCategoricalVariables <- function(var.list, data.sets,
             map <- value.map[[i]]
             result <- c(result, remapValuesInVariable(v, map))
 
-            input.category.values[[i]] <- vapply(merged.categories, function(val) {
+            input.val.attr[[i]] <- vapply(merged.val.attr, function(val) {
                 if (!is.null(map))
                 {
                     ind <- match(val, map[, 2])
                     if (!is.na(ind))
                         val <- map[ind, 1]
                 }
-                if (val %in% categories.list[[i]])
+                if (val %in% val.attr.list[[i]])
                     val
                 else
-                    ifelse(string.values, NA_character_, NA_real_)
-            }, ifelse(string.values, character(1), numeric(1)), USE.NAMES = FALSE)
+                    ifelse(is.string.values, NA_character_, NA_real_)
+            }, ifelse(is.string.values, character(1), numeric(1)), USE.NAMES = FALSE)
         }
     }
 
-    attr(result, "labels") <- merged.categories
-    attr(result, "input.category.values") <- input.category.values
+    attr(result, "labels") <- merged.val.attr
+    attr(result, "input.value.attributes") <- input.val.attr
     class(result) <- c(class(result), "haven_labelled")
 
     result
 }
 
-categoryValue <- function(categories, label)
+labelValue <- function(val.attr, label)
 {
     if (label != "")
-        unname(categories[label])
+        unname(val.attr[label])
     else
-        # need to do this since categories[""] will return NA
-        unname(categories[names(categories) == ""])
+        # need to do this since val.attr[""] will return NA
+        unname(val.attr[names(val.attr) == ""])
 }
 
-# Merge category into merged.categories
-mergeCategory <- function(category.value, category.label, merged.categories, map,
-                          category.value.with.multiple.labels)
+# Merge value attribute (value and label) into merged.val.attr
+mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
+                                use.first.value.label)
 {
-    if (category.label %in% names(merged.categories))
+    if (lbl %in% names(merged.val.attr))
     {
-        merged.category.value <- categoryValue(merged.categories, category.label)
-        if (category.value != merged.category.value) # same label with different values
+        merged.val <- labelValue(merged.val.attr, lbl)
+        if (val != merged.val) # same label with different values
         {
-            map <- rbind(map, c(category.value, merged.category.value)) # use the value in merged.categories
+            map <- rbind(map, c(val, merged.val)) # use the value in merged.val.attr
         }
-        # else: same label, same value, no action required as it is already in merged.categories
+        # else: same label, same value, no action required as it is already in merged.val.attr
     }
     else
     {
-        if (category.value %in% merged.categories) # different labels with same value
+        if (val %in% merged.val.attr) # different labels with same value
         {
-            if (category.value.with.multiple.labels == "Create new values")
+            if (!use.first.value.label)
             {
-                new.value <- if (is.numeric(merged.categories)) # create new numeric value for label
-                    ceiling(max(merged.categories)) + 1
+                new.value <- if (is.numeric(merged.val.attr)) # create new numeric value for label
+                    ceiling(max(merged.val.attr)) + 1
                 else # is character, create new character value
                 {
                     j <- 2
                     repeat
                     {
-                        if (!(paste0(category.value, j) %in% merged.categories))
+                        if (!(paste0(val, j) %in% merged.val.attr))
                             break
                         else
                             j <- j + 1
                     }
-                    paste0(category.value, j)
+                    paste0(val, j)
                 }
 
-                merged.categories[category.label] <- new.value
-                map <- rbind(map, c(category.value, new.value))
+                merged.val.attr[lbl] <- new.value
+                map <- rbind(map, c(val, new.value))
             }
-            # else "Use first value", no action required as it is already in merged.categories
+            # else "Use first value", no action required as it is already in merged.val.attr
         }
-        else # value and label not in merged.categories
-            merged.categories[category.label] <- category.value # create new category in merged.categories
+        else # value and label not in merged.val.attr
+            merged.val.attr[lbl] <- val # create new value in merged.val.attr
     }
-    list(merged.categories = merged.categories, map = map)
+    attr(merged.val.attr, "map") <- map
+    merged.val.attr
 }
 
 combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
@@ -1492,7 +1486,8 @@ mergeSrc <- function(n.data.set.cases, data.set.names)
 outputForMergeDataSetsByCase <- function(merged.data.set, input.data.set.metadata,
                                          merge.map,
                                          include.merged.data.set.in.output,
-                                         merged.data.set.name)
+                                         merged.data.set.name,
+                                         write.data.set)
 {
     result <- list()
     if (include.merged.data.set.in.output)
@@ -1503,7 +1498,8 @@ outputForMergeDataSetsByCase <- function(merged.data.set, input.data.set.metadat
                                                            merged.data.set.name)
     result$merge.map <- merge.map
     result$omitted.variables <- omittedVariables(input.data.set.metadata, merge.map)
-    result$input.category.values <- lapply(merged.data.set, attr, "input.category.values")
+    result$input.value.attributes <- lapply(merged.data.set, attr, "input.value.attributes")
+    result$is.saved.to.cloud <- write.data.set && canAccessDisplayrCloudDrive()
     class(result) <- "MergeDataSetByCase"
     result
 }
@@ -1534,5 +1530,6 @@ print.MergeDataSetByCase <- function(x, ...)
                          x$merged.data.set.metadata,
                          x$merge.map,
                          x$omitted.variables,
-                         x$input.category.values)
+                         x$input.value.attributes,
+                         x$is.saved.to.cloud)
 }

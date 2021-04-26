@@ -1546,6 +1546,7 @@ metadataFromDataSet <- function(data.set, data.set.name)
          variable.value.attributes = lapply(data.set, attr, "labels",
                                       exact = TRUE),
          n.variables = length(data.set),
+         n.cases = nrow(data.set),
          data.set.name = dataSetNameWithoutPath(data.set.name))
 }
 
