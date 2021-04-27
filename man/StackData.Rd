@@ -21,7 +21,8 @@ StackData(
 }
 \arguments{
 \item{input.data.set.name}{Name of data file to stack, either as a path to a
-local file or file in the Displayr Cloud Drive}
+local file (when running locally in R) or file in the Displayr Cloud Drive
+(when running in Displayr).}
 
 \item{stacked.data.set.name}{Name of the stacked data file to be saved in
 the Displayr Cloud Drive (if run from Displayr) or saved locally.}
@@ -43,13 +44,13 @@ specified with an asterisk '*'.}
 \item{manual.common.labels}{A list of sets of common labels to be used to
 identify variables to stack. Only used when \code{stack.with.common.labels}
 is \code{"Using manually input common labels"}. To be identified, a set of
-variables to be stacked must contain these labels, have the same prefix
+variables to be stacked must contain these labels, and have the same prefix
 and suffix before and after these labels.}
 
 \item{specify.by}{"Variable" or "Observation". See \code{manual.stacking}.}
 
 \item{manual.stacking}{If \code{specify.by} is "Variable", this is a
-character vector where each string corresponds to variables to be stacked
+character vector where each string corresponds to the names of the variables to be stacked
 into a new variable. If \code{specify.by} is "Observation", this is a
 character vector where each string corresponds to an observation in the
 stacked variables. The strings in both cases can be a combination of
@@ -77,12 +78,12 @@ A list with the following elements:
 \itemize{
   \item \code{stacked.data.set.metadata} A list containing metadata on the
     the stacked data set such as variable names, labels etc.
-  \item \code{unstackable names} A list of character vectors containing
+  \item \code{unstackable.names} A list of character vectors containing
     names of the variables that could not be stacked using common labels due
     to mismatching types or value attributes.
-  \item \code{omitted.variables} A character vector of omitted variables.
+  \item \code{omitted.variables} A character vector of omitted variable names.
   \item \code{omitted.stacked.variables} A character vector of omitted
-    stacked variables.
+    stacked variable names.
   \item \code{common.labels} A character vector of common labels used for
     stacking.
   \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
