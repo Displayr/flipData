@@ -47,7 +47,7 @@
 #'   \item \code{unstackable.names} A list of character vectors containing
 #'     names of the variables that could not be stacked using common labels due
 #'     to mismatching types or value attributes.
-#'   \item \code{omitted.variables} A character vector of omitted variables.
+#'   \item \code{omitted.variables} A character vector of omitted variable names.
 #'   \item \code{omitted.stacked.variables} A character vector of omitted
 #'     stacked variables.
 #'   \item \code{common.labels} A character vector of common labels used for
