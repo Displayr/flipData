@@ -23,7 +23,7 @@
 #'   and suffix before and after these labels.
 #' @param specify.by "Variable" or "Observation". See \code{manual.stacking}.
 #' @param manual.stacking If \code{specify.by} is "Variable", this is a
-#'   character vector where each string corresponds to variables to be stacked
+#'   character vector where each string corresponds to the names of the variables to be stacked
 #'   into a new variable. If \code{specify.by} is "Observation", this is a
 #'   character vector where each string corresponds to an observation in the
 #'   stacked variables. The strings in both cases can be a combination of
