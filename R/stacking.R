@@ -19,7 +19,7 @@
 #' @param manual.common.labels A list of sets of common labels to be used to
 #'   identify variables to stack. Only used when \code{stack.with.common.labels}
 #'   is \code{"Using manually input common labels"}. To be identified, a set of
-#'   variables to be stacked must contain these labels, have the same prefix
+#'   variables to be stacked must contain these labels, and have the same prefix
 #'   and suffix before and after these labels.
 #' @param specify.by "Variable" or "Observation". See \code{manual.stacking}.
 #' @param manual.stacking If \code{specify.by} is "Variable", this is a
