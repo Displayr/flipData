@@ -49,7 +49,7 @@
 #'     to mismatching types or value attributes.
 #'   \item \code{omitted.variables} A character vector of omitted variable names.
 #'   \item \code{omitted.stacked.variables} A character vector of omitted
-#'     stacked variables.
+#'     stacked variable names.
 #'   \item \code{common.labels} A character vector of common labels used for
 #'     stacking.
 #'   \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
