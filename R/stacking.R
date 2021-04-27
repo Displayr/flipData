@@ -44,7 +44,7 @@
 #' \itemize{
 #'   \item \code{stacked.data.set.metadata} A list containing metadata on the
 #'     the stacked data set such as variable names, labels etc.
-#'   \item \code{unstackable names} A list of character vectors containing
+#'   \item \code{unstackable.names} A list of character vectors containing
 #'     names of the variables that could not be stacked using common labels due
 #'     to mismatching types or value attributes.
 #'   \item \code{omitted.variables} A character vector of omitted variables.
