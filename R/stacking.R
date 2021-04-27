@@ -219,7 +219,7 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
     if (stack.with.common.labels == "Automatically")
     {
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
-            warning("Input common labels have been ignored as common labels ",
+            warning("Input common labels have been ignored because common labels ",
                     "are to be generated automatically.")
         return(automaticCommonLabels(input.data.set.metadata))
     }
