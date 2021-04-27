@@ -1,7 +1,8 @@
 #' @title Stack data set
 #' @description Stacks variables in a data set.
 #' @param input.data.set.name Name of data file to stack, either as a path to a
-#'   local file or file in the Displayr Cloud Drive
+#'   local file (when running locally in R) or file in the Displayr Cloud Drive
+#'   (when running in Displayr).
 #' @param stacked.data.set.name Name of the stacked data file to be saved in
 #'   the Displayr Cloud Drive (if run from Displayr) or saved locally.
 #' @param stack.with.common.labels \code{"Automatically"},
