@@ -226,7 +226,7 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
     else if (stack.with.common.labels == "Using a set of variables to stack as reference")
     {
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
-            warning("Input common labels have been ignored as common labels ",
+            warning("Input common labels have been ignored because common labels ",
                     "are to be obtained from a set of variables.")
         return(commonLabelsFromVariables(reference.variables.to.stack,
                                          input.data.set.metadata))
