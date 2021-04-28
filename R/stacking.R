@@ -211,8 +211,8 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
             warning("Input common labels have been ignored because common labels ",
                     "are to be obtained from a set of variables.")
-        return(commonLabelsFromVariables(reference.variables.to.stack,
-                                         input.data.set.metadata))
+        return(commonLabelsFromReferenceVars(reference.variables.to.stack,
+                                             input.data.set.metadata))
     }
     else if (stack.with.common.labels == "Using manually input common labels")
         tidyManualCommonLabels(manual.common.labels)
@@ -327,8 +327,8 @@ commonLabelsByRemovingPrefix <- function(prefix, v.labels)
 
 # Given a user-input string of variable names, parse it and extract common
 # labels from the variable labels by removing common prefixes and suffixes
-commonLabelsFromVariables <- function(reference.variables.to.stack,
-                                      input.data.set.metadata)
+commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
+                                          input.data.set.metadata)
 {
     if (is.null(reference.variables.to.stack) ||
         length(reference.variables.to.stack) == 0)
@@ -337,59 +337,13 @@ commonLabelsFromVariables <- function(reference.variables.to.stack,
                 "labels. No stacking was conducted using common labels.")
         return(NULL)
     }
-
-    v.names <- input.data.set.metadata$variable.names
-    v.labels <- input.data.set.metadata$variable.labels
-
     common.labels.list <- list()
     for (i in seq_along(reference.variables.to.stack))
     {
-        split.text <- splitByComma(reference.variables.to.stack[i])
-
-        if (length(split.text) == 0)
-            next
-
-        on.fail <- paste0("Common labels could not be obtained from the input '",
-                          reference.variables.to.stack[i], "'.")
-
-        parsed.var.names <- character(0)
-        for (t in split.text)
-        {
-            parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, v.names, "common labels", on.fail)
-            else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, v.names, "common labels", on.fail)
-            else
-                parseVariableName(t, v.names, "common labels",
-                                  on.fail)
-
-            if (length(parsed) == 0)
-                next
-
-            parsed.var.names <- c(parsed.var.names, parsed)
-        }
-
-        if (length(parsed.var.names) == 1)
-        {
-            warning("Only one variable is present in the input '",
-                    reference.variables.to.stack[i],
-                    "' for extracting common labels. It has been ignored as ",
-                    "more than one variable is required.")
-            next
-        }
-
-        lbls.containing.common.lbls <- vapply(parsed.var.names, function(nm) {
-            v.labels[match(nm, v.names)]
-        }, character(1))
-
-        nchar.prefix <- nchar(getCommonPrefix(lbls.containing.common.lbls, whole.words = TRUE))
-        nchar.suffix <- nchar(getCommonSuffix(lbls.containing.common.lbls, whole.words = TRUE))
-
-        common.labels <- vapply(lbls.containing.common.lbls, function(lbl) {
-            substr(lbl, nchar.prefix + 1, nchar(lbl) - nchar.suffix)
-        }, character(1))
-
-        common.labels.list <- c(common.labels.list, list(common.labels))
+        common.labels <- commonLabelsFromASetOfReferenceVars(reference.variables.to.stack[i],
+                                                             input.data.set.metadata)
+        if (!is.null(common.labels))
+            common.labels.list <- c(common.labels.list, list(common.labels))
     }
 
     if (length(common.labels.list) > 0)
@@ -400,6 +354,58 @@ commonLabelsFromVariables <- function(reference.variables.to.stack,
                 "variables.")
         NULL
     }
+}
+
+commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
+                                                input.data.set.metadata)
+{
+    split.text <- splitByComma(ref.vars.to.stack.text)
+
+    if (length(split.text) == 0)
+        return(NULL)
+
+    on.fail <- paste0("Common labels could not be obtained from the input '",
+                      ref.vars.to.stack.text, "'.")
+
+    v.names <- input.data.set.metadata$variable.names
+    v.labels <- input.data.set.metadata$variable.labels
+
+    parsed.var.names <- character(0)
+    for (t in split.text)
+    {
+        parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
+            parseRange(t, v.names, "common labels", on.fail)
+        else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+            parseWildcard(t, v.names, "common labels", on.fail)
+        else
+            parseVariableName(t, v.names, "common labels",
+                              on.fail)
+
+        if (length(parsed) == 0)
+            return(NULL)
+
+        parsed.var.names <- c(parsed.var.names, parsed)
+    }
+
+    if (length(parsed.var.names) == 1)
+    {
+        warning("Only one variable is present in the input '",
+                ref.vars.to.stack.text,
+                "' for extracting common labels. It has been ignored as ",
+                "more than one variable is required.")
+        return(NULL)
+    }
+
+    lbls.containing.common.lbls <- vapply(parsed.var.names, function(nm) {
+        v.labels[match(nm, v.names)]
+    }, character(1))
+
+    nchar.prefix <- nchar(getCommonPrefix(lbls.containing.common.lbls, whole.words = TRUE))
+    nchar.suffix <- nchar(getCommonSuffix(lbls.containing.common.lbls, whole.words = TRUE))
+
+    vapply(lbls.containing.common.lbls, function(lbl) {
+        substr(lbl, nchar.prefix + 1, nchar(lbl) - nchar.suffix)
+    }, character(1), USE.NAMES = FALSE)
 }
 
 # Tidy up user-input common labels and check for issues

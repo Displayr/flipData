@@ -258,3 +258,44 @@ test_that("manual stacking by observations", {
                           "'Q6_A, Q9_A'."),
                    fixed = TRUE)
 })
+
+test_that("commonLabelsFromASetOfReferenceVars", {
+    ref.vars.to.stack.text <- "Q2_A, Q2_B, Q2_C"
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q3_a", "Q3_b")
+    v.labels <- c("Question 1",  "Q2: Coke", "Q2: Diet Coke", "Q2: Coke Zero",
+                  "Question 3a", "Question 3b")
+    common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                         list(variable.names = v.names,
+                                                              variable.labels = v.labels))
+    expect_equal(common.labels, c("Coke", "Diet Coke", "Coke Zero"))
+
+    ref.vars.to.stack.text <- "Q2_A-Q2_C"
+    common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                         list(variable.names = v.names,
+                                                              variable.labels = v.labels))
+    expect_equal(common.labels, c("Coke", "Diet Coke", "Coke Zero"))
+
+    ref.vars.to.stack.text <- "Q2_*"
+    common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                         list(variable.names = v.names,
+                                                              variable.labels = v.labels))
+    expect_equal(common.labels, c("Coke", "Diet Coke", "Coke Zero"))
+
+    ref.vars.to.stack.text <- "bad_var_*"
+    expect_warning(commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                       list(variable.names = v.names,
+                                                            variable.labels = v.labels)),
+                   paste0("No matches were found for the common labels input ",
+                          "wildcard name 'bad_var_*'. Ensure that the wildcard ",
+                          "variable name has been correctly specified. Common ",
+                          "labels could not be obtained from the input ",
+                          "'bad_var_*'."), fixed = TRUE)
+
+    ref.vars.to.stack.text <- "Q2_A"
+    expect_warning(commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                       list(variable.names = v.names,
+                                                            variable.labels = v.labels)),
+                   paste0("Only one variable is present in the input 'Q2_A' ",
+                          "for extracting common labels. It has been ignored ",
+                          "as more than one variable is required."))
+})
