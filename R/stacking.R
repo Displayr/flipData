@@ -24,18 +24,19 @@
 #'   and suffix before and after these labels.
 #' @param specify.by "Variable" or "Observation". See \code{manual.stacking}.
 #' @param manual.stacking If \code{specify.by} is "Variable", this is a
-#'   character vector where each string corresponds to the names of the variables to be stacked
-#'   into a new variable. If \code{specify.by} is "Observation", this is a
-#'   character vector where each string corresponds to an observation in the
-#'   stacked variables. The strings in both cases can be a combination of
-#'   comma-separated names, wildcards and ranges.
+#'   character vector where each string corresponds to the names of the
+#'   variables to be stacked into a new variable. If \code{specify.by} is
+#'   "Observation", this is a character vector where each string corresponds
+#'   the names of the variables in an observation in the stacked variables.
+#'   The strings in both cases can be a combination of comma-separated names,
+#'   wildcards and ranges.
 #'   See \code{reference.variables.to.stack} for more details on the format.
 #' @param variables.to.omit Character vector of comma-separated names of
 #'   variables to omit. Each string can be a combination of comma-separated
 #'   names, wildcards and ranges. See \code{reference.variables.to.stack} for
 #'   more details on the format.
 #' @param include.stacked.data.set.in.output Whether to include the stacked
-#'   data set in the output.
+#'   data set in the output object.
 #' @param include.original.case.variable Whether to include the \code{original_case}
 #'   variable in the stacked data set.
 #' @param include.observation.variable Whether to include the \code{observation}
