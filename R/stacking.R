@@ -188,21 +188,6 @@ dataSetNameWithoutPath <- function(data.set.name.or.path)
         basename(data.set.name.or.path)
 }
 
-cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
-{
-    if (is.null(merged.data.set.name) ||
-        trimws(merged.data.set.name) == "")
-        "Merged data set.sav"
-    else
-    {
-        result <- trimws(merged.data.set.name)
-        if (!grepl("\\.sav$", merged.data.set.name))
-            result <- paste0(result, ".sav")
-        checkFileNameCharacters(result)
-        result
-    }
-}
-
 checkFileNameCharacters <- function(file.name)
 {
     if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
