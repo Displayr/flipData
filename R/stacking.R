@@ -34,7 +34,6 @@
 #'   variables to omit. Each string can be a combination of comma-separated
 #'   names, wildcards and ranges. See \code{reference.variables.to.stack} for
 #'   more details on the format.
-#' @param write.data.set Whether to write the stacked data set.
 #' @param include.stacked.data.set.in.output Whether to include the stacked
 #'   data set in the output.
 #' @param include.original.case.variable Whether to include the \code{original_case}
@@ -65,7 +64,6 @@ StackData <- function(input.data.set.name,
                       specify.by = "Variable",
                       manual.stacking = NULL,
                       variables.to.omit = NULL,
-                      write.data.set = TRUE,
                       include.stacked.data.set.in.output = FALSE,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
@@ -107,8 +105,7 @@ StackData <- function(input.data.set.name,
 
     stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
                                                      input.data.set.name)
-    if (write.data.set)
-        writeDataSet(stacked.data.set, stacked.data.set.name)
+    writeDataSet(stacked.data.set, stacked.data.set.name)
 
     stacked.data.set.metadata <- metadataFromStackedDataSet(stacked.data.set,
                                                             stacked.data.set.name)
@@ -119,7 +116,7 @@ StackData <- function(input.data.set.name,
     result$omitted.variables <- omitted.variables
     result$omitted.stacked.variables <- omitted.stacked.variables
     result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- write.data.set && canAccessDisplayrCloudDrive()
+    result$is.saved.to.cloud <- canAccessDisplayrCloudDrive()
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set

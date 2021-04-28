@@ -13,7 +13,6 @@ StackData(
   specify.by = "Variable",
   manual.stacking = NULL,
   variables.to.omit = NULL,
-  write.data.set = TRUE,
   include.stacked.data.set.in.output = FALSE,
   include.original.case.variable = TRUE,
   include.observation.variable = TRUE
@@ -61,8 +60,6 @@ See \code{reference.variables.to.stack} for more details on the format.}
 variables to omit. Each string can be a combination of comma-separated
 names, wildcards and ranges. See \code{reference.variables.to.stack} for
 more details on the format.}
-
-\item{write.data.set}{Whether to write the stacked data set.}
 
 \item{include.stacked.data.set.in.output}{Whether to include the stacked
 data set in the output.}
