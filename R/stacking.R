@@ -180,9 +180,8 @@ dataSetNameWithoutPath <- function(data.set.name.or.path)
 checkFileNameCharacters <- function(file.name)
 {
     if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
-        stop("The file name '", file.name, "' is invalid as file names ",
-             "cannot contain the characters ",
-             "'<', '>', ':', '\"', '/', '\\', '|', '?', '*'.")
+        stop("The file name '", file.name,
+             "' is invalid as file names cannot contain the characters '>', ':', '\"', '/', '\\', '|', '?', '*'.")
 }
 
 # Get common labels ready to be used for stacking. The actions of this function
@@ -194,15 +193,13 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
     if (stack.with.common.labels == "Automatically")
     {
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
-            warning("Input common labels have been ignored because common labels ",
-                    "are to be generated automatically.")
+            warning("Input common labels have been ignored because common labels are to be generated automatically.")
         return(automaticCommonLabels(input.data.set.metadata))
     }
     else if (stack.with.common.labels == "Using a set of variables to stack as reference")
     {
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
-            warning("Input common labels have been ignored because common labels ",
-                    "are to be obtained from a set of variables.")
+            warning("Input common labels have been ignored because common labels are to be obtained from a set of variables.")
         return(commonLabelsFromReferenceVars(reference.variables.to.stack,
                                              input.data.set.metadata))
     }
@@ -325,8 +322,8 @@ commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
     if (is.null(reference.variables.to.stack) ||
         length(reference.variables.to.stack) == 0)
     {
-        warning("No reference variables to stack were supplied for common ",
-                "labels. No stacking was conducted using common labels.")
+        warning("No reference variables to stack were supplied for common labels. ",
+                "No stacking was conducted using common labels.")
         return(NULL)
     }
     common.labels.list <- list()
@@ -342,8 +339,7 @@ commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
         common.labels.list
     else
     {
-        warning("No common labels could be extracted from the input reference ",
-                "variables.")
+        warning("No common labels could be extracted from the input reference variables.")
         NULL
     }
 }
@@ -356,8 +352,8 @@ commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
     if (length(split.text) == 0)
         return(NULL)
 
-    on.fail <- paste0("Common labels could not be obtained from the input '",
-                      ref.vars.to.stack.text, "'.")
+    on.fail.msg <- paste0("Common labels could not be obtained from the input '",
+                          ref.vars.to.stack.text, "'.")
 
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
@@ -366,12 +362,12 @@ commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
     for (t in split.text)
     {
         parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-            parseRange(t, v.names, "common labels", on.fail)
+            parseRange(t, v.names, "common labels", on.fail.msg)
         else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-            parseWildcard(t, v.names, "common labels", on.fail)
+            parseWildcard(t, v.names, "common labels", on.fail.msg)
         else
             parseVariableName(t, v.names, "common labels",
-                              on.fail)
+                              on.fail.msg)
 
         if (length(parsed) == 0)
             return(NULL)
@@ -383,8 +379,8 @@ commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
     {
         warning("Only one variable is present in the input '",
                 ref.vars.to.stack.text,
-                "' for extracting common labels. It has been ignored as ",
-                "more than one variable is required.")
+                "' for extracting common labels. ",
+                "It has been ignored as more than one variable is required.")
         return(NULL)
     }
 
@@ -405,8 +401,8 @@ tidyManualCommonLabels <- function(manual.common.labels)
 {
     if (is.null(manual.common.labels))
     {
-        warning("No common labels were manually supplied. No stacking ",
-                "was conducted using common labels.")
+        warning("No common labels were manually supplied. ",
+                "No stacking was conducted using common labels.")
         return(NULL)
     }
 
@@ -416,15 +412,15 @@ tidyManualCommonLabels <- function(manual.common.labels)
         lbls <- lbls[lbls != ""]
         if (length(lbls) == 0)
         {
-            warning("Set ", i, " of the manually-entered common labels does ",
-                    "not contain any labels. Ensure that the common labels ",
-                    "are correctly entered.")
+            warning("Set ", i,
+                    " of the manually-entered common labels does not contain any labels. ",
+                    "Ensure that the common labels are correctly entered.")
             return(NULL)
         }
         else if (length(lbls) == 1)
         {
-            warning("Set ", i, " of the manually-entered common labels ",
-                    "contains only one label when more than one is required.")
+            warning("Set ", i,
+                    " of the manually-entered common labels contains only one label when more than one is required.")
             return(NULL)
         }
         lbls
@@ -501,8 +497,7 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
         v.names[removeNA(stacking.groups[ind, ])]
     })
     if (length(unstackable.names) > 0)
-        warning("Variables could not be stacked due ",
-                "to mismatching variable types or value attributes. ",
+        warning("Variables could not be stacked due to mismatching variable types or value attributes. ",
                 "See Notes section in output for more details.")
 
     if (length(unstackable.ind) > 0)
@@ -662,9 +657,8 @@ stackManually <- function(stacking.groups, manual.stacking,
     na.ind <- match("NA", input.data.set.metadata$variable.names)
     has.na.variable <- !is.na(na.ind)
     if (has.na.variable)
-        warning("There is an input variable named 'NA'. To avoid confusion, ",
-                "missing stacking variables need to be specified with an ",
-                "extra slash for this data set, i.e., N/A")
+        warning("There is an input variable named 'NA'. ",
+                "To avoid confusion, missing stacking variables need to be specified with an extra slash for this data set, i.e., N/A")
 
     stacking.groups <- if (specify.by == "Variable")
         stackingSpecifiedByVariable(stacking.groups, manual.stacking,
@@ -692,8 +686,8 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
 
     for (input.text in manual.stacking)
     {
-        on.fail <- paste0("The manual stacking input '", input.text,
-                          "' has been ignored.")
+        on.fail.msg <- paste0("The manual stacking input '", input.text,
+                              "' has been ignored.")
         split.text <- splitByComma(input.text)
 
         group.names <- character(0)
@@ -703,12 +697,12 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, v.names, "manual stacking", on.fail)
+                parseRange(t, v.names, "manual stacking", on.fail.msg)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, v.names, "manual stacking", on.fail)
+                parseWildcard(t, v.names, "manual stacking", on.fail.msg)
             else
                 parseVariableName(t, v.names, "manual stacking",
-                                  on.fail)
+                                  on.fail.msg)
             if (length(parsed) == 0)
             {
                 group.names <- NULL
@@ -749,8 +743,7 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             !allIdentical(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
-                    "' has been ignored as it contains variables with ",
-                    "mismatching types or value attributes.")
+                    "' has been ignored as it contains variables with mismatching types or value attributes.")
             next
         }
 
@@ -764,8 +757,7 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             if (length(overlap.ind) > 0)
             {
                 warning("The manual stacking input '", input.text,
-                        "' has been ignored as it contains variable(s) that ",
-                        "overlap with another manual stacking input '",
+                        "' has been ignored as it contains variable(s) that overlap with another manual stacking input '",
                         manual.stacking.groups.text[overlap.ind[1]], "'.")
                 next
             }
@@ -827,9 +819,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 {
     if (length(manual.stacking) < 2)
     {
-        warning("No manual stacking was conducted as 2 or more manual",
-                "stacking inputs (corresponding to obvservations) are ",
-                "required.")
+        warning("No manual stacking was conducted as 2 or more manual stacking inputs (corresponding to obvservations) are required.")
         return(stacking.groups)
     }
 
@@ -847,7 +837,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 
     for (input.text in manual.stacking)
     {
-        on.fail <- paste0("No manual stacking was conducted.")
+        on.fail.msg <- paste0("No manual stacking was conducted.")
         split.text <- splitByComma(input.text)
         obs.group.names <- character(0)
 
@@ -856,12 +846,12 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, v.names, "manual stacking", on.fail)
+                parseRange(t, v.names, "manual stacking", on.fail.msg)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, v.names, "manual stacking", on.fail)
+                parseWildcard(t, v.names, "manual stacking", on.fail.msg)
             else
                 parseVariableName(t, v.names, "manual stacking",
-                                  on.fail)
+                                  on.fail.msg)
             if (length(parsed) == 0)
                 return(stacking.groups)
             else
@@ -870,8 +860,8 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
 
         if (all(is.na(obs.group.names)))
         {
-            warning("No manual stacking was conducted as the manual stacking ",
-                    "input '", input.text, "' does not contain any variables.")
+            warning("No manual stacking was conducted as the manual stacking input '",
+                    input.text, "' does not contain any variables.")
             return(stacking.groups)
         }
 
@@ -879,8 +869,8 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
         dup <- duplicated(removeNA(obs.group.names))
         if (any(dup))
         {
-            warning("No manual stacking was conducted as the manual stacking ",
-                    "input '", input.text, "' contains duplicate entries for ",
+            warning("No manual stacking was conducted as the manual stacking input '",
+                    input.text, "' contains duplicate entries for ",
                     paste0("'", removeNA(obs.group.names)[dup], "'",
                            collapse = ", "), ".")
             return(stacking.groups)
@@ -902,10 +892,8 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
             }, logical(1)))
             if (length(overlap.ind) > 0)
             {
-                warning("No manual stacking was conducted as the manual ",
-                        "stacking input '", input.text, "' contains ",
-                        "variable(s) that overlap with another manual ",
-                        "stacking input '",
+                warning("No manual stacking was conducted as the manual stacking input '",
+                        input.text, "' contains variable(s) that overlap with another manual stacking input '",
                         manual.stacking.obs.groups.text[overlap.ind[1]], "'.")
                 return(stacking.groups)
             }
@@ -955,10 +943,9 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
         if (!allIdentical(v.types[non.missing.ind]) ||
             !allIdentical(v.val.attr[non.missing.ind]))
         {
-            warning("No manual stacking was conducted as the manual ",
-                    "stacking input '", input.text, "' would result in the ",
-                    "stacking of variables with mismatching types or ",
-                    "value attributes.")
+            warning("No manual stacking was conducted as the manual stacking input '",
+                    input.text,
+                    "' would result in the stacking of variables with mismatching types or value attributes.")
             return(stacking.groups)
         }
 
@@ -1377,7 +1364,7 @@ parseVariablesToOmitAfterStacking <- function(variables.to.omit,
 }
 
 # Parses a user-input variable range
-parseRange <- function(range.text, variable.names, purpose, on.fail,
+parseRange <- function(range.text, variable.names, purpose, on.fail.msg,
                        warning.if.not.found = TRUE)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
@@ -1386,15 +1373,17 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
     if (grepl("*", start.var.text, fixed = TRUE))
     {
         warning("The start variable from the ", purpose, " input range '",
-                range.text, "' contains the wildcard character '*' which is ",
-                "not permitted in a range. ", on.fail)
+                range.text,
+                "' contains the wildcard character '*' which is not permitted in a range. ",
+                on.fail.msg)
         return(character(0))
     }
     if (grepl("*", end.var.text, fixed = TRUE))
     {
         warning("The end variable from the ", purpose, " input range '",
-                range.text, "' contains the wildcard character '*' which is ",
-                "not permitted in a range. ", on.fail)
+                range.text,
+                "' contains the wildcard character '*' which is not permitted in a range. ",
+                on.fail.msg)
         return(character(0))
     }
 
@@ -1413,7 +1402,7 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
         if (warning.if.not.found)
         {
             warning("The start variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ",on.fail,
+                    range.text, "' ", "could not be identified. ", on.fail.msg,
                     " Ensure that the variable name is correctly specified.")
         }
         result <- character(0)
@@ -1425,7 +1414,7 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
         if (warning.if.not.found)
         {
             warning("The end variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ",on.fail,
+                    range.text, "' ", "could not be identified. ", on.fail.msg,
                     " Ensure that the variable name is correctly specified.")
         }
         result <- character(0)
@@ -1435,9 +1424,10 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
     if (start.ind > end.ind)
     {
         warning("The start variable from the ", purpose, "input range '",
-                range.text, "' ", "appears after the end variable in the ",
-                "data set. Ensure that the range has been correctly ",
-                "specified. ", on.fail)
+                range.text,
+                "' appears after the end variable in the data set. ",
+                "Ensure that the range has been correctly specified. ",
+                on.fail.msg)
         return(character(0))
     }
     variable.names[start.ind:end.ind]
@@ -1445,7 +1435,7 @@ parseRange <- function(range.text, variable.names, purpose, on.fail,
 
 # Parses a user-input variable wildcard
 #' @importFrom flipU EscapeRegexSymbols
-parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
+parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail.msg,
                           warning.if.not.found = TRUE)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
@@ -1459,9 +1449,9 @@ parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
     {
         if (warning.if.not.found)
             warning("No matches were found for the ", purpose,
-                    " input wildcard name '",
-                    wildcard.text, "'. Ensure that the wildcard variable name ",
-                    "has been correctly specified. ", on.fail)
+                    " input wildcard name '", wildcard.text,
+                    "'. Ensure that the wildcard variable name has been correctly specified. ",
+                    on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
@@ -1471,7 +1461,7 @@ parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail,
 
 # Parses a user-input variable name
 parseVariableName <- function(variable.name.text, variable.names, purpose,
-                              on.fail, warning.if.not.found = TRUE)
+                              on.fail.msg, warning.if.not.found = TRUE)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text
@@ -1479,7 +1469,7 @@ parseVariableName <- function(variable.name.text, variable.names, purpose,
     {
         if (warning.if.not.found)
             warning("The ", purpose, " input varible name '", variable.name.text,
-                    "' could not be identified. ", on.fail)
+                    "' could not be identified. ", on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
