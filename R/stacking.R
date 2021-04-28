@@ -151,17 +151,10 @@ readLocalDataSets <- function(data.set.paths)
     result
 }
 
-#' @importFrom flipAPI QFileExists QLoadData
+#' @importFrom flipAPI QLoadData
 readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 {
-    result <- lapply(data.set.names, function(nm) {
-        if (!QFileExists(nm))
-            stop("The data file '", nm, "' does not exist in the Displayr ",
-                 "cloud drive. Ensure that the data file is in the Displayr ",
-                 "cloud drive and its name has been correctly specified.",
-                 call. = FALSE)
-        QLoadData(nm)
-    })
+    result <- lapply(data.set.names, QLoadData(nm))
     names(result) <- data.set.names
     result
 }
