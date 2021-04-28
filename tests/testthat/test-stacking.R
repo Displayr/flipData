@@ -299,3 +299,85 @@ test_that("commonLabelsFromASetOfReferenceVars", {
                           "for extracting common labels. It has been ignored ",
                           "as more than one variable is required."))
 })
+
+test_that("stackingSpecifiedByVariable", {
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q2_D",
+                 "Q3_A", "Q3_B", "Q3_C",
+                 "Q4_1", "Q4_2", "Q5")
+    v.types <- rep("Categorical", length(v.names))
+    val.attr <- 1:3
+    names(val.attr) <- letter[1:3]
+    v.val.attr <- rep(list(val.attr), length(v.names))
+
+    stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
+                                                   list(variable.names = v.names,
+                                                        variable.types = v.types,
+                                                        variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
+
+    # Include NA
+    stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_A, Q3_B, N/A, Q3_C"),
+                                                   list(variable.names = v.names,
+                                                        variable.types = v.types,
+                                                        variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, NA, 5L, 8L),
+                           .Dim = c(2L, 4L)))
+
+    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
+                                     "Variable",
+                                     list(variable.names = v.names,
+                                          variable.types = v.types,
+                                          variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
+})
+
+test_that("stackingSpecifiedByObservation", {
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q2_D",
+                 "Q3_A", "Q3_B", "Q3_C",
+                 "Q4_1", "Q4_2", "Q5")
+    v.types <- rep("Categorical", length(v.names))
+    val.attr <- 1:3
+    names(val.attr) <- letter[1:3]
+    v.val.attr <- rep(list(val.attr), length(v.names))
+
+    stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q*_C", "Q2_D"),
+                                                      list(variable.names = v.names,
+                                                           variable.types = v.types,
+                                                           variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
+
+    # Include N/A
+    stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q2_C, N/A", "Q2_D, Q3_C"),
+                                                      list(variable.names = v.names,
+                                                           variable.types = v.types,
+                                                           variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, NA, 5L, 8L),
+                           .Dim = c(2L, 4L)))
+
+    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
+                                     "Observation",
+                                     list(variable.names = v.names,
+                                          variable.types = v.types,
+                                          variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
+})
+
+test_that("permittedNA", {
+    expect_warning(permitted.na <- permittedNA(c("Q1", "Q2", "NA", "Q3")),
+                   paste0("There is an input variable named 'NA'. ",
+                          "To avoid confusion, missing stacking variables ",
+                          "need to be specified with an extra slash for ",
+                          "this data set, i.e., N/A"))
+    expect_equal(permitted.na, "N/A")
+    expect_equal(permittedNA(c("Q1", "Q2", "Q3")), c("NA", "N/A"))
+})

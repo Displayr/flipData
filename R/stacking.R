@@ -88,10 +88,12 @@ StackData <- function(input.data.set.name,
                                        input.data.set.metadata,
                                        reference.variables.to.stack)
 
-    stacking.groups <- stackWithCommonLabels(common.labels.list,
-                                             input.data.set.metadata)
-    stacking.groups <- stackManually(stacking.groups, manual.stacking,
-                                     specify.by, input.data.set.metadata)
+    common.label.stacking.groups <- stackWithCommonLabels(common.labels.list,
+                                                          input.data.set.metadata)
+    manual.stacking.groups <- stackManually(manual.stacking, specify.by,
+                                            input.data.set.metadata)
+    stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
+                                                               manual.stacking.groups)
 
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
                                        stacking.groups,
@@ -344,6 +346,8 @@ commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
     }
 }
 
+# Extract common labels from a set of reference variables.
+# See unit tests for commonLabelsFromASetOfReferenceVars in test-stacking.R
 commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
                                                 input.data.set.metadata)
 {
@@ -647,41 +651,47 @@ matchIndicesBasedOnName <- function(ind.list, nms)
 # Parse user-input manual stacking strings and append the variables to manually
 # stack to stacking.groups. Most of the work is done by either
 # stackingSpecifiedByVariable or stackingSpecifiedByObservation.
-stackManually <- function(stacking.groups, manual.stacking,
-                          specify.by, input.data.set.metadata)
+stackManually <- function(manual.stacking, specify.by, input.data.set.metadata)
 {
     if (is.null(manual.stacking) || length(manual.stacking) == 0 ||
         setequal(manual.stacking, ""))
-        return(stacking.groups)
+        return(NULL)
 
-    na.ind <- match("NA", input.data.set.metadata$variable.names)
+    manual.stacking.groups <- if (specify.by == "Variable")
+        stackingSpecifiedByVariable(manual.stacking, input.data.set.metadata)
+    else
+        stackingSpecifiedByObservation(manual.stacking,
+                                       input.data.set.metadata)
+}
+
+permittedNA <- function(variable.names)
+{
+    na.ind <- match("NA", variable.names)
     has.na.variable <- !is.na(na.ind)
     if (has.na.variable)
+    {
         warning("There is an input variable named 'NA'. ",
                 "To avoid confusion, missing stacking variables need to be specified with an extra slash for this data set, i.e., N/A")
-
-    stacking.groups <- if (specify.by == "Variable")
-        stackingSpecifiedByVariable(stacking.groups, manual.stacking,
-                                    input.data.set.metadata, has.na.variable)
+        "N/A"
+    }
     else
-        stackingSpecifiedByObservation(stacking.groups, manual.stacking,
-                                       input.data.set.metadata, has.na.variable)
+        c("NA", "N/A")
 }
 
 # Parse user-input manual stacking strings for stacking specified by variable,
 # i.e., each string in manual.stacking describes the variables to be stacked
 # into one variable.
-stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
-                                        input.data.set.metadata,
-                                        has.na.variable)
+# See unit test for stackingSpecifiedByVariable in test-stacking.R
+stackingSpecifiedByVariable <- function(manual.stacking,
+                                        input.data.set.metadata)
 {
     v.names <- input.data.set.metadata$variable.names
     v.types <- input.data.set.metadata$variable.types
     v.val.attr <- input.data.set.metadata$variable.value.attributes
 
-    permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
+    permitted.na <- permittedNA(v.names)
 
-    manual.stacking.groups <- list()
+    manual.stacking.groups.list<- list()
     manual.stacking.groups.text <- character(0)
 
     for (input.text in manual.stacking)
@@ -748,10 +758,10 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
         }
 
         # Check for overlap with previous manual stacking inputs
-        if (length(manual.stacking.groups) > 0)
+        if (length(manual.stacking.groups.list) > 0)
         {
             group.ind.without.na <- removeNA(group.ind)
-            overlap.ind <- which(vapply(manual.stacking.groups, function(manual.group) {
+            overlap.ind <- which(vapply(manual.stacking.groups.list, function(manual.group) {
                 any(group.ind.without.na %in% manual.group)
             }, logical(1)))
             if (length(overlap.ind) > 0)
@@ -763,76 +773,44 @@ stackingSpecifiedByVariable <- function(stacking.groups, manual.stacking,
             }
         }
 
-        manual.stacking.groups <- c(manual.stacking.groups, list(group.ind))
+        manual.stacking.groups.list <- c(manual.stacking.groups.list, list(group.ind))
         manual.stacking.groups.text <- c(manual.stacking.groups.text,
                                          input.text)
     }
-    if (length(manual.stacking.groups) == 0)
-        return(stacking.groups)
 
-    if (is.null(stacking.groups))
-        stacking.groups <- matrix(nrow = 0, ncol = 0)
 
-    # Remove rows in stacking.groups that contain overlap with
-    # manual.stacking.groups
-    for (manual.group in manual.stacking.groups)
-    {
-        manual.group.without.na <- removeNA(manual.group)
-        is.overlapping <- apply(stacking.groups, 1, function(group) {
-            any(manual.group.without.na %in% group)
-        })
-        stacking.groups <- stacking.groups[!is.overlapping, , drop = FALSE]
-    }
 
-    # Increase number of columns in stacking.groups if necessary to fit
-    # manual.stacking.groups
-    n.rows <- nrow(stacking.groups)
-    n.cols <- ncol(stacking.groups)
-    max.stacking <- max(max(vapply(manual.stacking.groups, length, integer(1))),
-                        n.cols)
-    new.stacking.groups <- matrix(nrow = n.rows, ncol = max.stacking)
-    new.stacking.groups[seq_len(n.rows), seq_len(n.cols)] <- stacking.groups
-    stacking.groups <- new.stacking.groups
-
-    # Append manual.stacking.groups to stacking.groups
-    for (manual.group in manual.stacking.groups)
-    {
-        new.group <- rep(NA_integer_, max.stacking)
-        new.group[seq_along(manual.group)] <- manual.group
-        stacking.groups <- rbind(stacking.groups, new.group)
-    }
-
-    n.manual.stacking <- length(manual.stacking.groups)
-    is.manually.stacked <- c(rep(FALSE, nrow(stacking.groups) - n.manual.stacking),
-                             rep(TRUE, n.manual.stacking))
-    attr(stacking.groups, "is.manually.stacked") <- is.manually.stacked
-
-    stacking.groups
+    n.stacking <- max(vapply(manual.stacking.groups.list, length, integer(1)))
+    do.call("rbind", lapply(manual.stacking.groups.list, function(group) {
+        rw <- rep(NA_integer_, n.stacking)
+        rw[seq_along(group)] <- group
+        rw
+    }))
 }
 
 # Parse user-input manual stacking strings for stacking specified by
 # observation, i.e., each string in manual.stacking describes the variables in
 # an observation to be used in stackings of variables.
-stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
-                                           input.data.set.metadata,
-                                           has.na.variable)
+# See unit test for stackingSpecifiedByObservation in test-stacking.R
+stackingSpecifiedByObservation <- function(manual.stacking,
+                                           input.data.set.metadata)
 {
     if (length(manual.stacking) < 2)
     {
         warning("No manual stacking was conducted as 2 or more manual stacking inputs (corresponding to obvservations) are required.")
-        return(stacking.groups)
+        return(NULL)
     }
 
     v.names <- input.data.set.metadata$variable.names
     v.types <- input.data.set.metadata$variable.types
     v.val.attr <- input.data.set.metadata$variable.value.attributes
 
-    permitted.na <- if (has.na.variable) "N/A" else c("NA", "N/A")
+    permitted.na <- permittedNA(v.names)
 
     # obs.group = observation group, which is a group of variables be stacked
     # belonging to an observation, instead of a variable (in which case I just
     # use 'group').
-    manual.stacking.obs.groups <- list()
+    manual.stacking.obs.groups.list <- list()
     manual.stacking.obs.groups.text <- list()
 
     for (input.text in manual.stacking)
@@ -853,7 +831,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
                 parseVariableName(t, v.names, "manual stacking",
                                   on.fail.msg)
             if (length(parsed) == 0)
-                return(stacking.groups)
+                return(NULL)
             else
                 obs.group.names <- c(obs.group.names, parsed)
         }
@@ -862,7 +840,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
         {
             warning("No manual stacking was conducted as the manual stacking input '",
                     input.text, "' does not contain any variables.")
-            return(stacking.groups)
+            return(NULL)
         }
 
         # Check for duplicate variables
@@ -873,7 +851,7 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
                     input.text, "' contains duplicate entries for ",
                     paste0("'", removeNA(obs.group.names)[dup], "'",
                            collapse = ", "), ".")
-            return(stacking.groups)
+            return(NULL)
         }
 
         # Remove trailing NA
@@ -884,10 +862,10 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
                                 v.names)
 
         # Check for overlap with previous manual stacking inputs
-        if (length(manual.stacking.obs.groups) > 0)
+        if (length(manual.stacking.obs.groups.list) > 0)
         {
             obs.group.ind.without.na <- removeNA(obs.group.ind)
-            overlap.ind <- which(vapply(manual.stacking.obs.groups, function(manual.obs.group) {
+            overlap.ind <- which(vapply(manual.stacking.obs.groups.list, function(manual.obs.group) {
                 any(obs.group.ind.without.na %in% manual.obs.group)
             }, logical(1)))
             if (length(overlap.ind) > 0)
@@ -895,68 +873,69 @@ stackingSpecifiedByObservation <- function(stacking.groups, manual.stacking,
                 warning("No manual stacking was conducted as the manual stacking input '",
                         input.text, "' contains variable(s) that overlap with another manual stacking input '",
                         manual.stacking.obs.groups.text[overlap.ind[1]], "'.")
-                return(stacking.groups)
+                return(NULL)
             }
         }
 
-        manual.stacking.obs.groups <- c(manual.stacking.obs.groups, list(obs.group.ind))
+        manual.stacking.obs.groups.list <- c(manual.stacking.obs.groups.list, list(obs.group.ind))
         manual.stacking.obs.groups.text <- c(manual.stacking.obs.groups.text,
                                              input.text)
     }
 
-    new.stacking.groups <- if (is.null(stacking.groups))
-        matrix(nrow = 0, ncol = 0)
-    else
-        stacking.groups
+    n.stacked.var <- max(vapply(manual.stacking.obs.groups.list, length, integer(1)))
+    do.call("cbind", lapply(manual.stacking.obs.groups.list, function(obs.group) {
+        column <- rep(NA_integer_, n.stacked.var)
+        column[seq_along(obs.group)] <- obs.group
+        column
+    }))
+}
 
-    n.manual.variables <- max(vapply(manual.stacking.obs.groups, length,
-                                     integer(1)))
-
-    # Remove rows in new.stacking.groups that contain overlap with
-    # manual.stacking.groups
-    for (manual.obs.group in manual.stacking.obs.groups)
+mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups,
+                                                    manual.stacking.groups)
+{
+    if (is.null(common.label.stacking.groups))
     {
-        manual.obs.group.without.na <- removeNA(manual.obs.group)
-        is.overlapping <- apply(new.stacking.groups, 1, function(obs.group) {
-            any(manual.obs.group.without.na %in% obs.group)
+        if (is.null(manual.stacking.groups))
+            return(NULL)
+
+        stacking.groups <- manual.stacking.groups
+        attr(stacking.groups, "is.manually.stacked") <- rep(TRUE, nrow(stacking.groups))
+        return(stacking.groups)
+    }
+
+    if (is.null(manual.stacking.groups))
+    {
+        stacking.groups <- common.label.stacking.groups
+        attr(stacking.groups, "is.manually.stacked") <- rep(FALSE, nrow(stacking.groups))
+        return(stacking.groups)
+    }
+
+    # Remove rows in common.label.stacking.groups that contain overlap with
+    # manual.stacking.groups
+    for (manual.group in manual.stacking.groups)
+    {
+        manual.group.without.na <- removeNA(manual.group)
+        is.overlapping <- apply(common.label.stacking.groups, 1, function(group) {
+            any(manual.group.without.na %in% group)
         })
-        new.stacking.groups <- new.stacking.groups[!is.overlapping, , drop = FALSE]
+        common.label.stacking.groups <- common.label.stacking.groups[!is.overlapping, , drop = FALSE]
     }
 
-    # Increase number of columns in new.stacking.groups if necessary to fit
-    # manual.stacking.groups
-    n.rows <- nrow(new.stacking.groups)
-    n.cols <- ncol(new.stacking.groups)
-    max.stacking <- max(length(manual.stacking.obs.groups), n.cols)
-    m <- matrix(nrow = n.rows, ncol = max.stacking)
-    m[seq_len(n.rows), seq_len(n.cols)] <- new.stacking.groups
-    new.stacking.groups <- m
+    n.row.c <- nrow(common.label.stacking.groups)
+    n.col.c <- ncol(common.label.stacking.groups)
+    n.row.m <- nrow(manual.stacking.groups)
+    n.col.m <- ncol(manual.stacking.groups)
 
-    # Append manual.stacking.groups to stacking.groups
-    ind <- seq_along(manual.stacking.obs.groups)
-    for (i in seq_len(n.manual.variables))
-    {
-        new.group <- rep(NA_integer_, max.stacking)
-        new.group[ind] <- vapply(manual.stacking.obs.groups, `[`,
-                                 integer(1), i)
-        non.missing.ind <- removeNA(new.group)
-        if (!allIdentical(v.types[non.missing.ind]) ||
-            !allIdentical(v.val.attr[non.missing.ind]))
-        {
-            warning("No manual stacking was conducted as the manual stacking input '",
-                    input.text,
-                    "' would result in the stacking of variables with mismatching types or value attributes.")
-            return(stacking.groups)
-        }
+    n.stacking <- max(n.col.c, n.col.m)
+    n.stacked.variables <- n.row.c + n.row.m
+    stacking.groups <- matrix(NA_integer_,  nrow = n.stacked.variables,
+                              ncol = n.stacking)
+    stacking.groups[seq_len(n.row.c), seq_len(n.col.c)] <- common.label.stacking.groups
+    stacking.groups[n.row.c + seq_len(n.row.m), seq_len(n.col.m)] <- manual.stacking.groups
 
-        new.stacking.groups <- rbind(new.stacking.groups, new.group)
-    }
-
-    is.manually.stacked <- c(rep(FALSE, nrow(new.stacking.groups) - n.manual.variables),
-                             rep(TRUE, n.manual.variables))
-    attr(new.stacking.groups, "is.manually.stacked") <- is.manually.stacked
-
-    new.stacking.groups
+    is.manually.stacked <- c(rep(FALSE, n.row.c, rep(TRUE, n.row.m)))
+    attr(stacking.groups, "is.manually.stacked") <- is.manually.stacked
+    stacking.groups
 }
 
 # Constructs the stacked data set as a data frame from the input data set and
