@@ -120,7 +120,7 @@ StackData <- function(input.data.set.name,
     result$omitted.variables <- omitted.variables
     result$omitted.stacked.variables <- omitted.stacked.variables
     result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- canAccessDisplayrCloudDrive()
+    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set
@@ -129,21 +129,16 @@ StackData <- function(input.data.set.name,
     result
 }
 
+#' @importFrom flipAPI IsDisplayrCloudDriveAvailable
 readDataSets <- function(data.set.names, min.data.sets = 1)
 {
     if (length(data.set.names) < min.data.sets)
         stop("At least ", min.data.sets, " data set(s) are required.")
 
-    if (canAccessDisplayrCloudDrive())
+    if (IsDisplayrCloudDriveAvailable())
         readDataSetsFromDisplayrCloudDrive(data.set.names)
     else
         readLocalDataSets(data.set.names)
-}
-
-canAccessDisplayrCloudDrive <- function()
-{
-    company.secret <- get0("companySecret")
-    !is.null(company.secret) && company.secret != "UNKNOWN"
 }
 
 #' @importFrom haven read_sav
@@ -172,10 +167,10 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 }
 
 #' @importFrom haven write_sav
-#' @importFrom flipAPI QSaveData
+#' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
 writeDataSet <- function(data.set, data.set.name)
 {
-    if (canAccessDisplayrCloudDrive())
+    if (IsDisplayrCloudDriveAvailable())
         QSaveData(data.set, data.set.name)
     else
         write_sav(data.set, data.set.name)
@@ -183,7 +178,7 @@ writeDataSet <- function(data.set, data.set.name)
 
 dataSetNameWithoutPath <- function(data.set.name.or.path)
 {
-    if (canAccessDisplayrCloudDrive())
+    if (IsDisplayrCloudDriveAvailable())
         data.set.name.or.path
     else
         basename(data.set.name.or.path)
