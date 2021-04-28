@@ -995,27 +995,28 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
 
     input.v.names <- input.data.set.metadata$variable.names
     input.v.labels <- input.data.set.metadata$variable.labels
-    retained.indices <- retainedIndices(stacking.groups,
-                                        input.data.set.metadata$n.variables)
-    stacked.indices <- stackedIndices(stacking.groups, retained.indices)
+    retained.v.ind.in.input.data.set <- retainedVarIndicesInInputDataSet(stacking.groups,
+                                                                         input.data.set.metadata$n.variables)
+    stacked.v.ind.in.stacked.data.set <- stackedVarIndicesInStackedDataSet(stacking.groups,
+                                                                           retained.v.ind.in.input.data.set)
 
     stacked.data.set.v.names <- stackedDataSetVariableNames(stacking.groups,
                                                             input.v.names,
-                                                            retained.indices,
-                                                            stacked.indices)
+                                                            retained.v.ind.in.input.data.set,
+                                                            stacked.v.ind.in.stacked.data.set)
     stacked.data.set.v.labels <- stackedDataSetVariableLabels(stacking.groups,
                                                               input.v.labels,
-                                                              retained.indices,
-                                                              stacked.indices,
+                                                              retained.v.ind.in.input.data.set,
+                                                              stacked.v.ind.in.stacked.data.set,
                                                               stacked.data.set.v.names)
 
-    checkStackedDataSetSize(input.data.set, stacking.groups, stacked.indices,
+    checkStackedDataSetSize(input.data.set, stacking.groups, stacked.v.ind.in.stacked.data.set,
                             stacked.data.set.v.names)
 
     n.stacked <- ncol(stacking.groups)
     is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
     stacked.data.set <- data.frame(lapply(seq_along(stacked.data.set.v.names), function(i) {
-        ind <- match(i, stacked.indices)
+        ind <- match(i, stacked.v.ind.in.stacked.data.set)
         if (!is.na(ind)) # Stacked variable
         {
             group.ind <- stacking.groups[ind, ]
@@ -1088,13 +1089,14 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
 }
 
 checkStackedDataSetSize <- function(input.data.set, stacking.groups,
-                                    stacked.indices, stacked.data.set.v.names,
+                                    stacked.v.ind.in.stacked.data.set,
+                                    stacked.data.set.v.names,
                                     common.labels)
 {
     n.stacked <- ncol(stacking.groups)
 
     v.sizes <- vapply(seq_along(stacked.data.set.v.names), function(i) {
-        ind <- match(i, stacked.indices)
+        ind <- match(i, stacked.v.ind.in.stacked.data.set)
         if (!is.na(ind)) # Stacked variable
         {
             j <- removeNA(stacking.groups[ind, ])[1]
@@ -1119,7 +1121,7 @@ checkStackedDataSetSize <- function(input.data.set, stacking.groups,
 }
 
 # Indices of input variables retained after stacking
-retainedIndices <- function(stacking.groups, n.vars)
+retainedVarIndicesInInputDataSet <- function(stacking.groups, n.vars)
 {
     ind.to.remove <- unlist(lapply(seq_len(nrow(stacking.groups)), function(i) {
         ind <- removeNA(stacking.groups[i, ])
@@ -1129,21 +1131,23 @@ retainedIndices <- function(stacking.groups, n.vars)
 }
 
 # Indices of stacked variables in stacked data set
-stackedIndices <- function(stacking.groups, retained.indices)
+stackedVarIndicesInStackedDataSet <- function(stacking.groups,
+                                           retained.v.ind.in.input.data.set)
 {
     first.ind <- apply(stacking.groups, 1, function(group.ind) {
         ind <- removeNA(group.ind)
         ind[which.min(ind)]
     })
 
-    vapply(first.ind, match, integer(1), retained.indices)
+    vapply(first.ind, match, integer(1), retained.v.ind.in.input.data.set)
 }
 
 stackedDataSetVariableNames <- function(stacking.groups, input.variable.names,
-                                        retained.indices, stacked.indices)
+                                        retained.v.ind.in.input.data.set,
+                                        stacked.v.ind.in.stacked.data.set)
 {
-    result <- input.variable.names[retained.indices]
-    result[stacked.indices] <- apply(stacking.groups, 1, function(group.ind) {
+    result <- input.variable.names[retained.v.ind.in.input.data.set]
+    result[stacked.v.ind.in.stacked.data.set] <- apply(stacking.groups, 1, function(group.ind) {
         ind <- removeNA(group.ind)
         nm <- input.variable.names[ind]
         common.prefix <- trimws(getCommonPrefix(nm))
@@ -1164,11 +1168,12 @@ stackedDataSetVariableNames <- function(stacking.groups, input.variable.names,
 
 stackedDataSetVariableLabels <- function(stacking.groups,
                                          input.variable.labels,
-                                         retained.indices, stacked.indices,
+                                         retained.v.ind.in.input.data.set,
+                                         stacked.v.ind.in.stacked.data.set,
                                          stacked.data.set.variable.names)
 {
-    result <- input.variable.labels[retained.indices]
-    result[stacked.indices] <- apply(stacking.groups, 1, function(group.ind) {
+    result <- input.variable.labels[retained.v.ind.in.input.data.set]
+    result[stacked.v.ind.in.stacked.data.set] <- apply(stacking.groups, 1, function(group.ind) {
         ind <- removeNA(group.ind)
         lbl <- input.variable.labels[ind]
         common.prefix <- trimws(getCommonPrefix(lbl))
