@@ -82,8 +82,11 @@ A list with the following elements:
   \item \code{omitted.variables} A character vector of omitted variable names.
   \item \code{omitted.stacked.variables} A character vector of omitted
     stacked variable names.
-  \item \code{common.labels} A character vector of common labels used for
-    stacking.
+  \item \code{common.labels.list} A list of character vectors containing
+    the common labels used in the stacking. The source of these common
+    labels depends on the parameter \code{stack.with.common.labels} and
+    are either automatically generated, extracted from reference variables
+    or manually supplied.
   \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
     the Displayr cloud drive.
  }
