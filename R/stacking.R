@@ -156,7 +156,7 @@ readLocalDataSets <- function(data.set.paths)
 #' @importFrom flipAPI QLoadData
 readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 {
-    result <- lapply(data.set.names, QLoadData(nm))
+    result <- lapply(data.set.names, QLoadData)
     names(result) <- data.set.names
     result
 }
@@ -220,12 +220,13 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
 
 # Finds a set of common labels from the variable labels. This works by
 # 1. Finding all the complete-word prefixes between every pair of labels that
-#    appear at least 6 times.
+#    appear at least 3 times.
 # 2. For each prefix, extract candidate common labels after removing the prefix
 #    from labels.
 # 3. For each set of candidate common labels, form stacking groups
 # 4. Score stacking groups based on size, removing ones with many missing values
 # 5. Choose common labels with highest score
+# See unit test for automaticCommonLabels in test-stacking.R
 automaticCommonLabels <- function(input.data.set.metadata)
 {
     v.names <- input.data.set.metadata$variable.names
@@ -239,6 +240,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
     prefixes <- character(0)
     prefix.count <- integer(0)
 
+    # Step 1
     for (i in 1:(length(first.words) - 1))
     {
         words.i <- words[[i]]
@@ -259,19 +261,21 @@ automaticCommonLabels <- function(input.data.set.metadata)
             prefix.ind <- match(prefix, prefixes)
             if (is.na(prefix.ind))
             {
-                prefixes <- rbind(prefixes, prefix)
+                prefixes <- c(prefixes, prefix)
                 prefix.count <- c(prefix.count, 1)
             }
             else
                 prefix.count[prefix.ind] <- prefix.count[prefix.ind] + 1
         }
     }
-    prefixes <- prefixes[prefix.count > 5]
+    prefixes <- prefixes[prefix.count > 2]
 
+    # Step 2
     candidate.common.labels <- lapply(prefixes, commonLabelsByRemovingPrefix,
                                       v.labels)
     candidate.common.labels <- candidate.common.labels[!duplicated(candidate.common.labels)]
 
+    # Step 3 and 4
     score <- vapply(candidate.common.labels, function(common.labels)
     {
         if (length(common.labels) == 1)
@@ -298,6 +302,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
         return(NULL)
     }
 
+    # Step 5
     common.labels <- candidate.common.labels[[which.max(score)]]
     stacking.groups <- stackingGroupFromCommonLabels(common.labels,
                                                      v.names, v.labels)
@@ -366,9 +371,9 @@ commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
     for (t in split.text)
     {
         parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-            parseRange(t, v.names, "common labels", on.fail.msg)
+            parseVariableRange(t, v.names, "common labels", on.fail.msg)
         else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-            parseWildcard(t, v.names, "common labels", on.fail.msg)
+            parseVariableWildcard(t, v.names, "common labels", on.fail.msg)
         else
             parseVariableName(t, v.names, "common labels",
                               on.fail.msg)
@@ -718,9 +723,9 @@ stackingSpecifiedByVariable <- function(manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, v.names, "manual stacking", on.fail.msg)
+                parseVariableRange(t, v.names, "manual stacking", on.fail.msg)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, v.names, "manual stacking", on.fail.msg)
+                parseVariableWildcard(t, v.names, "manual stacking", on.fail.msg)
             else
                 parseVariableName(t, v.names, "manual stacking",
                                   on.fail.msg)
@@ -836,9 +841,9 @@ stackingSpecifiedByObservation <- function(manual.stacking,
             parsed <- if (t %in% permitted.na)
                 NA_character_
             else if (grepl("-", t, fixed = TRUE)) # contains range
-                parseRange(t, v.names, "manual stacking", on.fail.msg)
+                parseVariableRange(t, v.names, "manual stacking", on.fail.msg)
             else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-                parseWildcard(t, v.names, "manual stacking", on.fail.msg)
+                parseVariableWildcard(t, v.names, "manual stacking", on.fail.msg)
             else
                 parseVariableName(t, v.names, "manual stacking",
                                   on.fail.msg)
@@ -940,6 +945,11 @@ mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups
         return(stacking.groups)
     }
 
+    # Extract attribute now as it will be lost if we modify
+    # common.label.stacking.groups
+    unstackable.names <- attr(common.label.stacking.groups,
+                              "unstackable.names")
+
     # Remove rows in common.label.stacking.groups that contain overlap with
     # manual.stacking.groups
     for (manual.group in manual.stacking.groups)
@@ -963,10 +973,9 @@ mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups
     stacking.groups[seq_len(n.row.c), seq_len(n.col.c)] <- common.label.stacking.groups
     stacking.groups[n.row.c + seq_len(n.row.m), seq_len(n.col.m)] <- manual.stacking.groups
 
-    is.manually.stacked <- c(rep(FALSE, n.row.c, rep(TRUE, n.row.m)))
+    is.manually.stacked <- c(rep(FALSE, n.row.c), rep(TRUE, n.row.m))
     attr(stacking.groups, "is.manually.stacked") <- is.manually.stacked
-    attr(stacking.groups, "unstackable.names") <- attr(common.label.stacking.groups,
-                                                       "unstackable.names")
+    attr(stacking.groups, "unstackable.names") <- unstackable.names
     stacking.groups
 }
 
@@ -1081,6 +1090,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     stacked.data.set
 }
 
+#' @importFrom utils object.size
 checkStackedDataSetSize <- function(input.data.set, stacking.groups,
                                     stacked.v.ind.in.stacked.data.set,
                                     stacked.data.set.v.names,
@@ -1326,13 +1336,13 @@ parseVariablesToOmit <- function(variables.to.omit, variable.names,
     {
         t <- variables.to.omit[i]
         parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-            parseRange(t, variable.names, purpose,
-                       "The input range has been ignored.",
-                       warning.if.not.found[i])
+            parseVariableRange(t, variable.names, purpose,
+                               "The input range has been ignored.",
+                               warning.if.not.found[i])
         else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-            parseWildcard(t, variable.names, purpose,
-                          "This input has been ignored.",
-                          warning.if.not.found[i])
+            parseVariableWildcard(t, variable.names, purpose,
+                                  "This input has been ignored.",
+                                  warning.if.not.found[i])
         else
             parseVariableName(t, variable.names, purpose,
                               "This input has been ignored.",
@@ -1375,8 +1385,8 @@ parseVariablesToOmitAfterStacking <- function(variables.to.omit,
 }
 
 # Parses a user-input variable range
-parseRange <- function(range.text, variable.names, purpose, on.fail.msg,
-                       warning.if.not.found = TRUE)
+parseVariableRange <- function(range.text, variable.names, purpose,
+                               on.fail.msg, warning.if.not.found = TRUE)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
     start.var.text <- trimws(substr(range.text, 1, dash.ind - 1))
@@ -1446,8 +1456,8 @@ parseRange <- function(range.text, variable.names, purpose, on.fail.msg,
 
 # Parses a user-input variable wildcard
 #' @importFrom flipU EscapeRegexSymbols
-parseWildcard <- function(wildcard.text, variable.names, purpose, on.fail.msg,
-                          warning.if.not.found = TRUE)
+parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
+                                  on.fail.msg, warning.if.not.found = TRUE)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -1479,7 +1489,7 @@ parseVariableName <- function(variable.name.text, variable.names, purpose,
     else
     {
         if (warning.if.not.found)
-            warning("The ", purpose, " input varible name '", variable.name.text,
+            warning("The ", purpose, " input variable name '", variable.name.text,
                     "' could not be identified. ", on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE

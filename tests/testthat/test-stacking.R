@@ -105,7 +105,7 @@ test_that("omitted variables", {
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              variables.to.omit = "not_a_variable"),
-                   paste0("The omitted variable input varible name 'not_a_variable' ",
+                   paste0("The omitted variable input variable name 'not_a_variable' ",
                           "could not be identified. This input has been ignored."))
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
@@ -142,7 +142,7 @@ test_that("manual stacking by variables", {
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Variable",
                              manual.stacking = "Q6_A, Q6_B, not_a_variable"),
-                   paste0("The manual stacking input varible name ",
+                   paste0("The manual stacking input variable name ",
                           "'not_a_variable' could not be identified. The ",
                           "manual stacking input 'Q6_A, Q6_B, not_a_variable' ",
                           "has been ignored."))
@@ -228,15 +228,15 @@ test_that("manual stacking by observations", {
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Observation",
                              manual.stacking = c("LastResp", "Q3")),
-                   paste0("No manual stacking was conducted as the manual ",
-                          "stacking input 'Q3' would result in the stacking ",
-                          "of variables with mismatching types or value attributes."))
+                   paste0("No manual stacking was conducted as the following ",
+                          "variables to be stacked have mismatching types or ",
+                          "value attributes: LastResp, Q3."))
 
     expect_warning(StackData(findInstDirFile("Cola.sav"),
                              specify.by = "Observation",
                              manual.stacking = c("Q6_A, not_a_variable",
                                                  "Q6_B, Q9_B")),
-                   paste0("The manual stacking input varible name ",
+                   paste0("The manual stacking input variable name ",
                           "'not_a_variable' could not be identified. ",
                           "No manual stacking was conducted."))
 
@@ -260,7 +260,18 @@ test_that("manual stacking by observations", {
 })
 
 test_that("automaticCommonLabels", {
-
+    v.names <- c("Q1_A", "Q1_B", "Q1_C", "Q2", "Q3", "Q4_1", "Q4_2", "Q4_3",
+                 "Q5_1", "Q5_2", "Q5_3")
+    # Note that Diet Coke and Pepsi appear in different orders in Q1 and Q4
+    v.labels <- c("Q1. Frequency: Coke", "Q1. Frequency: Diet Coke", "Q1. Frequency: Pepsi",
+                  "Q2. Gender", "Q3. Age",
+                  "Q4. Do you like: Coke", "Q4. Do you like: Pepsi", "Q4. Do you like: Diet Coke",
+                  "Q5. Do you drink: Coffee", "Q5. Do you drink: Tea", "Q5. Do you drink: Sparking Mineral Water")
+    common.labels <- automaticCommonLabels(list(variable.names = v.names,
+                                                variable.labels = v.labels))
+    # "Coke", "Diet Coke", "Pepsi" were chosen over "Coffee", "Tea" and
+    # "Sparking Mineral Water" as they appear twice in the labels
+    expect_equal(common.labels, list(c("Coke", "Diet Coke", "Pepsi")))
 })
 
 test_that("commonLabelsFromReferenceVars", {
@@ -344,7 +355,7 @@ test_that("stackWithCommonLabels", {
                                                   variable.value.attributes = v.val.attr))
 
     expect_equal(stacking.groups,
-                 structure(c(4L, 7L, 2L, 9L, 5L, NA, 3L, 10L, 6L, 8L, NA, NA),
+                 structure(c(4L, 5L, 2L, 9L, 6L, NA, 3L, 10L, 7L, 8L, NA, NA),
                            .Dim = 4:3, unstackable.names = list()))
 
     # Differing variable types
@@ -397,7 +408,8 @@ test_that("stackingGroupFromCommonLabels", {
                   "Coke Zero?", "Coke Zero?")
     stacking.group <- stackingGroupFromCommonLabels(common.labels, v.names, v.labels)
     expect_equal(stacking.group,
-                 structure(c(2L, 7L, 3L, 8L, 4L, NA), .Dim = 2:3))
+                 structure(c(4L, 5L, 2L, 6L, NA, 3L, 7L, 8L, NA),
+                           .Dim = c(3L, 3L)))
 })
 
 test_that("matchIndicesBasedOnName", {
@@ -428,7 +440,7 @@ test_that("stackManually", {
                            .Dim = c(2L, 4L)))
 
     # Stack by observation
-    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
+    stacking.groups <- stackManually(c("Q*_A", "Q*_B", "Q*_C", "Q2_D"),
                                      "Observation",
                                      list(variable.names = v.names,
                                           variable.types = v.types,
@@ -469,7 +481,7 @@ test_that("stackingSpecifiedByVariable", {
                                                    list(variable.names = v.names,
                                                         variable.types = v.types,
                                                         variable.value.attributes = v.val.attr)),
-                   paste0("The manual stacking input varible name 'BAD_VAR' ",
+                   paste0("The manual stacking input variable name 'BAD_VAR' ",
                           "could not be identified. The manual stacking input ",
                           "'Q3_A, Q3_B, BAD_VAR' has been ignored."))
     expect_equal(stacking.groups, structure(2:5, .Dim = c(1L, 4L)))
@@ -542,7 +554,7 @@ test_that("stackingSpecifiedByObservation", {
                                                                      list(variable.names = v.names,
                                                                           variable.types = v.types,
                                                                           variable.value.attributes = v.val.attr)),
-                   paste0("The manual stacking input varible name 'BAD_VAR' ",
+                   paste0("The manual stacking input variable name 'BAD_VAR' ",
                           "could not be identified. No manual stacking was conducted."))
     expect_null(stacking.groups)
 
@@ -553,7 +565,7 @@ test_that("stackingSpecifiedByObservation", {
                                                                           variable.value.attributes = v.val.attr)),
                    paste0("No matches were found for the manual stacking input wildcard name 'BAD*_VAR'. ",
                           "Ensure that the wildcard variable name has been correctly specified. ",
-                          "No manual stacking was conducted."))
+                          "No manual stacking was conducted."), fixed = TRUE)
     expect_null(stacking.groups)
 
     # Incompatible variable types
@@ -583,7 +595,23 @@ test_that("stackingSpecifiedByObservation", {
 })
 
 test_that("mergeCommonLabelAndManualStackingGroups", {
+    common.label.stacking.groups <- structure(c(4L, 5L, 6L, NA, 7L, 8L),
+                                              .Dim = 2:3, unstackable.names = list(c("Q9", "Q10")))
+    manual.stacking.groups <- structure(c(11, 12 , 13),
+                                        .Dim = c(1, 3))
+    stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
+                                                               manual.stacking.groups)
+    expect_equal(stacking.groups,
+                 structure(c(4, 5, 11, 6, NA, 12, 7, 8, 13), .Dim = c(3L, 3L),
+                           is.manually.stacked = c(FALSE, FALSE, TRUE),
+                           unstackable.names = list(c("Q9", "Q10"))))
 
+    expect_equal(mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups, NULL),
+                 structure(c(4L, 5L, 6L, NA, 7L, 8L), .Dim = 2:3, unstackable.names = list(
+                     c("Q9", "Q10")), is.manually.stacked = c(FALSE, FALSE)))
+
+    expect_equal(mergeCommonLabelAndManualStackingGroups(NULL, manual.stacking.groups),
+                 structure(c(11, 12, 13), .Dim = c(1L, 3L), is.manually.stacked = TRUE))
 })
 
 test_that("permittedNA", {
@@ -596,6 +624,85 @@ test_that("permittedNA", {
     expect_equal(permittedNA(c("Q1", "Q2", "Q3")), c("NA", "N/A"))
 })
 
-test_that("parse_range", {
+test_that("parseVariableName", {
+    expect_equal("Q2", parseVariableName("Q2", c("Q1", "Q2", "Q3"),
+                                         "unit test", "No warning expected."))
 
+    # Bad input variable
+    expect_warning(result <- parseVariableName("BAD_VAR", c("Q1", "Q2", "Q3"),
+                                               "unit test", "Warning expected."),
+                   paste0("The unit test input variable name 'BAD_VAR' could not be identified. ",
+                          "Warning expected."))
+    expect_equal(result, structure(character(0), is.not.found = TRUE))
+
+    # warning.if.not.found = FALSE
+    result <- parseVariableName("Q99", c("Q1", "Q2", "Q3"), "unit test",
+                                "No warning expected.", FALSE)
+    expect_equal(result, structure(character(0), is.not.found = TRUE))
+})
+
+test_that("parseVariableRange", {
+    expect_equal(c("Q2_A", "Q2_B", "Q3"),
+                 parseVariableRange("Q2_A-Q3", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                    "unit test", "No warning expected."))
+
+    # Bad start variable
+    expect_warning(result <- parseVariableRange("BAD_VAR-Q3", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                                "unit test", "Warning expected."),
+                   paste0("The start variable from the unit test input range ",
+                          "'BAD_VAR-Q3' could not be identified. Warning expected. ",
+                          "Ensure that the variable name is correctly specified."))
+    expect_equal(result, structure(character(0), is.not.found = TRUE))
+
+    # Bad end variable
+    expect_warning(result <- parseVariableRange("Q3-BAD_VAR", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                                "unit test", "Warning expected."),
+                   paste0("The end variable from the unit test input range ",
+                          "'Q3-BAD_VAR' could not be identified. Warning expected. ",
+                          "Ensure that the variable name is correctly specified."))
+    expect_equal(result, structure(character(0), is.not.found = TRUE))
+
+    # Unsupported wildcard character
+    expect_warning(result <- parseVariableRange("Q1-Q2_*", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                                "unit test", "Warning expected."),
+                   paste0("The end variable from the unit test input range ",
+                          "'Q1-Q2_*' contains the wildcard character '*' ",
+                          "which is not permitted in a range. Warning expected."), fixed = TRUE)
+    expect_equal(result, character(0))
+
+    # Start variable appears after end variable
+    expect_warning(result <- parseVariableRange("Q3-Q1", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                                "unit test", "Warning expected."),
+                   paste0("The start variable from the unit testinput range ",
+                          "'Q3-Q1' appears after the end variable in the data set. ",
+                          "Ensure that the range has been correctly specified. ",
+                          "Warning expected."))
+    expect_equal(result, character(0))
+
+    # warning.if.not.found = FALSE
+    expect_equal(structure(character(0), is.not.found = TRUE),
+                 parseVariableRange("BAD_VAR-Q3", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
+                                    "unit test", "No warning expected.", FALSE))
+})
+
+test_that("parseVariableWildcard", {
+    expect_equal(c("Q2_A_X", "Q2_B_X"),
+                 parseVariableWildcard("Q2_*_X", c("Q1", "Q2_A_X", "Q2_A_Y",
+                                                   "Q2_B_X", "Q2_B_Y", "Q3"),
+                                       "unit test", "No warning expected"))
+
+    # Bad wildcard input
+    expect_warning(result <- parseVariableWildcard("BAD_*_VAR", c("Q1", "Q2_A_X", "Q2_A_Y",
+                                                               "Q2_B_X", "Q2_B_Y", "Q3"),
+                                                   "unit test", "Warning expected"),
+                   paste0("No matches were found for the unit test input ",
+                          "wildcard name 'BAD_*_VAR'. Ensure that the ",
+                          "wildcard variable name has been correctly specified. ",
+                          "Warning expected"), fixed = TRUE)
+
+    # warning.if.not.found = FALSE
+    expect_equal(structure(character(0), is.not.found = TRUE),
+                 parseVariableWildcard("BAD_*_VAR", c("Q1", "Q2_A_X", "Q2_A_Y",
+                                                      "Q2_B_X", "Q2_B_Y", "Q3"),
+                                                      "unit test", "Warning expected", FALSE), fixed = TRUE)
 })
