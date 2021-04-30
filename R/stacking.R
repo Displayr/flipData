@@ -323,6 +323,7 @@ commonLabelsByRemovingPrefix <- function(prefix, v.labels)
 
 # Given a user-input string of variable names, parse it and extract common
 # labels from the variable labels by removing common prefixes and suffixes
+# See unit tests for commonLabelsFromReferenceVars in test-stacking.R
 commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
                                           input.data.set.metadata)
 {
@@ -446,6 +447,7 @@ tidyManualCommonLabels <- function(manual.common.labels)
 # Perform stacking given a character vector of common labels.
 # A matrix of variable indices (stacking.group) is returned where each row
 # represents a single stacking of variables into one variable.
+# See unit test for stackWithCommonLabels in test-stacking.R
 stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
 {
     if (is.null(common.labels.list) || length(common.labels.list) == 0)
@@ -524,6 +526,7 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
 # common labels and grouping together variables with common labels and the same
 # prefix and suffix, also considering common prefixes and suffixes in variable
 # names if necessary.
+# See unit tests for stackingGroupFromCommonLabels in test-stacking.R
 stackingGroupFromCommonLabels <- function(common.labels, v.names, v.labels)
 {
     v.labels.lowercase <- tolower(v.labels)
@@ -596,6 +599,8 @@ stackingGroupFromCommonLabels <- function(common.labels, v.names, v.labels)
 # that the resulting variable names have common prefixes, suffixes and the
 # remaining text is either numbers or letters but not both (since enumerations
 # occur with letters or numbers but usually not both).
+
+# See unit tests for matchIndicesBasedOnName in test-stacking.R
 matchIndicesBasedOnName <- function(ind.list, nms)
 {
     # Trivial case: each element in the list is at most length 1
@@ -680,6 +685,7 @@ stackManually <- function(manual.stacking, specify.by, input.data.set.metadata)
                                        input.data.set.metadata)
 }
 
+# See unit tests for permittedNA in test-stacking.R
 permittedNA <- function(variable.names)
 {
     na.ind <- match("NA", variable.names)
@@ -925,6 +931,7 @@ stackingSpecifiedByObservation <- function(manual.stacking,
     manual.stacking.groups
 }
 
+# See unit tests for mergeCommonLabelAndManualStackingGroups in test-stacking.R
 mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups,
                                                     manual.stacking.groups)
 {
@@ -1385,6 +1392,7 @@ parseVariablesToOmitAfterStacking <- function(variables.to.omit,
 }
 
 # Parses a user-input variable range
+# See unit tests for parseVariableRange in test-stacking.R
 parseVariableRange <- function(range.text, variable.names, purpose,
                                on.fail.msg, warning.if.not.found = TRUE)
 {
@@ -1455,6 +1463,7 @@ parseVariableRange <- function(range.text, variable.names, purpose,
 }
 
 # Parses a user-input variable wildcard
+# See unit tests for parseVariableWildcard in test-stacking.R
 #' @importFrom flipU EscapeRegexSymbols
 parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
                                   on.fail.msg, warning.if.not.found = TRUE)
@@ -1481,6 +1490,7 @@ parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
 }
 
 # Parses a user-input variable name
+# See unit tests for parseVariableName in test-stacking.R
 parseVariableName <- function(variable.name.text, variable.names, purpose,
                               on.fail.msg, warning.if.not.found = TRUE)
 {
