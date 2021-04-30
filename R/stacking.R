@@ -278,7 +278,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
             return(-Inf)
 
         stacking.groups <- stackingGroupFromCommonLabels(common.labels,
-                                                         v.labels, v.names)
+                                                         v.names, v.labels)
         if (nrow(stacking.groups) == 0)
             return(-Inf)
 
@@ -300,7 +300,7 @@ automaticCommonLabels <- function(input.data.set.metadata)
 
     common.labels <- candidate.common.labels[[which.max(score)]]
     stacking.groups <- stackingGroupFromCommonLabels(common.labels,
-                                                     v.labels, v.names)
+                                                     v.names, v.labels)
     whole.column.missing <- apply(stacking.groups, 2,
                                   function(column) all(is.na(column)))
     list(common.labels[!whole.column.missing])
@@ -346,7 +346,7 @@ commonLabelsFromReferenceVars <- function(reference.variables.to.stack,
     }
 }
 
-# Extract common labels from a set of reference variables.
+# Extract common labels from a single set of reference variables.
 # See unit tests for commonLabelsFromASetOfReferenceVars in test-stacking.R
 commonLabelsFromASetOfReferenceVars <- function(ref.vars.to.stack.text,
                                                 input.data.set.metadata)
@@ -453,7 +453,7 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
 
     stacking.groups.list <- lapply(common.labels.list,
                                    stackingGroupFromCommonLabels,
-                                   v.labels, v.names)
+                                   v.names, v.labels)
 
     # Combine stacking groups in stacking.groups.list
     n.stacking <- max(vapply(stacking.groups.list, ncol, integer(1)))
@@ -472,7 +472,8 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
             {
                 new.row <- rep(NA_integer_, n.stacking)
                 new.row[seq_along(rw)] <- rw
-                stacking.groups <- rbind(stacking.groups, new.row)
+                stacking.groups <- rbind(stacking.groups, new.row,
+                                         deparse.level = 0)
             }
             else if (n.overlapping == 1)
             {
@@ -485,7 +486,8 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
                                                        drop = FALSE]
                     new.row <- rep(NA_integer_, n.stacking)
                     new.row[seq_along(rw)] <- rw
-                    stacking.groups <- rbind(stacking.groups, new.row)
+                    stacking.groups <- rbind(stacking.groups, new.row,
+                                             deparse.level = 0)
                 }
             }
             # else (n.overlapping > 1): don't add row to stacking.groups
@@ -501,14 +503,12 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
         v.names[removeNA(stacking.groups[ind, ])]
     })
     if (length(unstackable.names) > 0)
-        warning("Variables could not be stacked due to mismatching variable types or value attributes. ",
+        warning("Some variables could not be stacked due to mismatching variable types or value attributes. ",
                 "See Notes section in output for more details.")
 
     if (length(unstackable.ind) > 0)
         stacking.groups <- stacking.groups[-unstackable.ind, , drop = FALSE]
     attr(stacking.groups, "unstackable.names") <- unstackable.names
-    attr(stacking.groups, "is.manually.stacked") <- rep(FALSE,
-                                                       nrow(stacking.groups))
     stacking.groups
 }
 
@@ -519,7 +519,7 @@ stackWithCommonLabels <- function(common.labels.list, input.data.set.metadata)
 # common labels and grouping together variables with common labels and the same
 # prefix and suffix, also considering common prefixes and suffixes in variable
 # names if necessary.
-stackingGroupFromCommonLabels <- function(common.labels, v.labels, v.names)
+stackingGroupFromCommonLabels <- function(common.labels, v.names, v.labels)
 {
     v.labels.lowercase <- tolower(v.labels)
     n.common.labels <- length(common.labels)
@@ -575,12 +575,22 @@ stackingGroupFromCommonLabels <- function(common.labels, v.labels, v.names)
     stacking.groups
 }
 
-# Match together indices from elements in a list based on their names to
-# create a rows of the output matrix, where each row represents a stacked
-# variable. Names are considered matching if after their common prefixes and
-# suffixes are removed, the remaining text is either numbers or letters but
-# not both (since enumerations occur with letters or numbers but usually not
-# both).
+# This function is needed by stacking with common labels because sometimes
+# multiple variables have the same common label, label prefix and label suffix.
+# In such a situation, it is not clear how to group variables just from the
+# labels. We therefore fall back on variable names to finalize the grouping.
+
+# The elements of ind.list correspond to a set of common labels and each
+# element contains indices of names that have the same common label, label
+# prefix and label suffix. The indices refer to the variables whose names are
+# in nms.
+
+# This function returns a matrix where each row contains the indices of
+# a group of matched variables to be stacked together. A group is created by
+# selecting one or zero variable indices from each element of ind.list such
+# that the resulting variable names have common prefixes, suffixes and the
+# remaining text is either numbers or letters but not both (since enumerations
+# occur with letters or numbers but usually not both).
 matchIndicesBasedOnName <- function(ind.list, nms)
 {
     # Trivial case: each element in the list is at most length 1
@@ -640,7 +650,7 @@ matchIndicesBasedOnName <- function(ind.list, nms)
                 }
             }
         }
-        result <- rbind(result, new.row)
+        result <- rbind(result, new.row, deparse.level = 0)
 
         if (all(vapply(ind.list, length, integer(1)) == 0))
             break
@@ -651,6 +661,7 @@ matchIndicesBasedOnName <- function(ind.list, nms)
 # Parse user-input manual stacking strings and append the variables to manually
 # stack to stacking.groups. Most of the work is done by either
 # stackingSpecifiedByVariable or stackingSpecifiedByObservation.
+# See unit tests for stackManually in test-stacking.R
 stackManually <- function(manual.stacking, specify.by, input.data.set.metadata)
 {
     if (is.null(manual.stacking) || length(manual.stacking) == 0 ||
@@ -681,7 +692,7 @@ permittedNA <- function(variable.names)
 # Parse user-input manual stacking strings for stacking specified by variable,
 # i.e., each string in manual.stacking describes the variables to be stacked
 # into one variable.
-# See unit test for stackingSpecifiedByVariable in test-stacking.R
+# See unit tests for stackingSpecifiedByVariable in test-stacking.R
 stackingSpecifiedByVariable <- function(manual.stacking,
                                         input.data.set.metadata)
 {
@@ -778,7 +789,8 @@ stackingSpecifiedByVariable <- function(manual.stacking,
                                          input.text)
     }
 
-
+    if (length(manual.stacking.groups.list) == 0)
+        return(NULL)
 
     n.stacking <- max(vapply(manual.stacking.groups.list, length, integer(1)))
     do.call("rbind", lapply(manual.stacking.groups.list, function(group) {
@@ -791,7 +803,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
 # Parse user-input manual stacking strings for stacking specified by
 # observation, i.e., each string in manual.stacking describes the variables in
 # an observation to be used in stackings of variables.
-# See unit test for stackingSpecifiedByObservation in test-stacking.R
+# See unit tests for stackingSpecifiedByObservation in test-stacking.R
 stackingSpecifiedByObservation <- function(manual.stacking,
                                            input.data.set.metadata)
 {
@@ -882,12 +894,30 @@ stackingSpecifiedByObservation <- function(manual.stacking,
                                              input.text)
     }
 
+    if (length(manual.stacking.obs.groups.list) == 0)
+        return(NULL)
+
     n.stacked.var <- max(vapply(manual.stacking.obs.groups.list, length, integer(1)))
-    do.call("cbind", lapply(manual.stacking.obs.groups.list, function(obs.group) {
+    manual.stacking.groups <- do.call("cbind", lapply(manual.stacking.obs.groups.list, function(obs.group) {
         column <- rep(NA_integer_, n.stacked.var)
         column[seq_along(obs.group)] <- obs.group
         column
     }))
+
+    # Check for mismatching variable types and value attributes
+    for (i in seq_len(nrow(manual.stacking.groups)))
+    {
+        group.ind <- removeNA(manual.stacking.groups[i, ])
+        if (!allIdentical(v.types[group.ind]) ||
+            !allIdentical(v.val.attr[group.ind]))
+        {
+            warning("No manual stacking was conducted as the following variables to be stacked ",
+                    "have mismatching types or value attributes: ",
+                    paste0(v.names[group.ind], collapse = ", "), ".")
+            return(NULL)
+        }
+    }
+    manual.stacking.groups
 }
 
 mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups,
@@ -935,6 +965,8 @@ mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups
 
     is.manually.stacked <- c(rep(FALSE, n.row.c, rep(TRUE, n.row.m)))
     attr(stacking.groups, "is.manually.stacked") <- is.manually.stacked
+    attr(stacking.groups, "unstackable.names") <- attr(common.label.stacking.groups,
+                                                       "unstackable.names")
     stacking.groups
 }
 

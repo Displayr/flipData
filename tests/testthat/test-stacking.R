@@ -259,11 +259,28 @@ test_that("manual stacking by observations", {
                    fixed = TRUE)
 })
 
+test_that("automaticCommonLabels", {
+
+})
+
+test_that("commonLabelsFromReferenceVars", {
+    ref.vars.to.stack.text <- c("Q2_A, Q2_B, Q2_C", "Q3_a, Q3_b")
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q3_a", "Q3_b")
+    v.labels <- c("Question 1",  "Q2: Coke", "Q2: Diet Coke", "Q2: Coke Zero",
+                  "Question 3: Coca Cola", "Question 3: Diet Coke")
+    common.labels.list <- commonLabelsFromReferenceVars(ref.vars.to.stack.text,
+                                                        list(variable.names = v.names,
+                                                             variable.labels = v.labels))
+    expect_equal(common.labels.list,
+                 list(c("Coke", "Diet Coke", "Coke Zero"),
+                      c("Coca Cola", "Diet Coke")))
+})
+
 test_that("commonLabelsFromASetOfReferenceVars", {
     ref.vars.to.stack.text <- "Q2_A, Q2_B, Q2_C"
     v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q3_a", "Q3_b")
     v.labels <- c("Question 1",  "Q2: Coke", "Q2: Diet Coke", "Q2: Coke Zero",
-                  "Question 3a", "Question 3b")
+                  "Question 3: Coca Cola", "Question 3: Diet Coke")
     common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
                                                          list(variable.names = v.names,
                                                               variable.labels = v.labels))
@@ -281,23 +298,144 @@ test_that("commonLabelsFromASetOfReferenceVars", {
                                                               variable.labels = v.labels))
     expect_equal(common.labels, c("Coke", "Diet Coke", "Coke Zero"))
 
-    ref.vars.to.stack.text <- "bad_var_*"
-    expect_warning(commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
-                                                       list(variable.names = v.names,
-                                                            variable.labels = v.labels)),
+    ref.vars.to.stack.text <- "BAD_VAR_*"
+    expect_warning(common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                                        list(variable.names = v.names,
+                                                                             variable.labels = v.labels)),
                    paste0("No matches were found for the common labels input ",
-                          "wildcard name 'bad_var_*'. Ensure that the wildcard ",
+                          "wildcard name 'BAD_VAR_*'. Ensure that the wildcard ",
                           "variable name has been correctly specified. Common ",
                           "labels could not be obtained from the input ",
-                          "'bad_var_*'."), fixed = TRUE)
+                          "'BAD_VAR_*'."), fixed = TRUE)
+    expect_null(common.labels)
 
     ref.vars.to.stack.text <- "Q2_A"
-    expect_warning(commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
-                                                       list(variable.names = v.names,
-                                                            variable.labels = v.labels)),
+    expect_warning(common.labels <- commonLabelsFromASetOfReferenceVars(ref.vars.to.stack.text,
+                                                                        list(variable.names = v.names,
+                                                                             variable.labels = v.labels)),
                    paste0("Only one variable is present in the input 'Q2_A' ",
                           "for extracting common labels. It has been ignored ",
                           "as more than one variable is required."))
+    expect_null(common.labels)
+})
+
+test_that("stackWithCommonLabels", {
+    common.labels.list <- list(c("Coke", "Diet Coke", "Coke Zero"),
+                               c("Coca Cola", "Diet Coke"))
+    # Multiple identical labels and variables to be stacked not grouped together
+    # We have to rely on variable names in this example
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q3_a", "Q4_1", "Q3_b", "Q3_c", "Q4_2",
+                 "Q5_1", "Q5_2")
+    v.labels <- c("Question 1",
+                  "Q2: Coke", "Q2: Diet Coke",
+                  "Coke?", "Coke?",
+                  "Diet Coke?",
+                  "Coke Zero?", "Coke Zero?",
+                  "Q5: Coca Cola", "Q5: Diet Coke")
+    v.types <- rep("Categorical", length(v.names))
+    val.attr <- 1:3
+    names(val.attr) <- letters[1:3]
+    v.val.attr <- rep(list(val.attr), length(v.names))
+
+    stacking.groups <- stackWithCommonLabels(common.labels.list,
+                                             list(variable.names = v.names,
+                                                  variable.labels = v.labels,
+                                                  variable.types = v.types,
+                                                  variable.value.attributes = v.val.attr))
+
+    expect_equal(stacking.groups,
+                 structure(c(4L, 7L, 2L, 9L, 5L, NA, 3L, 10L, 6L, 8L, NA, NA),
+                           .Dim = 4:3, unstackable.names = list()))
+
+    # Differing variable types
+    common.labels.list <- list(c("Coke", "Diet Coke", "Coke Zero"))
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C")
+    v.labels <- c("Question 1",
+                  "Q2: Coke", "Q2: Diet Coke", "Q2: Coke Zero")
+    v.types <- c(rep("Categorical", 2), "Numeric")
+    val.attr <- 1:3
+    names(val.attr) <- letters[1:3]
+    v.val.attr <- rep(list(val.attr), length(v.names))
+    expect_warning(stacking.groups <- stackWithCommonLabels(common.labels.list,
+                                                            list(variable.names = v.names,
+                                                                 variable.labels = v.labels,
+                                                                 variable.types = v.types,
+                                                                 variable.value.attributes = v.val.attr)),
+                   "Some variables could not be stacked due to mismatching ",
+                   "variable types or value attributes. See Notes section in ",
+                   "output for more details.")
+    expect_equal(stacking.groups,
+                 structure(integer(0), .Dim = c(0L, 3L),
+                           unstackable.names = list(c("Q2_A", "Q2_B", "Q2_C"))))
+
+    # Differing value attributes
+    val.attr.2 <- 4:6
+    names(val.attr.2) <- letters[4:6]
+    v.val.attr <- list(val.attr, val.attr, val.attr.2)
+    expect_warning(stacking.groups <- stackWithCommonLabels(common.labels.list,
+                                                            list(variable.names = v.names,
+                                                                 variable.labels = v.labels,
+                                                                 variable.types = v.types,
+                                                                 variable.value.attributes = v.val.attr)),
+                   "Some variables could not be stacked due to mismatching ",
+                   "variable types or value attributes. See Notes section in ",
+                   "output for more details.")
+    expect_equal(stacking.groups,
+                 structure(integer(0), .Dim = c(0L, 3L),
+                           unstackable.names = list(c("Q2_A", "Q2_B", "Q2_C"))))
+})
+
+test_that("stackingGroupFromCommonLabels", {
+    common.labels <- c("Coke", "Diet Coke", "Coke Zero")
+    # Multiple identical labels and variables to be stacked not grouped together
+    # We have to rely on variable names in this example
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q3_a", "Q4_1", "Q3_b", "Q3_c", "Q4_2")
+    v.labels <- c("Question 1",
+                  "Q2: Coke", "Q2: Diet Coke",
+                  "Coke?", "Coke?",
+                  "Diet Coke?",
+                  "Coke Zero?", "Coke Zero?")
+    stacking.group <- stackingGroupFromCommonLabels(common.labels, v.names, v.labels)
+    expect_equal(stacking.group,
+                 structure(c(2L, 7L, 3L, 8L, 4L, NA), .Dim = 2:3))
+})
+
+test_that("matchIndicesBasedOnName", {
+    ind.list <- list(c(1, 4), c(5, 2), 3)
+    nms <- c("Q2_A_X0", "Q2_B_X0", "Q2_C_X0", "Q3_1", "Q3_2")
+    result <- matchIndicesBasedOnName(ind.list, nms)
+    expect_equal(result,
+                 structure(c(1, 4, 2, 5, 3, NA), .Dim = 2:3))
+})
+
+test_that("stackManually", {
+    v.names <- c("Q1", "Q2_A", "Q2_B", "Q2_C", "Q2_D",
+                 "Q3_A", "Q3_B", "Q3_C",
+                 "Q4_1", "Q4_2", "Q5")
+    v.types <- rep("Categorical", length(v.names))
+    val.attr <- 1:3
+    names(val.attr) <- letters[1:3]
+    v.val.attr <- rep(list(val.attr), length(v.names))
+
+    # Stack by variable
+    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
+                                     "Variable",
+                                     list(variable.names = v.names,
+                                          variable.types = v.types,
+                                          variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
+
+    # Stack by observation
+    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
+                                     "Observation",
+                                     list(variable.names = v.names,
+                                          variable.types = v.types,
+                                          variable.value.attributes = v.val.attr))
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
 })
 
 test_that("stackingSpecifiedByVariable", {
@@ -306,7 +444,7 @@ test_that("stackingSpecifiedByVariable", {
                  "Q4_1", "Q4_2", "Q5")
     v.types <- rep("Categorical", length(v.names))
     val.attr <- 1:3
-    names(val.attr) <- letter[1:3]
+    names(val.attr) <- letters[1:3]
     v.val.attr <- rep(list(val.attr), length(v.names))
 
     stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
@@ -326,14 +464,51 @@ test_that("stackingSpecifiedByVariable", {
                  structure(c(2L, 6L, 3L, 7L, 4L, NA, 5L, 8L),
                            .Dim = c(2L, 4L)))
 
-    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
-                                     "Variable",
-                                     list(variable.names = v.names,
-                                          variable.types = v.types,
-                                          variable.value.attributes = v.val.attr))
-    expect_equal(stacking.groups,
-                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
-                           .Dim = c(2L, 4L)))
+    # Bad input variable
+    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_A, Q3_B, BAD_VAR"),
+                                                   list(variable.names = v.names,
+                                                        variable.types = v.types,
+                                                        variable.value.attributes = v.val.attr)),
+                   paste0("The manual stacking input varible name 'BAD_VAR' ",
+                          "could not be identified. The manual stacking input ",
+                          "'Q3_A, Q3_B, BAD_VAR' has been ignored."))
+    expect_equal(stacking.groups, structure(2:5, .Dim = c(1L, 4L)))
+
+    # Bad input range
+    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("BAD_VAR-Q2_D", "Q3_A, Q3_B, Q3_C"),
+                                                                  list(variable.names = v.names,
+                                                                       variable.types = v.types,
+                                                                       variable.value.attributes = v.val.attr)),
+                   paste0("The start variable from the manual stacking input ",
+                          "range 'BAD_VAR-Q2_D' could not be identified. ",
+                          "The manual stacking input 'BAD_VAR-Q2_D' has been ignored. ",
+                          "Ensure that the variable name is correctly specified."))
+    expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
+
+    # Incompatible variable types
+    v.types.2 <- c(rep("Numeric", 2), rep("Categorical", length(v.names) - 2))
+    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
+                                                                  list(variable.names = v.names,
+                                                                       variable.types = v.types.2,
+                                                                       variable.value.attributes = v.val.attr)),
+                   paste0("The manual stacking input 'Q2_A-Q2_D' has been ",
+                          "ignored as it contains variables with mismatching ",
+                          "types or value attributes."))
+    expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
+
+    # Incompatible value attributes
+    val.attr.2 <- 4:6
+    names(val.attr.2) <- letters[4:6]
+    v.val.attr.2 <- v.val.attr
+    v.val.attr.2[[2]] <- val.attr.2
+    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
+                                                                  list(variable.names = v.names,
+                                                                       variable.types = v.types,
+                                                                       variable.value.attributes = v.val.attr.2)),
+                   paste0("The manual stacking input 'Q2_A-Q2_D' has been ",
+                          "ignored as it contains variables with mismatching ",
+                          "types or value attributes."))
+    expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
 })
 
 test_that("stackingSpecifiedByObservation", {
@@ -342,7 +517,7 @@ test_that("stackingSpecifiedByObservation", {
                  "Q4_1", "Q4_2", "Q5")
     v.types <- rep("Categorical", length(v.names))
     val.attr <- 1:3
-    names(val.attr) <- letter[1:3]
+    names(val.attr) <- letters[1:3]
     v.val.attr <- rep(list(val.attr), length(v.names))
 
     stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q*_C", "Q2_D"),
@@ -362,14 +537,53 @@ test_that("stackingSpecifiedByObservation", {
                  structure(c(2L, 6L, 3L, 7L, 4L, NA, 5L, 8L),
                            .Dim = c(2L, 4L)))
 
-    stacking.groups <- stackManually(c("Q2_A-Q2_D", "Q3_*"),
-                                     "Observation",
-                                     list(variable.names = v.names,
-                                          variable.types = v.types,
-                                          variable.value.attributes = v.val.attr))
-    expect_equal(stacking.groups,
-                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
-                           .Dim = c(2L, 4L)))
+    # Bad input variable
+    expect_warning(stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q*_C", "BAD_VAR"),
+                                                                     list(variable.names = v.names,
+                                                                          variable.types = v.types,
+                                                                          variable.value.attributes = v.val.attr)),
+                   paste0("The manual stacking input varible name 'BAD_VAR' ",
+                          "could not be identified. No manual stacking was conducted."))
+    expect_null(stacking.groups)
+
+    # Bad input wildcard
+    expect_warning(stacking.groups <- stackingSpecifiedByObservation(c("BAD*_VAR", "Q*_B", "Q*_C"),
+                                                                     list(variable.names = v.names,
+                                                                          variable.types = v.types,
+                                                                          variable.value.attributes = v.val.attr)),
+                   paste0("No matches were found for the manual stacking input wildcard name 'BAD*_VAR'. ",
+                          "Ensure that the wildcard variable name has been correctly specified. ",
+                          "No manual stacking was conducted."))
+    expect_null(stacking.groups)
+
+    # Incompatible variable types
+    v.types.2 <- c(rep("Numeric", 2), rep("Categorical", length(v.names) - 2))
+    expect_warning(stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q*_C", "Q2_D"),
+                                                                  list(variable.names = v.names,
+                                                                       variable.types = v.types.2,
+                                                                       variable.value.attributes = v.val.attr)),
+                   paste0("No manual stacking was conducted as the following ",
+                          "variables to be stacked have mismatching types or ",
+                          "value attributes: Q2_A, Q2_B, Q2_C, Q2_D."))
+    expect_null(stacking.groups)
+
+    # Incompatible value attributes
+    val.attr.2 <- 4:6
+    names(val.attr.2) <- letters[4:6]
+    v.val.attr.2 <- v.val.attr
+    v.val.attr.2[[2]] <- val.attr.2
+    expect_warning(stacking.groups <- stackingSpecifiedByObservation(c("Q*_A", "Q*_B", "Q*_C", "Q2_D"),
+                                                                     list(variable.names = v.names,
+                                                                          variable.types = v.types.2,
+                                                                          variable.value.attributes = v.val.attr)),
+                   paste0("No manual stacking was conducted as the following ",
+                          "variables to be stacked have mismatching types or ",
+                          "value attributes: Q2_A, Q2_B, Q2_C, Q2_D."))
+    expect_null(stacking.groups)
+})
+
+test_that("mergeCommonLabelAndManualStackingGroups", {
+
 })
 
 test_that("permittedNA", {
@@ -380,4 +594,8 @@ test_that("permittedNA", {
                           "this data set, i.e., N/A"))
     expect_equal(permitted.na, "N/A")
     expect_equal(permittedNA(c("Q1", "Q2", "Q3")), c("NA", "N/A"))
+})
+
+test_that("parse_range", {
+
 })
