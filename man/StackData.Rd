@@ -92,5 +92,47 @@ A list with the following elements:
  }
 }
 \description{
-Stacks variables in a data set.
+Stacks variables in a SPSS .sav data set that may be located
+  locally or on the Displayr cloud drive (if run in Displayr). Stacking may
+  be specified manually and/or by identifying common labels that appear in
+  variable labels.
+
+  Manual stacking can be specified by variable or by observation. With the
+  former, each group of variables to be stacked together is specified. With
+  the latter, the variables in each stacked observation are specified (in
+  order of the stacked variables). Any stacking can be performed with either
+  option but often one is more convenient than the other depending on the
+  structure and variable names of the required stacking.
+
+  Common label stacking occurs by stacking together groups of variables
+  whose labels match the common labels after removing common prefixes and
+  suffixes. Common labels can be specified to be generated automatically,
+  inferred from a set of input reference variables or specified manually.
+
+  The stacked data set is saved as an SPSS .sav data set either locally or
+  to the Displayr cloud drive (if run in Displayr).
+}
+\examples{
+path <- system.file("examples", "Cola.sav", package = "flipData")
+
+# Automatic common label stacking and manual stacking by variable
+print(StackData(path,
+                specify.by = "Variable",
+                manual.stacking = c("Q6_*, NA", "Q9_A, Q9_B, Q9_C-Q9_F")))
+
+# Common labels from reference variables and omitted variables
+print(StackData(path,
+                stack.with.common.labels = "Using a set of variables to stack as reference",
+                reference.variables.to.stack = c("Q5_5_*", "Q6_A-Q6_F"),
+                variables.to.omit = c("Attr1, Q7_*", "FINISH_LATER-")))
+
+# Manually specified common labels and manual stacking by observation
+common.labels <- list(c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
+                        "Diet Pepsi", "Pepsi Max", "None of these"))
+print(StackData(path,
+                stack.with.common.labels = "Using manually input common labels",
+                manual.common.labels = common.labels,
+                specify.by = "Observation",
+                manual.stacking = c("Q6_A,Q9_A", "Q6_B,Q9_B", "Q6_C,Q9_C",
+                                    "Q6_D,Q9_D", "Q6_E,Q9_E", "Q6_F,Q9_F")))
 }

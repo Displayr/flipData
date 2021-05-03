@@ -1,5 +1,23 @@
 #' @title Stack data set
-#' @description Stacks variables in a data set.
+#' @description Stacks variables in a SPSS .sav data set that may be located
+#'   locally or on the Displayr cloud drive (if run in Displayr). Stacking may
+#'   be specified manually and/or by identifying common labels that appear in
+#'   variable labels.
+#'
+#'   Manual stacking can be specified by variable or by observation. With the
+#'   former, each group of variables to be stacked together is specified. With
+#'   the latter, the variables in each stacked observation are specified (in
+#'   order of the stacked variables). Any stacking can be performed with either
+#'   option but often one is more convenient than the other depending on the
+#'   structure and variable names of the required stacking.
+#'
+#'   Common label stacking occurs by stacking together groups of variables
+#'   whose labels match the common labels after removing common prefixes and
+#'   suffixes. Common labels can be specified to be generated automatically,
+#'   inferred from a set of input reference variables or specified manually.
+#'
+#'   The stacked data set is saved as an SPSS .sav data set either locally or
+#'   to the Displayr cloud drive (if run in Displayr).
 #' @param input.data.set.name Name of data file to stack, either as a path to a
 #'   local file (when running locally in R) or file in the Displayr Cloud Drive
 #'   (when running in Displayr).
@@ -59,6 +77,29 @@
 #'   \item \code{is.saved.to.cloud} Whether the stacked data set was saved to
 #'     the Displayr cloud drive.
 #'  }
+#' @examples
+#' path <- system.file("examples", "Cola.sav", package = "flipData")
+#'
+#' # Automatic common label stacking and manual stacking by variable
+#' print(StackData(path,
+#'                 specify.by = "Variable",
+#'                 manual.stacking = c("Q6_*, NA", "Q9_A, Q9_B, Q9_C-Q9_F")))
+#'
+#' # Common labels from reference variables and omitted variables
+#' print(StackData(path,
+#'                 stack.with.common.labels = "Using a set of variables to stack as reference",
+#'                 reference.variables.to.stack = c("Q5_5_*", "Q6_A-Q6_F"),
+#'                 variables.to.omit = c("Attr1, Q7_*", "FINISH_LATER-")))
+#'
+#' # Manually specified common labels and manual stacking by observation
+#' common.labels <- list(c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
+#'                         "Diet Pepsi", "Pepsi Max", "None of these"))
+#' print(StackData(path,
+#'                 stack.with.common.labels = "Using manually input common labels",
+#'                 manual.common.labels = common.labels,
+#'                 specify.by = "Observation",
+#'                 manual.stacking = c("Q6_A,Q9_A", "Q6_B,Q9_B", "Q6_C,Q9_C",
+#'                                     "Q6_D,Q9_D", "Q6_E,Q9_E", "Q6_F,Q9_F")))
 #' @export
 StackData <- function(input.data.set.name,
                       stacked.data.set.name = NULL,
@@ -72,22 +113,33 @@ StackData <- function(input.data.set.name,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
 {
+    # Load input data set as data frame
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
+
+    # Omit specified variables from input data set
     variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
     omitted.variables <- parseVariablesToOmit(variables.to.omit,
                                               names(input.data.set),
                                               FALSE)
-
     input.data.set <- omitVariablesFromDataSet(input.data.set,
                                                omitted.variables)
+
+    # Create an object containing metadata on the input data set such as
+    # variable names and labels which can be easily passed into function calls
     input.data.set.metadata <- metadataFromDataSet(input.data.set,
                                                    input.data.set.name)
 
+    # Get the list of common labels to be used in stacking, either
+    # automatically, via reference variables, or manually
     common.labels.list <- commonLabels(manual.common.labels,
                                        stack.with.common.labels,
                                        input.data.set.metadata,
                                        reference.variables.to.stack)
 
+    # Compute stacking groups from common labels and manual stacking groups,
+    # and then merge them together. A stacking group is a matrix that specifies
+    # variables to be stacked via their indices in the input data set. Each row
+    # represents a group of variables to be stacked.
     common.label.stacking.groups <- stackWithCommonLabels(common.labels.list,
                                                           input.data.set.metadata)
     manual.stacking.groups <- stackManually(manual.stacking, specify.by,
@@ -95,12 +147,14 @@ StackData <- function(input.data.set.name,
     stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
                                                                manual.stacking.groups)
 
+    # Create the stacked data set as a data frame from the stacking groups
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
                                        stacking.groups,
                                        include.original.case.variable,
                                        include.observation.variable,
                                        common.labels.list)
 
+    # Omit stacked variables that have been specified to be omitted
     omitted.variables <- parseVariablesToOmitAfterStacking(variables.to.omit,
                                                            omitted.variables,
                                                            stacked.data.set)
@@ -113,6 +167,8 @@ StackData <- function(input.data.set.name,
                                                      input.data.set.name)
     writeDataSet(stacked.data.set, stacked.data.set.name)
 
+    # Create an object containing metadata on the stacked data set such as
+    # variable names and labels
     stacked.data.set.metadata <- metadataFromStackedDataSet(stacked.data.set,
                                                             stacked.data.set.name)
 
@@ -973,6 +1029,9 @@ mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups
     n.row.m <- nrow(manual.stacking.groups)
     n.col.m <- ncol(manual.stacking.groups)
 
+    # We still merge the two groups even if the number of variables to stack
+    # does not match. If this is not what the user intended, the output should
+    # make this clear enough, so a warning isn't shown.
     n.stacking <- max(n.col.c, n.col.m)
     n.stacked.variables <- n.row.c + n.row.m
     stacking.groups <- matrix(NA_integer_,  nrow = n.stacked.variables,
