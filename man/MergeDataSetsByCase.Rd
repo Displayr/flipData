@@ -13,10 +13,11 @@ MergeDataSetsByCase(
   variables.to.not.combine = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
-  write.data.set = TRUE,
   prioritize.early.data.sets = TRUE,
-  category.value.with.multiple.labels = "Use first label",
-  data.sets.whose.variables.are.kept = NULL,
+  use.first.value.label = TRUE,
+  ignore.case = TRUE,
+  ignore.special.characters = TRUE,
+  data.sets.whose.variables.are.kept = seq_along(data.set.names),
   required.data.sets = NULL
 )
 }
@@ -52,23 +53,48 @@ suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.}
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
 
-\item{write.data.set}{Whether to save the merged data set file.}
-
 \item{prioritize.early.data.sets}{Whether earlier data sets should be
- given priority instead of later data sets when determining which
- names and labels to use.
-# need to describe outputs!}
+given priority instead of later data sets when determining which
+names and labels to use.}
 
-\item{category.value.with.multiple.labels}{How to deal with a single category value
-with multiple labels. Either "Use first label" or "Create new values" for
-each label.}
+\item{use.first.value.label}{Whether to use the first label for a value if
+there are multiple labels for the same value. Otherwise new values are
+created for each label. If \code{prioritize.early.data.sets} is FALSE, the
+last label is used instead of the first label.}
+
+\item{ignore.case}{Ignore case when matching variable names.}
+
+\item{ignore.special.characters}{Ignore special characters in variable names
+except when digit characters appear both before and after special characters,
+e.g., Q2__3, in which case all but the first special character is ignored,
+i.e., Q2__3 is equivalent to Q2_3.}
 
 \item{data.sets.whose.variables.are.kept}{An integer vector of indices of data
 sets whose variables are to be kept. Any variable not in these data sets
 will not be included in the merged data set.}
-
-\item{required.data.sets}{A logical vector indicating the data sets that
-each variable in the merged data set is required to contain values from.}
+}
+\value{
+A list with the following elements:
+\itemize{
+  \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
+  is TRUE, this is a data frame of the merged data set.
+  \item \code{input.data.set.metadata} A list containing metadata on the
+    the input data sets such as variable names, labels etc.
+  \item \code{merged.data.set.metadata} A list containing metadata on the
+    the merged data set such as variable names, labels etc.
+  \item \code{matched.names} A matrix where each row contains the names of
+    the variables from the input data sets that have been merged together.
+  \item \code{merged.names} A character vector containing the names of the
+    variables in the merged data set.
+  \item \code{omitted.variables} A list where each element contains the
+    names of variables from an input data set that have been omitted from
+    the merged data set.
+  \item \code{input.value.attributes} A list containing value attributes
+    from the input data sets, which are shown in the value attributes tables
+    in the output.
+  \item \code{is.saved.to.cloud} Whether the merged data set was saved to
+    the Displayr cloud drive.
+}
 }
 \description{
 Merges multiple data sets by case where the data sets contain
