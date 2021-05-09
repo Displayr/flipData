@@ -1079,7 +1079,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                                                               stacked.data.set.v.names)
 
     checkStackedDataSetSize(input.data.set, stacking.groups, stacked.v.ind.in.stacked.data.set,
-                            stacked.data.set.v.names)
+                            stacked.data.set.v.names, common.labels.list)
 
     n.stacked <- ncol(stacking.groups)
     is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
@@ -1160,7 +1160,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
 checkStackedDataSetSize <- function(input.data.set, stacking.groups,
                                     stacked.v.ind.in.stacked.data.set,
                                     stacked.data.set.v.names,
-                                    common.labels)
+                                    common.labels.list)
 {
     n.stacked <- ncol(stacking.groups)
 
@@ -1181,10 +1181,10 @@ checkStackedDataSetSize <- function(input.data.set, stacking.groups,
     {
         msg <- paste0("The stacked data set is too large to create. Omit unnecessary ",
                       "variables to reduce its size.")
-        if (!is.null(common.labels))
+        if (!is.null(common.labels.list))
             msg <- paste0(msg, " Also ensure that the common labels are ",
                           "appropriate: ",
-                          paste0(common.labels, collapse = ", "), ".")
+                          paste0(unlist(common.labels.list), collapse = ", "), ".")
         stop(msg)
     }
 }
