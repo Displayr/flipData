@@ -1096,12 +1096,13 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                 else
                     rep(NA, nrow(input.data.set))
             }))
+            nm <- stackedVariableName(group.ind, input.v.names, names(stacked.data.set))
             v <- c(t(matrix(v, nrow = nrow(input.data.set))))
             attr(v, "is.stacked") <- TRUE
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
             attr(v, "stacking.input.variable.labels") <- input.v.labels[group.ind]
-            attr(v, "label") <- stackedVariableLabels(group.ind, input.v.labels)
+            attr(v, "label") <- stackedVariableLabel(group.ind, input.v.labels, nm)
             val.attr <- attr(input.data.set[[removeNA(group.ind)[1]]],
                              "labels", exact = TRUE)
             if (!is.null(val.attr))
@@ -1110,7 +1111,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                 class(v) <- c(class(v), "haven_labelled")
             }
 
-            nm <- stackedVariableName(group.ind, input.v.names, names(stacked.data.set))
             stacked.data.set[[nm]] <- v
         }
         else if (input.v.names[i] %in% included.variable.names)
@@ -1214,14 +1214,14 @@ stackedVariableName <- function(group.ind, input.variable.names, taken.names)
     uniqueName(candidate, taken.names, "_")
 }
 
-stackedVariableLabels <- function(group.ind, input.variable.labels)
+stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.variable.name)
 {
     ind <- removeNA(group.ind)
     lbl <- input.variable.labels[ind]
     common.prefix <- trimws(getCommonPrefix(lbl))
     common.suffix <- trimws(getCommonSuffix(lbl))
     if (common.prefix == "" && common.suffix == "")
-        NA_character_
+        stacked.variable.name
     else if (common.prefix == common.suffix)
         common.prefix
     else
