@@ -12,7 +12,7 @@ StackData(
   manual.common.labels = NULL,
   specify.by = "Variable",
   manual.stacking = NULL,
-  variables.to.omit = NULL,
+  variables.to.include = NULL,
   include.stacked.data.set.in.output = FALSE,
   include.original.case.variable = TRUE,
   include.observation.variable = TRUE
@@ -57,10 +57,10 @@ The strings in both cases can be a combination of comma-separated names,
 wildcards and ranges.
 See \code{reference.variables.to.stack} for more details on the format.}
 
-\item{variables.to.omit}{Character vector of comma-separated names of
-variables to omit. Each string can be a combination of comma-separated
-names, wildcards and ranges. See \code{reference.variables.to.stack} for
-more details on the format.}
+\item{variables.to.include}{Character vector of comma-separated names of
+non-stacked variables to include. Each string can be a combination of
+comma-separated names, wildcards and ranges.
+See \code{reference.variables.to.stack} for more details on the format.}
 
 \item{include.stacked.data.set.in.output}{Whether to include the stacked
 data set in the output object.}
@@ -79,9 +79,6 @@ A list with the following elements:
   \item \code{unstackable.names} A list of character vectors containing
     names of the variables that could not be stacked using common labels due
     to mismatching types or value attributes.
-  \item \code{omitted.variables} A character vector of omitted variable names.
-  \item \code{omitted.stacked.variables} A character vector of omitted
-    stacked variable names.
   \item \code{common.labels.list} A list of character vectors containing
     the common labels used in the stacking. The source of these common
     labels depends on the parameter \code{stack.with.common.labels} and
@@ -120,11 +117,11 @@ print(StackData(path,
                 specify.by = "Variable",
                 manual.stacking = c("Q6_*, NA", "Q9_A, Q9_B, Q9_C-Q9_F")))
 
-# Common labels from reference variables and omitted variables
+# Common labels from reference variables and included non-stacked variables
 print(StackData(path,
                 stack.with.common.labels = "Using a set of variables to stack as reference",
                 reference.variables.to.stack = c("Q5_5_*", "Q6_A-Q6_F"),
-                variables.to.omit = c("Attr1, Q7_*", "FINISH_LATER-")))
+                variables.to.include = c("Q2")))
 
 # Manually specified common labels and manual stacking by observation
 common.labels <- list(c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
