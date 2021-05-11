@@ -216,7 +216,7 @@ test_that("included non-stacked variables", {
                  c("Q1_", "Q2", "Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_",
                    "Q5_19_", "Q5_23_", "Q5_25_", "Q5_31_", "Q6_", "Q9_",
                    "original_case", "observation"))
-    nput <- readDataSets(findInstDirFile("Cola.sav"))[[1]]
+    input <- readDataSets(findInstDirFile("Cola.sav"))[[1]]
     expect_equal(as.numeric(result$stacked.data.set$Q2),
                  as.numeric(rep(input$Q2, each = 7)))
 })
