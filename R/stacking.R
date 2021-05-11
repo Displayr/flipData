@@ -1091,10 +1091,14 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         {
             group.ind <- stacking.groups[ind, ]
             v <- unlist(lapply(group.ind, function(j) {
-                if (!is.na(j))
+                vals <- if (!is.na(j))
                     input.data.set[[j]]
                 else
                     rep(NA, nrow(input.data.set))
+                if (isIntegerValued(vals))
+                    as.integer(vals)
+                else
+                    vals
             }))
             nm <- stackedVariableName(group.ind, input.v.names, names(stacked.data.set))
             v <- c(matrix(v, ncol = nrow(input.data.set), byrow = TRUE))
@@ -1116,6 +1120,8 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         else if (input.v.names[i] %in% included.variable.names)
         {
             input.var <- input.data.set[[i]]
+            if (isIntegerValued(input.var))
+                input.var <- as.integer(input.var)
             v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
@@ -1164,6 +1170,17 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     }
 
     data.frame(stacked.data.set)
+}
+
+isIntegerValued <- function(x)
+{
+    if (is.numeric(x))
+    {
+        x.without.na <- removeNA(x)
+        all(floor(x.without.na) == x.without.na)
+    }
+    else
+        FALSE
 }
 
 #' @importFrom utils object.size
