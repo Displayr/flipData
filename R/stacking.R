@@ -1097,7 +1097,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                     rep(NA, nrow(input.data.set))
             }))
             nm <- stackedVariableName(group.ind, input.v.names, names(stacked.data.set))
-            v <- c(t(matrix(v, nrow = nrow(input.data.set))))
+            v <- c(matrix(v, ncol = nrow(input.data.set), byrow = TRUE))
             attr(v, "is.stacked") <- TRUE
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
