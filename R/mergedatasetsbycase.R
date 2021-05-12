@@ -809,78 +809,6 @@ percentageSimilarities <- function(strings.1, strings.2, ignore.case,
     }, numeric(1))
 }
 
-# matchNamesExactly <- function(names.to.match, n.data.sets,
-#                               variables.to.not.combine)
-# {
-#     unlisted.names <- unlist(names.to.match)
-#     data.set.ind <- rep(seq_along(names.to.match),
-#                         vapply(names.to.match, length, integer(1)))
-#
-#     matched.names <- matrix(nrow = 0, ncol = n.data.sets)
-#
-#     for (i in seq_along(unlisted.names))
-#     {
-#         nm <- unlisted.names[i]
-#         ind <- which(apply(matched.names, 1, function(rw) any(nm %in% rw)))
-#         if (length(ind) > 0)
-#         {
-#             is.combined <- FALSE
-#             for (j in ind)
-#             {
-#                 is.already.occupied <- !is.na(matched.names[j, data.set.ind[i]])
-#                 if (is.already.occupied)
-#                     next
-#
-#                 is.combinable <- isVariableCombinableIntoRow(nm,
-#                                                              data.set.ind[i],
-#                                                              matched.names[j, ],
-#                                                              variables.to.not.combine)
-#
-#                 if (is.combinable)
-#                 {
-#                     matched.names[j, data.set.ind[i]] <- nm
-#                     is.combined <- TRUE
-#                     break
-#                 }
-#             }
-#             if (!is.combined)
-#             {
-#                 new.row <- rep(NA_character_, n.data.sets)
-#                     new.row[data.set.ind[i]] <- nm
-#                     matched.names <- rbind(matched.names, new.row)
-#             }
-#         }
-#     }
-#     matched.names
-# }
-#
-# matchNamesFuzzily <- function(names.to.match,
-#                               ignore.case,
-#                               ignore.special.characters,
-#                               min.match.percentage,
-#                               variables.to.not.combine,
-#                               data.sets.whose.variables.are.kept)
-# {
-#     if (ignore.case)
-#         names.to.match <- lapply(names.to.match, tolower)
-#
-#     if (ignore.special.characters)
-#         names.to.match <- lapply(names.to.match, removeSpecialCharacters)
-#
-#     matched.names <- matrix(nrow = 0, ncol = n.data.sets)
-#
-#     for (i in data.sets.whose.variables.are.kept)
-#     {
-#
-#     }
-#
-#     matched.names
-#
-#     # Starting with names to match from first "data set whose variables to keep",
-#     # compute distance to other names in names to match from other data sets
-#     # and match those above the min percentage.
-# }
-
 # Remove special characters (@#_\$.) from variable names, except when the
 # removal of the special characters results in numeric characters connecting,
 # e.g., Q2_1 becoming Q21. In such a case we just remove all but the first
@@ -951,10 +879,13 @@ matchVariableLabels <- function(input.data.set.metadata,
             for (j in non.missing.ind)
             {
                 nm <- matched.names[i, j]
+                # lbl <-
                 empty.ind <- is.na(matched.names[i, ])
                 for (k in empty.ind)
                 {
-                    exact.match.ind <- match(nm, remaining.names[[k]])
+                    # remaining.labels <-
+
+                    exact.match.ind <- match(nm, remaining.names[[k]]) # need to match labels instead, perhaps map names to labels
                     if (!is.na(exact.match.ind))
                     {
                         candidate.name <- remaining.names[[k]][exact.match.ind]
@@ -1005,6 +936,7 @@ matchVariableLabels <- function(input.data.set.metadata,
     for (i in data.sets.whose.variables.are.kept)
     {
         nms <- remaining.names[[i]]
+        # lbls <-
         other.data.set.ind <- setdiff(seq_len(n.data.sets), i)
         for (j in seq_along(nms))
         {
