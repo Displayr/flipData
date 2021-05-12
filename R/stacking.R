@@ -1111,6 +1111,12 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                              "labels", exact = TRUE)
             if (!is.null(val.attr))
             {
+                if (is.integer(v))
+                {
+                    nms <- names(val.attr)
+                    val.attr <- as.integer(val.attr)
+                    names(val.attr) <- nms
+                }
                 attr(v, "labels") <- val.attr
                 class(v) <- c(class(v), "haven_labelled")
             }
@@ -1129,6 +1135,12 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             val.attr <- attr(input.var, "labels", exact = TRUE)
             if (!is.null(val.attr))
             {
+                if (is.integer(v))
+                {
+                    nms <- names(val.attr)
+                    val.attr <- as.integer(val.attr)
+                    names(val.attr) <- nms
+                }
                 attr(v, "labels") <- val.attr
                 class(v) <- c(class(v), "haven_labelled")
             }
