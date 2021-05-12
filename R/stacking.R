@@ -582,8 +582,8 @@ stackingGroupFromCommonLabels <- function(common.labels, v.names, v.labels)
         common.label.prefixes.suffixes[[i]] <- t(vapply(ind, function(j) {
             lbl <- v.labels[j]
             start.ind <- matches[[j]][1]
-            c(substr(lbl, 1, start.ind - 1),
-              substr(lbl, start.ind + nchar(common.lbl), nchar(lbl)))
+            c(trimws(substr(lbl, 1, start.ind - 1)),
+              trimws(substr(lbl, start.ind + nchar(common.lbl), nchar(lbl))))
         }, character(2)))
         match.ind[[i]] <- ind
     }
