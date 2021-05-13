@@ -213,7 +213,7 @@ test_that("included non-stacked variables", {
                         variables.to.include = "Q2,Q3",
                         include.stacked.data.set.in.output = TRUE)
     expect_equal(result$stacked.data.set.metadata$variable.names,
-                 c("Q1_", "Q2", "Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_",
+                 c("Q1_", "Q2", "Q3", "Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_",
                    "Q5_19_", "Q5_23_", "Q5_25_", "Q5_31_", "Q6_", "Q9_",
                    "original_case", "observation"))
     input <- readDataSets(findInstDirFile("Cola.sav"))[[1]]
