@@ -210,7 +210,7 @@ test_that("manual stacking by observations", {
 
 test_that("included non-stacked variables", {
     result <- StackData(findInstDirFile("Cola.sav"),
-                        variables.to.include = "Q2",
+                        variables.to.include = "Q2,Q3",
                         include.stacked.data.set.in.output = TRUE)
     expect_equal(result$stacked.data.set.metadata$variable.names,
                  c("Q1_", "Q2", "Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_",
@@ -596,11 +596,6 @@ test_that("parseVariableName", {
                    paste0("The unit test input variable name 'BAD_VAR' could not be identified. ",
                           "Warning expected."))
     expect_equal(result, structure(character(0), is.not.found = TRUE))
-
-    # warning.if.not.found = FALSE
-    result <- parseVariableName("Q99", c("Q1", "Q2", "Q3"), "unit test",
-                                "No warning expected.", FALSE)
-    expect_equal(result, structure(character(0), is.not.found = TRUE))
 })
 
 test_that("parseVariableRange", {
@@ -640,11 +635,6 @@ test_that("parseVariableRange", {
                           "Ensure that the range has been correctly specified. ",
                           "Warning expected."))
     expect_equal(result, character(0))
-
-    # warning.if.not.found = FALSE
-    expect_equal(structure(character(0), is.not.found = TRUE),
-                 parseVariableRange("BAD_VAR-Q3", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
-                                    "unit test", "No warning expected.", FALSE))
 })
 
 test_that("parseVariableWildcard", {
@@ -661,10 +651,4 @@ test_that("parseVariableWildcard", {
                           "wildcard name 'BAD_*_VAR'. Ensure that the ",
                           "wildcard variable name has been correctly specified. ",
                           "Warning expected"), fixed = TRUE)
-
-    # warning.if.not.found = FALSE
-    expect_equal(structure(character(0), is.not.found = TRUE),
-                 parseVariableWildcard("BAD_*_VAR", c("Q1", "Q2_A_X", "Q2_A_Y",
-                                                      "Q2_B_X", "Q2_B_Y", "Q3"),
-                                                      "unit test", "Warning expected", FALSE), fixed = TRUE)
 })

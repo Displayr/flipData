@@ -1041,21 +1041,23 @@ parseVariablesToInclude <- function(variables.to.include,
     result <- character(0)
     for (i in seq_along(variables.to.include))
     {
-        t <- variables.to.include[i]
-        parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-            parseVariableRange(t, v.names, purpose,
-                               "The input range has been ignored.",
-                               warning.if.not.found[i])
-        else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-            parseVariableWildcard(t, v.names, purpose,
-                                  "This input has been ignored.",
-                                  warning.if.not.found[i])
-        else
-            parseVariableName(t, v.names, purpose,
-                              "This input has been ignored.",
-                              warning.if.not.found[i])
+        split.text <- trimws(strsplit(variables.to.include[i], ",")[[1]])
+        split.text <- split.text[split.text != ""]
 
-        result <- c(result, parsed)
+        for (t in split.text)
+        {
+            parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
+                parseVariableRange(t, v.names, purpose,
+                                   "The input range has been ignored.")
+            else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+                parseVariableWildcard(t, v.names, purpose,
+                                      "This input has been ignored.")
+            else
+                parseVariableName(t, v.names, purpose,
+                                  "This input has been ignored.")
+
+            result <- c(result, parsed)
+        }
     }
 
     stacked.variable.names <- v.names[removeNA(c(stacking.groups))]
@@ -1360,7 +1362,7 @@ getCommonSuffix <- function(nms, whole.words = FALSE)
 # Parses a user-input variable range
 # See unit tests for parseVariableRange in test-stacking.R
 parseVariableRange <- function(range.text, variable.names, purpose,
-                               on.fail.msg, warning.if.not.found = TRUE)
+                               on.fail.msg)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
     start.var.text <- trimws(substr(range.text, 1, dash.ind - 1))
@@ -1394,24 +1396,18 @@ parseVariableRange <- function(range.text, variable.names, purpose,
 
     if (is.na(start.ind))
     {
-        if (warning.if.not.found)
-        {
-            warning("The start variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ", on.fail.msg,
-                    " Ensure that the variable name is correctly specified.")
-        }
+        warning("The start variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ", on.fail.msg,
+                " Ensure that the variable name is correctly specified.")
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
     }
     if (is.na(end.ind))
     {
-        if (warning.if.not.found)
-        {
-            warning("The end variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ", on.fail.msg,
-                    " Ensure that the variable name is correctly specified.")
-        }
+        warning("The end variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ", on.fail.msg,
+                " Ensure that the variable name is correctly specified.")
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
@@ -1432,7 +1428,7 @@ parseVariableRange <- function(range.text, variable.names, purpose,
 # See unit tests for parseVariableWildcard in test-stacking.R
 #' @importFrom flipU EscapeRegexSymbols
 parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
-                                  on.fail.msg, warning.if.not.found = TRUE)
+                                  on.fail.msg)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -1443,11 +1439,10 @@ parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
     is.match <- grepl(pattern, variable.names)
     if (!any(is.match))
     {
-        if (warning.if.not.found)
-            warning("No matches were found for the ", purpose,
-                    " input wildcard name '", wildcard.text,
-                    "'. Ensure that the wildcard variable name has been correctly specified. ",
-                    on.fail.msg)
+        warning("No matches were found for the ", purpose,
+                " input wildcard name '", wildcard.text,
+                "'. Ensure that the wildcard variable name has been correctly specified. ",
+                on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
@@ -1458,15 +1453,14 @@ parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
 # Parses a user-input variable name
 # See unit tests for parseVariableName in test-stacking.R
 parseVariableName <- function(variable.name.text, variable.names, purpose,
-                              on.fail.msg, warning.if.not.found = TRUE)
+                              on.fail.msg)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text
     else
     {
-        if (warning.if.not.found)
-            warning("The ", purpose, " input variable name '", variable.name.text,
-                    "' could not be identified. ", on.fail.msg)
+        warning("The ", purpose, " input variable name '", variable.name.text,
+                "' could not be identified. ", on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
