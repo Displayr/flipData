@@ -319,9 +319,8 @@ test_that("Data sets whose variables are kept", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola3.sav")),
-                                  match.by = "Variable names",
+                                  select.what.to.match.by = "Manually",
                                   include.merged.data.set.in.output = TRUE,
-                                  write.data.set = FALSE,
                                   data.sets.whose.variables.are.kept = c(1, 2))
     expect_false("Q1_F" %in% names(result$merged.data.set))
 
@@ -330,7 +329,6 @@ test_that("Data sets whose variables are kept", {
                                                      findInstDirFile("cola3.sav")),
                                   match.by = "Variable names",
                                   include.merged.data.set.in.output = TRUE,
-                                  write.data.set = FALSE,
                                   data.sets.whose.variables.are.kept = 3)
 
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
@@ -338,7 +336,6 @@ test_that("Data sets whose variables are kept", {
                                                      findInstDirFile("cola3.sav")),
                                   match.by = "Variable names",
                                   include.merged.data.set.in.output = TRUE,
-                                  write.data.set = FALSE,
                                   data.sets.whose.variables.are.kept = 1)
     expect_false("Q2" %in% names(result$merged.data.set))
 })

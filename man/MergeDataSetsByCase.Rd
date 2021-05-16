@@ -7,7 +7,10 @@
 MergeDataSetsByCase(
   data.set.names,
   merged.data.set.name = NULL,
-  match.by = "Automatic",
+  select.what.to.match.by = "Automatically",
+  match.by.variable.names = TRUE,
+  match.by.variable.labels = TRUE,
+  match.by.value.labels = TRUE,
   min.match.percentage = 100,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
@@ -30,8 +33,18 @@ data sets.}
 the Displayr cloud drive (if run from Displayr) or the local file path of
 the merged data set. If NULL, the data set is not written.}
 
-\item{match.by}{One of Automatic, All, Variable names, Variable labels,
-Variable and value labels}
+\item{select.what.to.match.by}{Either "Automatically" or "Manually". If
+the former is chosen, the metadata to match by is chosen automatically,
+whereas if the latter is chosen, the metadata to match by is specified
+by setting the flags \code{match.by.variable.names},
+\code{match.by.variable.labels} and match.by.value.labels.}
+
+\item{match.by.variable.names}{Whether to match using variable names.}
+
+\item{match.by.variable.labels}{Whether to match using variable names.}
+
+\item{match.by.value.labels}{Whether to match using value labels of
+categorical variables.}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
