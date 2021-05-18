@@ -17,6 +17,11 @@
 #' @param match.by.variable.labels Whether to match using variable names.
 #' @param match.by.value.labels Whether to match using value labels of
 #'  categorical variables.
+#' @param ignore.case Ignore case when matching variable names.
+#' @param ignore.special.characters Ignore special characters in variable names
+#'  except when digit characters appear both before and after special characters,
+#'  e.g., Q2__3, in which case all but the first special character is ignored,
+#'  i.e., Q2__3 is equivalent to Q2_3.
 #' @param min.match.percentage To be decided, possibly a percentage.
 #' @param variables.to.combine A character vector of pairs of comma-separated
 #'  variable names indicating which variables are to be combined together.
@@ -39,11 +44,6 @@
 #'  there are multiple labels for the same value. Otherwise new values are
 #'  created for each label. If \code{prioritize.early.data.sets} is FALSE, the
 #'  last label is used instead of the first label.
-#' @param ignore.case Ignore case when matching variable names.
-#' @param ignore.special.characters Ignore special characters in variable names
-#'  except when digit characters appear both before and after special characters,
-#'  e.g., Q2__3, in which case all but the first special character is ignored,
-#'  i.e., Q2__3 is equivalent to Q2_3.
 #' @param data.sets.whose.variables.are.kept An integer vector of indices of data
 #'  sets whose variables are to be kept. Any variable not in these data sets
 #'  will not be included in the merged data set.
@@ -76,6 +76,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                 match.by.variable.names = TRUE,
                                 match.by.variable.labels = TRUE,
                                 match.by.value.labels = TRUE,
+                                ignore.case = TRUE,
+                                ignore.special.characters = TRUE,
                                 min.match.percentage = 100,
                                 variables.to.combine = NULL,
                                 variables.to.not.combine = NULL,
@@ -83,25 +85,25 @@ MergeDataSetsByCase <- function(data.set.names,
                                 include.merged.data.set.in.output = FALSE,
                                 prioritize.early.data.sets = TRUE,
                                 use.first.value.label = TRUE,
-                                ignore.case = TRUE,
-                                ignore.special.characters = TRUE,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 required.data.sets = NULL)
 {
     data.sets <- readDataSets(data.set.names, 2)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-    # bundle match settings into one object
+    match.parameters <- list(select.what.to.match.by = select.what.to.match.by,
+                             match.by.variable.names = match.by.variable.names,
+                             match.by.variable.labels = match.by.variable.labels,
+                             match.by.value.labels = match.by.value.labels,
+                             ignore.case = ignore.case,
+                             ignore.special.characters = ignore.special.characters,
+                             min.match.percentage = min.match.percentage)
 
     matched.names <- matchVariables(input.data.sets.metadata,
-                                    match.by.variable.names,
-                                    match.by.variable.labels,
-                                    match.by.value.labels,
-                                    min.match.percentage, variables.to.combine,
+                                    match.parameters,
+                                    variables.to.combine,
                                     variables.to.not.combine,
                                     variables.to.omit, data.sets,
-                                    ignore.case,
-                                    ignore.special.characters,
                                     data.sets.whose.variables.are.kept,
                                     prioritize.early.data.sets)
     merged.names <- mergedVariableNames(matched.names,
@@ -162,15 +164,9 @@ metadataFromDataSets <- function(data.sets)
          n.data.sets = length(data.sets))
 }
 
-matchVariables <- function(input.data.set.metadata,
-                           match.by.variable.names,
-                           match.by.variable.labels,
-                           match.by.value.labels,
-                           min.match.percentage, variables.to.combine,
-                           variables.to.not.combine, variables.to.omit,
-                           data.sets,
-                           ignore.case,
-                           ignore.special.characters,
+matchVariables <- function(input.data.set.metadata, match.parameters,
+                           variables.to.combine, variables.to.not.combine,
+                           variables.to.omit, data.sets,
                            data.sets.whose.variables.are.kept,
                            prioritize.early.data.sets)
 {
@@ -187,6 +183,7 @@ matchVariables <- function(input.data.set.metadata,
 
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
+    v.val.attrs <- input.data.set.metadata$variable.value.attributes
     n.data.sets <- input.data.set.metadata$n.data.sets
 
     remaining.names <- lapply(seq_len(n.data.sets), function(i) {
@@ -197,9 +194,15 @@ matchVariables <- function(input.data.set.metadata,
             result <- setdiff(result, v.names.to.omit[, i])
         result
     })
-    remaining.labels <- lapply(seq_len(n.data.sets), function(i) {
-        v.labels[[i]][match(remaining.names[[i]], v.names[[i]])]
-    })
+    remaining.ind <- mapply(match, remaining.names, v.names, SIMPLIFY = FALSE)
+    remaining.labels <- mapply(function(x, y) x[y], v.labels, remaining.ind,
+                               SIMPLIFY = FALSE)
+    remaining.val.attrs <-  mapply(function(x, y) x[y], v.val.attrs, remaining.ind,
+                                   SIMPLIFY = FALSE)
+
+    if (match.parameters$select.what.to.match.by == "Automatically")
+        match.parameters <- autoSelectWhatToMatchBy(input.data.set.metadata,
+                                          match.parameters)
 
     matched.names <- rbind(matrix(nrow = 0, ncol = n.data.sets),
                            v.names.to.combine)
@@ -220,14 +223,21 @@ matchVariables <- function(input.data.set.metadata,
                     data.set.ind <- non.missing.ind[j]
                     match(nms[j], v.names[[data.set.ind]])
                 }, integer(1))
-                lbls <- vapply(seq_along(nms), function(j) {
+                nms <- unique(nms)
+                lbls <- unique(removeNA(vapply(seq_along(nms), function(j) {
                     data.set.ind <- non.missing.ind[j]
                     v.labels[[data.set.ind]][nms.ind[j]]
-                })
+                }, character(1))))
+                val.attrs <- unique(removeNULL(lapply(seq_along(nms), function(j) {
+                    data.set.ind <- non.missing.ind[j]
+                    v.val.attrs[[data.set.ind]][nms.ind[j]]
+                })))
+
                 if (!prioritize.early.data.sets)
                 {
                     nms <- rev(nms)
                     lbls <- rev(lbls)
+                    val.attrs <- rev(val.attrs)
                 }
 
                 is.combinable <- vapply(remaining.names[[j]],
@@ -236,24 +246,21 @@ matchVariables <- function(input.data.set.metadata,
                                         v.names.to.not.combine)
                 candidate.names <- remaining.names[[j]][is.combinable]
                 candidate.labels <- remaining.labels[[j]][is.combinable]
+                candidate.val.attrs <- remaining.val.attrs[[j]][is.combinable]
 
-                matching.name <- findMatchingVariable(nms, lbls,
+                matching.name <- findMatchingVariable(nms, lbls, val.attrs,
                                                       candidate.names,
                                                       candidate.labels,
-                                                      match.by.variable.names,
-                                                      match.by.variable.labels,
-                                                      match.by.value.labels,
-                                                      ignore.case,
-                                                      ignore.special.characters,
-                                                      min.match.percentage)
+                                                      candidate.val.attrs,
+                                                      match.parameters)
 
                 if (!is.na(matching.name))
                 {
-                    matched.names[i, k] <- matching.name
-                    matching.ind <- match(matching.name, remaining.names[[k]])
-                    remaining.names[[k]] <- remaining.names[[k]][-matching.ind]
-                    remaining.labels[[k]] <- remaining.labels[[k]][-matching.ind]
-                    is.fuzzy.match[i, k] <- attr(matching.name,
+                    matched.names[i, j] <- matching.name
+                    matching.ind <- match(matching.name, remaining.names[[j]])
+                    remaining.names[[j]] <- remaining.names[[j]][-matching.ind]
+                    remaining.labels[[j]] <- remaining.labels[[j]][-matching.ind]
+                    is.fuzzy.match[i, j] <- attr(matching.name,
                                                  "is.fuzzy.match")
                     next
                 }
@@ -263,10 +270,14 @@ matchVariables <- function(input.data.set.metadata,
 
     # Find matches for remaining labels
     d.ind <- data.sets.whose.variables.are.kept # shorter name
+
+    # reverse d.ind if prioritize.early.data.sets?
+
     for (i in d.ind)
     {
         nms <- remaining.names[[i]]
         lbls <- remaining.labels[[i]]
+        val.attrs <- remaining.val.attrs[[i]]
 
         other.data.set.ind <- setdiff(seq_len(n.data.sets),
                                       d.ind[seq_len(match(i, d.ind))])
@@ -277,34 +288,49 @@ matchVariables <- function(input.data.set.metadata,
             is.fuzzy.match.new.row <- rep(FALSE, n.data.sets)
 
             new.row[i] <- nms[j]
-            new.row.labels[i] <- lbls[j]
+            new.row.names <- nms[j]
+            new.row.labels <- removeNA(lbls[j])
+            new.row.val.attrs <- removeNULL(val.attrs[j])
             for (k in other.data.set.ind)
             {
                 is.combinable <- vapply(remaining.names[[k]],
                                         isVariableCombinableIntoRow,
                                         logical(1), k, new.row,
                                         v.names.to.not.combine)
+
+                if (!any(is.combinable))
+                    next
+
                 candidate.names <- remaining.names[[k]][is.combinable]
                 candidate.labels <- remaining.labels[[k]][is.combinable]
+                candidate.val.attrs <- remaining.val.attrs[[k]][is.combinable]
 
-                matching.name <- findMatchingVariable(removeNA(new.row),
-                                                      removeNA(new.row.labels),
+                matching.name <- findMatchingVariable(new.row.names,
+                                                      new.row.labels,
+                                                      new.row.val.attrs,
                                                       candidate.names,
                                                       candidate.labels,
-                                                      match.by.variable.names,
-                                                      match.by.variable.labels,
-                                                      match.by.value.labels,
-                                                      ignore.case,
-                                                      ignore.special.characters,
-                                                      min.match.percentage)
+                                                      candidate.val.attrs,
+                                                      match.parameters)
 
                 if (!is.na(matching.name))
                 {
                     matching.ind <- match(matching.name, remaining.names[[k]])
                     new.row[k] <- matching.name
-                    new.row.labels[k] <- remaining.labels[[k]][matching.ind]
+                    if (!(matching.name %in% new.row.names))
+                        new.row.names <- c(new.row.names, matching.name)
+
+                    matching.label <- remaining.labels[[k]][matching.ind]
+                    if (!is.na(matching.label) && !(matching.label %in% new.row.labels))
+                        new.row.labels <- c(new.row.labels, matching.label)
+
+                    matching.val.attr <- remaining.val.attrs[[k]][matching.ind]
+                    if (!is.null(matching.val.attr) && !(matching.val.attr %in% new.row.val.attrs))
+                        new.row.val.attrs <- c(new.row.val.attrs, matching.val.attr)
+
                     remaining.names[[k]] <- remaining.names[[k]][-matching.ind]
                     remaining.labels[[k]] <- remaining.labels[[k]][-matching.ind]
+                    remaining.val.attrs[[k]] <- remaining.val.attrs[[k]][-matching.ind]
                     is.fuzzy.match.new.row[k] <- attr(matching.name,
                                                       "is.fuzzy.match")
                     next
@@ -324,6 +350,94 @@ matchVariables <- function(input.data.set.metadata,
                                        input.data.set.metadata,
                                        prioritize.early.data.sets)
     matched.names
+}
+
+autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
+{
+    v.names <- input.data.set.metadata$variable.names
+    v.labels <- input.data.set.metadata$variable.labels
+    v.val.attrs <- input.data.set.metadata$variable.value.attributes
+
+    if (match.parameters$ignore.case)
+    {
+        v.labels <- lapply(v.labels, tolower)
+        v.val.attrs <- lapply(v.val.attrs, function(val.attrs) {
+            lapply(removeNULL(val.attrs), function(val.attr) {
+                names(val.attr) <- tolower(names(val.attr))
+                val.attr
+            })
+        })
+    }
+
+    # Matching by variable names is generally worthwhile, and it is not easy
+    # to determine when names should not be matched, so we always automatically
+    # match by names.
+    match.parameters$match.by.variable.names <- TRUE
+
+    # Don't match by variable labels if more than 50% of labels in a data set
+    # map to two or more labels in another data set.
+    match.parameters$match.by.variable.labels <- maxOneToManyLabelProportion(v.labels) <= 0.5
+
+    # Don't match by value labels if more than 50% of value label sets in a data
+    # set maps to two or more sets of value labels in another data set.
+    match.parameters$match.by.value.labels <- maxOneToManyValueLabelProportion(v.val.attrs) <= 0.5
+
+    match.parameters
+}
+
+maxOneToManyLabelProportion <- function(v.labels)
+{
+    n.data.sets <- length(v.labels)
+    prop <- c()
+    for (i in seq_len(n.data.sets))
+    {
+        for (j in seq_len(n.data.sets))
+        {
+            if (i == j)
+                next
+
+            n <- 0
+
+            lbls.i <- v.labels[[i]]
+            lbls.j <- v.labels[[j]]
+            for (k in seq_along(lbls.i))
+                if (length(which(lbls.i[k] == lbls.j)) > 1)
+                    n <- n + 1
+            prop <- c(prop, n / length(lbls.i))
+        }
+    }
+    max(prop)
+}
+
+maxOneToManyValueLabelProportion <- function(v.val.attrs)
+{
+    n.data.sets <- length(v.val.attrs)
+    prop <- c()
+    for (i in seq_len(n.data.sets))
+    {
+        for (j in seq_len(n.data.sets))
+        {
+            if (i == j)
+                next
+
+            n <- 0
+
+            v.val.attrs.i <- v.val.attrs[[i]]
+            v.val.attrs.j <- v.val.attrs[[j]]
+            for (k in seq_along(v.val.attrs.i))
+            {
+                n.matches <- sum(vapply(v.val.attrs.j, function(val.attr.j) {
+                    identical(v.val.attrs.i[[k]], val.attr.j)
+                }, logical(1)))
+                if (n.matches > 1)
+                {
+                    n <- n + 1
+                }
+            }
+            prop <- c(prop, n / length(v.val.attrs.i))
+        }
+    }
+    max(prop)
 }
 
 # Parse the character vector variables.to.combine and return a matrix where
@@ -353,11 +467,11 @@ parseVariablesToCombine <- function(variables.to.combine, input.data.set.metadat
         }
     }
 
-    is.retained <- vapply(seqRow(variables.to.combine), function(i) {
-        if (all(is.na(variables.to.combine[i, data.sets.whose.variables.are.kept])))
+    is.retained <- vapply(seqRow(result), function(i) {
+        if (all(is.na(result[i, data.sets.whose.variables.are.kept])))
         {
             warning("The variables named ",
-                    paste0("'", unique(removeNA(variables.to.combine[i, ])), "'", collapse = ", "),
+                    paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
                     " specified to be combined have been removed as they are not in the data sets whose variables are to be kept.")
             FALSE
         }
@@ -777,16 +891,19 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
              "the 2nd input data set.")
 }
 
-findMatchingVariable <- function(nms, lbls,
+findMatchingVariable <- function(nms, lbls, val.attrs,
                                  candidate.names,
                                  candidate.labels,
-                                 match.by.variable.names,
-                                 match.by.variable.labels,
-                                 match.by.value.labels,
-                                 ignore.case,
-                                 ignore.special.characters,
-                                 min.match.percentage)
+                                 candidate.val.attrs,
+                                 match.parameters)
 {
+    match.by.variable.names <- match.parameters$match.by.variable.names
+    match.by.variable.labels <- match.parameters$match.by.variable.labels
+    match.by.value.labels <- match.parameters$match.by.value.labels
+    ignore.case <- match.parameters$ignore.case
+    ignore.special.characters <- match.parameters$ignore.special.characters
+    min.match.percentage <- match.parameters$min.match.percentage
+
     if (!match.by.variable.names &&
         !match.by.variable.labels &&
         !match.by.value.labels)
@@ -799,7 +916,7 @@ findMatchingVariable <- function(nms, lbls,
     # Find exact name match
     if (match.by.variable.names)
     {
-        ind <- removeNA(match(unique(nms), candidate.names))
+        ind <- removeNA(match(nms, candidate.names))
         if (length(ind) == 1)
         {
             result <- candidate.names[ind]
@@ -810,14 +927,15 @@ findMatchingVariable <- function(nms, lbls,
         {
             candidate.names <- candidate.names[ind]
             candidate.labels <- candidate.labels[ind]
+            candidate.val.attrs <- candidate.val.attrs[ind]
             is.exact.match <- TRUE
         }
     }
 
     # Find exact label match
-    if (match.by.variable.labels)
+    if (match.by.variable.labels && length(lbls) > 0)
     {
-        ind <- unlist(lapply(unique(lbls), function(lbl) {
+        ind <- unlist(lapply(lbls, function(lbl) {
             which(lbl == candidate.labels)
         }))
 
@@ -831,6 +949,29 @@ findMatchingVariable <- function(nms, lbls,
         {
             candidate.names <- candidate.names[ind]
             candidate.labels <- candidate.labels[ind]
+            candidate.val.attrs <- candidate.val.attrs[ind]
+            is.exact.match <- TRUE
+        }
+    }
+
+    # Find exact value labels match
+    if (match.by.value.labels && length(val.attrs) > 0)
+    {
+        ind <- unlist(lapply(val.attrs, function(val.attr) {
+            which(vapply(candidate.val.attrs, setequal, logical(1), val.attr))
+        }))
+
+        if (length(ind) == 1)
+        {
+            result <- candidate.names[ind]
+            attr(result, "is.fuzzy.match") <- FALSE
+            return(result)
+        }
+        else if (length(ind) > 1)
+        {
+            candidate.names <- candidate.names[ind]
+            candidate.labels <- candidate.labels[ind]
+            candidate.val.attrs <- candidate.val.attrs[ind]
             is.exact.match <- TRUE
         }
     }
@@ -838,9 +979,7 @@ findMatchingVariable <- function(nms, lbls,
     # Find fuzzy name match
     if (match.by.variable.names)
     {
-        match.percentage <- matchPercentage(candidate.names,
-                                            unique(nms),
-                                            ignore.case,
+        match.percentage <- matchPercentage(candidate.names, nms, ignore.case,
                                             ignore.special.characters)
         best.match.percentage <- max(match.percentage)
         if (best.match.percentage >= min.match.percentage)
@@ -856,16 +995,15 @@ findMatchingVariable <- function(nms, lbls,
 
             candidate.names <- candidate.names[arr.ind[, 1]]
             candidate.labels <- candidate.labels[arr.ind[, 1]]
+            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
         }
     }
 
     # Find fuzzy label match
-    if (match.by.variable.labels)
+    if (match.by.variable.labels && length(lbls) > 0)
     {
-        match.percentage <- matchPercentage(candidate.labels,
-                                            unique(lbls),
-                                            ignore.case,
-                                            ignore.special.characters)
+        match.percentage <- matchPercentage(candidate.labels, lbls,
+                                            ignore.case, FALSE)
         best.match.percentage <- max(match.percentage)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -880,6 +1018,31 @@ findMatchingVariable <- function(nms, lbls,
 
             candidate.names <- candidate.names[arr.ind[, 1]]
             candidate.labels <- candidate.labels[arr.ind[, 1]]
+            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
+        }
+    }
+
+    # Find fuzzy value label match
+    if (match.by.value.labels && length(val.attrs) > 0)
+    {
+        match.percentage <- matchPercentageValueAttributes(candidate.val.attrs,
+                                                           val.attrs,
+                                                           ignore.case)
+        best.match.percentage <- max(match.percentage)
+        if (best.match.percentage >= min.match.percentage)
+        {
+            arr.ind <- which(match.percentage == best.match.percentage,
+                             arr.ind = TRUE)
+            if (nrow(arr.ind) == 1)
+            {
+                result <- candidate.names[arr.ind[1, 1]]
+                attr(result, "is.fuzzy.match") <- !is.exact.match
+                return(result)
+            }
+
+            candidate.names <- candidate.names[arr.ind[, 1]]
+            candidate.labels <- candidate.labels[arr.ind[, 1]]
+            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
         }
     }
 
@@ -914,6 +1077,31 @@ matchPercentage <- function(strings.1, strings.2, ignore.case,
     nchar.2 <- matrix(rep(nchar(strings.2), each = length(strings.1)),
                       nrow = length(strings.1))
     100 * (1 - distances / (pmax(nchar.1, nchar.2)))
+}
+
+matchPercentageValueAttributes <- function(val.attrs.1, val.attrs.2,
+                                           ignore.case)
+{
+    result <- matrix(nrow = length(val.attrs.1), ncol = length(val.attrs.2))
+    for (i in seq_along(val.attrs.1))
+    {
+        for (j in seq_along(val.attrs.2))
+        {
+            val.attr.1 <- val.attrs.1[[i]]
+            val.attr.2 <- val.attrs.2[[j]]
+            if (is.null(val.attr.1) || is.null(val.attr.2))
+            {
+                result[i, j] <- 0
+                next
+            }
+            match.percentage <- matchPercentage(names(val.attr.1),
+                                                names(val.attr.2),
+                                                ignore.case, FALSE)
+            result[i, j] <- mean(c(mean(apply(match.percentage, 1, max)),
+                                   mean(apply(match.percentage, 2, max))))
+        }
+    }
+    result
 }
 
 # Remove special characters (@#_\$.) from variable names, except when the
@@ -1362,6 +1550,7 @@ combineCategoricalVariables <- function(var.list, data.sets,
         if (nrow(map) > 0)
             value.map[[i]] <- map
     }
+    attr(merged.val.attr, "map") <- NULL
 
     n.data.sets <- length(data.sets)
 
@@ -1765,6 +1954,11 @@ seqRow <- function(m)
         integer(0)
     else
         seq_len(nrow(m))
+}
+
+removeNULL <- function(x)
+{
+    x[!vapply(x, is.null, logical(1))]
 }
 
 #' @importFrom flipFormat DataSetMergingWidget
