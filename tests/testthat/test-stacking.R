@@ -9,8 +9,7 @@ findInstDirFile <- function(file)
 test_that("no stacking", {
     result <- StackData(findInstDirFile("Cola.sav"),
                         stack.with.common.labels = "Disabled")
-    expect_false(any(result$stacked.data.set.metadata$is.stacked.variable))
-    expect_equal(result$stacked.data.set.metadata$n.variables, 198)
+    expect_equal(result$stacked.data.set.metadata$n.variables, 0)
 })
 
 test_that("common label stacking", {
@@ -31,8 +30,6 @@ test_that("common label stacking", {
     expect_equal(c(result$stacked.data.set$Q1_),
                  c(rbind(input$Q1_F, input$Q1_E, input$Q1_D, input$Q1_C,
                          input$Q1_A, input$Q1_B, rep(NA, nrow(input)))))
-    expect_equal(as.numeric(result$stacked.data.set$Q2),
-                 as.numeric(rep(input$Q2, each = 7)))
     expect_equal(as.numeric(result$stacked.data.set$original_case), rep(1:327, each = 7))
     expect_equal(as.numeric(result$stacked.data.set$observation), rep(1:7, 327))
 
@@ -74,54 +71,6 @@ test_that("Multiple common labels", {
                  c("Q6_A", "Q6_B", "Q6_C", "Q6_D", "Q6_E", "Q6_F", NA))
     expect_equal(result$stacked.data.set.metadata$stacking.input.variable.names$Q9,
                  c("Q9_A", "Q9_B", "Q9_C", "Q9_D", "Q9_E", "Q9_F", NA))
-})
-
-test_that("omitted variables", {
-    result <- StackData(findInstDirFile("Cola.sav"),
-                        variables.to.omit = "Q2, Q4_A, Q9_*,-Progress, GZfrequentCola-,Q29-Q31")
-
-    omitted.variables <- c("URLID", "Type", "Progress", "Q2", "Q4_A", "Q9_A", "Q9_B",
-                           "Q9_C", "Q9_D", "Q9_E", "Q9_F", "Q29", "Q29_G_O", "Q30_A", "Q30_B",
-                           "Q30_C", "Q30_D", "Q30_E", "Q30_F", "Q30_G", "Q30_H", "Q31",
-                           "GZfrequentCola", "GZletters", "GZloopTextQ5", "GZrandomCola",
-                           "GZstatus", "GZtopPrefs")
-
-    expect_equal(result$omitted.variables, omitted.variables)
-    expect_true(!any(omitted.variables %in%
-                         result$stacked.data.set.metadata$variable.names))
-
-    result <- StackData(findInstDirFile("Cola.sav"),
-                        variables.to.omit = "Q2, Q4_A, Q9_,-Progress, GZfrequentCola-,Q29-Q31")
-
-    expect_equal(result$omitted.stacked.variables, "Q9_")
-    expect_true("Q9_" %in% result$omitted.variables)
-    expect_false("Q9_" %in% result$stacked.data.set.metadata$variable.names)
-
-    # variables.to.omit with multiple entries
-    result <- StackData(findInstDirFile("Cola.sav"),
-                        variables.to.omit = c("Q2, Q4_A", "Q9_*", "-Progress,
-                                              GZfrequentCola-","Q29-Q31"))
-    expect_equal(result$omitted.variables, omitted.variables)
-
-    expect_warning(StackData(findInstDirFile("Cola.sav"),
-                             variables.to.omit = "not_a_variable"),
-                   paste0("The omitted variable input variable name 'not_a_variable' ",
-                          "could not be identified. This input has been ignored."))
-
-    expect_warning(StackData(findInstDirFile("Cola.sav"),
-                             variables.to.omit = "not_*_variable"),
-                   paste0("No matches were found for the omitted variable ",
-                          "input wildcard name 'not_*_variable'. Ensure that ",
-                          "the wildcard variable name has been correctly ",
-                          "specified. This input has been ignored."),
-                   fixed = TRUE)
-
-    expect_warning(StackData(findInstDirFile("Cola.sav"),
-                             variables.to.omit = "not-range"),
-                   paste0("The start variable from the omitted variable ",
-                          "input range 'not-range' could not be identified. ",
-                          "The input range has been ignored. Ensure that the ",
-                          "variable name is correctly specified."))
 })
 
 test_that("manual stacking by variables", {
@@ -257,6 +206,19 @@ test_that("manual stacking by observations", {
                           "that overlap with another manual stacking input ",
                           "'Q6_A, Q9_A'."),
                    fixed = TRUE)
+})
+
+test_that("included non-stacked variables", {
+    result <- StackData(findInstDirFile("Cola.sav"),
+                        variables.to.include = "Q2,Q3",
+                        include.stacked.data.set.in.output = TRUE)
+    expect_equal(result$stacked.data.set.metadata$variable.names,
+                 c("Q1_", "Q2", "Q3", "Q5_5_", "Q5_7_", "Q5_13_", "Q5_16_", "Q5_17_",
+                   "Q5_19_", "Q5_23_", "Q5_25_", "Q5_31_", "Q6_", "Q9_",
+                   "original_case", "observation"))
+    input <- readDataSets(findInstDirFile("Cola.sav"))[[1]]
+    expect_equal(as.numeric(result$stacked.data.set$Q2),
+                 as.numeric(rep(input$Q2, each = 7)))
 })
 
 test_that("automaticCommonLabels", {
@@ -634,11 +596,6 @@ test_that("parseVariableName", {
                    paste0("The unit test input variable name 'BAD_VAR' could not be identified. ",
                           "Warning expected."))
     expect_equal(result, structure(character(0), is.not.found = TRUE))
-
-    # warning.if.not.found = FALSE
-    result <- parseVariableName("Q99", c("Q1", "Q2", "Q3"), "unit test",
-                                "No warning expected.", FALSE)
-    expect_equal(result, structure(character(0), is.not.found = TRUE))
 })
 
 test_that("parseVariableRange", {
@@ -678,11 +635,6 @@ test_that("parseVariableRange", {
                           "Ensure that the range has been correctly specified. ",
                           "Warning expected."))
     expect_equal(result, character(0))
-
-    # warning.if.not.found = FALSE
-    expect_equal(structure(character(0), is.not.found = TRUE),
-                 parseVariableRange("BAD_VAR-Q3", c("Q1", "Q2_A", "Q2_B", "Q3", "Q4"),
-                                    "unit test", "No warning expected.", FALSE))
 })
 
 test_that("parseVariableWildcard", {
@@ -699,10 +651,4 @@ test_that("parseVariableWildcard", {
                           "wildcard name 'BAD_*_VAR'. Ensure that the ",
                           "wildcard variable name has been correctly specified. ",
                           "Warning expected"), fixed = TRUE)
-
-    # warning.if.not.found = FALSE
-    expect_equal(structure(character(0), is.not.found = TRUE),
-                 parseVariableWildcard("BAD_*_VAR", c("Q1", "Q2_A_X", "Q2_A_Y",
-                                                      "Q2_B_X", "Q2_B_Y", "Q3"),
-                                                      "unit test", "Warning expected", FALSE), fixed = TRUE)
 })

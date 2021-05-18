@@ -49,10 +49,10 @@
 #'   The strings in both cases can be a combination of comma-separated names,
 #'   wildcards and ranges.
 #'   See \code{reference.variables.to.stack} for more details on the format.
-#' @param variables.to.omit Character vector of comma-separated names of
-#'   variables to omit. Each string can be a combination of comma-separated
-#'   names, wildcards and ranges. See \code{reference.variables.to.stack} for
-#'   more details on the format.
+#' @param variables.to.include Character vector of comma-separated names of
+#'   non-stacked variables to include. Each string can be a combination of
+#'   comma-separated names, wildcards and ranges.
+#'   See \code{reference.variables.to.stack} for more details on the format.
 #' @param include.stacked.data.set.in.output Whether to include the stacked
 #'   data set in the output object.
 #' @param include.original.case.variable Whether to include the \code{original_case}
@@ -66,9 +66,6 @@
 #'   \item \code{unstackable.names} A list of character vectors containing
 #'     names of the variables that could not be stacked using common labels due
 #'     to mismatching types or value attributes.
-#'   \item \code{omitted.variables} A character vector of omitted variable names.
-#'   \item \code{omitted.stacked.variables} A character vector of omitted
-#'     stacked variable names.
 #'   \item \code{common.labels.list} A list of character vectors containing
 #'     the common labels used in the stacking. The source of these common
 #'     labels depends on the parameter \code{stack.with.common.labels} and
@@ -85,11 +82,11 @@
 #'                 specify.by = "Variable",
 #'                 manual.stacking = c("Q6_*, NA", "Q9_A, Q9_B, Q9_C-Q9_F")))
 #'
-#' # Common labels from reference variables and omitted variables
+#' # Common labels from reference variables and included non-stacked variables
 #' print(StackData(path,
 #'                 stack.with.common.labels = "Using a set of variables to stack as reference",
 #'                 reference.variables.to.stack = c("Q5_5_*", "Q6_A-Q6_F"),
-#'                 variables.to.omit = c("Attr1, Q7_*", "FINISH_LATER-")))
+#'                 variables.to.include = c("Q2")))
 #'
 #' # Manually specified common labels and manual stacking by observation
 #' common.labels <- list(c("Coke", "Diet Coke", "Coke Zero", "Pepsi",
@@ -108,21 +105,13 @@ StackData <- function(input.data.set.name,
                       manual.common.labels = NULL,
                       specify.by = "Variable",
                       manual.stacking = NULL,
-                      variables.to.omit = NULL,
+                      variables.to.include = NULL,
                       include.stacked.data.set.in.output = FALSE,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
 {
     # Load input data set as data frame
     input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
-
-    # Omit specified variables from input data set
-    variables.to.omit <- splitVariablesToOmitText(variables.to.omit)
-    omitted.variables <- parseVariablesToOmit(variables.to.omit,
-                                              names(input.data.set),
-                                              FALSE)
-    input.data.set <- omitVariablesFromDataSet(input.data.set,
-                                               omitted.variables)
 
     # Create an object containing metadata on the input data set such as
     # variable names and labels which can be easily passed into function calls
@@ -147,21 +136,17 @@ StackData <- function(input.data.set.name,
     stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
                                                                manual.stacking.groups)
 
+    included.variable.names <- parseVariablesToInclude(variables.to.include,
+                                                       input.data.set.metadata,
+                                                       stacking.groups)
+
     # Create the stacked data set as a data frame from the stacking groups
     stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
                                        stacking.groups,
                                        include.original.case.variable,
                                        include.observation.variable,
-                                       common.labels.list)
-
-    # Omit stacked variables that have been specified to be omitted
-    omitted.variables <- parseVariablesToOmitAfterStacking(variables.to.omit,
-                                                           omitted.variables,
-                                                           stacked.data.set)
-    omitted.stacked.variables <- omittedStackedVariables(omitted.variables,
-                                                         stacked.data.set)
-    stacked.data.set <- omitVariablesFromDataSet(stacked.data.set,
-                                                 omitted.variables)
+                                       common.labels.list,
+                                       included.variable.names)
 
     stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
                                                      input.data.set.name)
@@ -175,8 +160,6 @@ StackData <- function(input.data.set.name,
     result <- list()
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
-    result$omitted.variables <- omitted.variables
-    result$omitted.stacked.variables <- omitted.stacked.variables
     result$common.labels.list <- common.labels.list
     result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
 
@@ -599,8 +582,8 @@ stackingGroupFromCommonLabels <- function(common.labels, v.names, v.labels)
         common.label.prefixes.suffixes[[i]] <- t(vapply(ind, function(j) {
             lbl <- v.labels[j]
             start.ind <- matches[[j]][1]
-            c(substr(lbl, 1, start.ind - 1),
-              substr(lbl, start.ind + nchar(common.lbl), nchar(lbl)))
+            c(trimws(substr(lbl, 1, start.ind - 1)),
+              trimws(substr(lbl, start.ind + nchar(common.lbl), nchar(lbl))))
         }, character(2)))
         match.ind[[i]] <- ind
     }
@@ -1045,94 +1028,141 @@ mergeCommonLabelAndManualStackingGroups <- function(common.label.stacking.groups
     stacking.groups
 }
 
+parseVariablesToInclude <- function(variables.to.include,
+                                    input.data.set.metadata,
+                                    stacking.groups)
+{
+    if (length(variables.to.include) == 0 || setequal(variables.to.include, ""))
+        return(character(0))
+
+    v.names <- input.data.set.metadata$variable.names
+    purpose <- "included variable"
+
+    result <- character(0)
+    for (i in seq_along(variables.to.include))
+    {
+        split.text <- trimws(strsplit(variables.to.include[i], ",")[[1]])
+        split.text <- split.text[split.text != ""]
+
+        for (t in split.text)
+        {
+            parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
+                parseVariableRange(t, v.names, purpose,
+                                   "The input range has been ignored.")
+            else if (grepl("*", t, fixed = TRUE)) # contains wildcard
+                parseVariableWildcard(t, v.names, purpose,
+                                      "This input has been ignored.")
+            else
+                parseVariableName(t, v.names, purpose,
+                                  "This input has been ignored.")
+
+            result <- c(result, parsed)
+        }
+    }
+
+    stacked.variable.names <- v.names[removeNA(c(stacking.groups))]
+    result[!(result %in% stacked.variable.names)]
+}
+
 # Constructs the stacked data set as a data frame from the input data set and
 # the stacking.groups matrix
 stackedDataSet <- function(input.data.set, input.data.set.metadata,
                            stacking.groups, include.original.case.variable,
                            include.observation.variable,
-                           common.labels.list)
+                           common.labels.list, included.variable.names)
 {
-    if (is.null(stacking.groups) || nrow(stacking.groups) == 0)
-    {
-        return(data.frame(lapply(input.data.set, function(v) {
-            attr(v, "is.stacked") <- FALSE
-            attr(v, "is.manually.stacked") <- NA
-            v
-        })))
-    }
-
     input.v.names <- input.data.set.metadata$variable.names
     input.v.labels <- input.data.set.metadata$variable.labels
-    retained.v.ind.in.input.data.set <- retainedVarIndicesInInputDataSet(stacking.groups,
-                                                                         input.data.set.metadata$n.variables)
-    stacked.v.ind.in.stacked.data.set <- stackedVarIndicesInStackedDataSet(stacking.groups,
-                                                                           retained.v.ind.in.input.data.set)
 
-    stacked.data.set.v.names <- stackedDataSetVariableNames(stacking.groups,
-                                                            input.v.names,
-                                                            retained.v.ind.in.input.data.set,
-                                                            stacked.v.ind.in.stacked.data.set)
-    stacked.data.set.v.labels <- stackedDataSetVariableLabels(stacking.groups,
-                                                              input.v.labels,
-                                                              retained.v.ind.in.input.data.set,
-                                                              stacked.v.ind.in.stacked.data.set,
-                                                              stacked.data.set.v.names)
+    has.stacking <- !is.null(stacking.groups) && nrow(stacking.groups) > 0
 
-    checkStackedDataSetSize(input.data.set, stacking.groups, stacked.v.ind.in.stacked.data.set,
-                            stacked.data.set.v.names)
+    if (has.stacking)
+    {
+        n.stacked <- ncol(stacking.groups)
+        first.ind <- apply(stacking.groups, 1, function(rw) removeNA(rw)[1])
+        is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
+    }
+    else
+        first.ind <- integer(0)
 
-    n.stacked <- ncol(stacking.groups)
-    is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
-    stacked.data.set <- data.frame(lapply(seq_along(stacked.data.set.v.names), function(i) {
-        ind <- match(i, stacked.v.ind.in.stacked.data.set)
-        if (!is.na(ind)) # Stacked variable
+    stacked.data.set <- list()
+    for (i in seq_along(input.v.names))
+    {
+        ind <- match(i, first.ind)
+        if (!is.na(ind))
         {
             group.ind <- stacking.groups[ind, ]
             v <- unlist(lapply(group.ind, function(j) {
-                if (!is.na(j))
+                vals <- if (!is.na(j))
                     input.data.set[[j]]
                 else
                     rep(NA, nrow(input.data.set))
+                if (isIntegerValued(vals))
+                    as.integer(vals)
+                else
+                    vals
             }))
-            v <- c(t(matrix(v, nrow = nrow(input.data.set))))
+            nm <- stackedVariableName(group.ind, input.v.names, names(stacked.data.set))
+            v <- c(matrix(v, ncol = nrow(input.data.set), byrow = TRUE))
             attr(v, "is.stacked") <- TRUE
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
             attr(v, "stacking.input.variable.labels") <- input.v.labels[group.ind]
+            attr(v, "label") <- stackedVariableLabel(group.ind, input.v.labels, nm)
             val.attr <- attr(input.data.set[[removeNA(group.ind)[1]]],
                              "labels", exact = TRUE)
+            if (!is.null(val.attr))
+            {
+                if (is.integer(v))
+                {
+                    nms <- names(val.attr)
+                    val.attr <- as.integer(val.attr)
+                    names(val.attr) <- nms
+                }
+                attr(v, "labels") <- val.attr
+                class(v) <- c(class(v), "haven_labelled")
+            }
+
+            stacked.data.set[[nm]] <- v
         }
-        else # Not stacked variable
+        else if (input.v.names[i] %in% included.variable.names)
         {
-            input.var <- input.data.set[[stacked.data.set.v.names[i]]]
+            input.var <- input.data.set[[i]]
+            if (isIntegerValued(input.var))
+                input.var <- as.integer(input.var)
             v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
+            attr(v, "label") <- input.v.labels[i]
             val.attr <- attr(input.var, "labels", exact = TRUE)
+            if (!is.null(val.attr))
+            {
+                if (is.integer(v))
+                {
+                    nms <- names(val.attr)
+                    val.attr <- as.integer(val.attr)
+                    names(val.attr) <- nms
+                }
+                attr(v, "labels") <- val.attr
+                class(v) <- c(class(v), "haven_labelled")
+            }
+            nm <- uniqueName(input.v.names[i], names(stacked.data.set))
+            stacked.data.set[[nm]] <- v
         }
-        attr(v, "label") <- stacked.data.set.v.labels[i]
-        if (!is.null(val.attr))
-        {
-            attr(v, "labels") <- val.attr
-            class(v) <- c(class(v), "haven_labelled")
-        }
-        v
-    }))
+    }
 
-    names(stacked.data.set) <- c(stacked.data.set.v.names)
-
-    if (include.original.case.variable)
+    if (include.original.case.variable && has.stacking)
     {
         original.case <- rep(seq_len(nrow(input.data.set)), each = n.stacked)
-        attr(original.case, "label") <- "Original case number (pre stacking)"
+        attr(original.case, "label") <- "Original case number (pre-stacking)"
         attr(original.case, "is.stacked") <- FALSE
         attr(original.case, "is.manually.stacked") <- NA
         attr(original.case, "is.original.case") <- TRUE
         stacked.data.set[[uniqueName("original_case",
-                                     stacked.data.set.v.names)]] <- original.case
+                                     names(stacked.data.set))]] <- original.case
     }
 
-    if (include.observation.variable)
+    if (include.observation.variable && has.stacking)
     {
         observation <- rep(seq_len(n.stacked), nrow(input.data.set))
         attr(observation, "label") <- "Observation # (from stacking)"
@@ -1150,17 +1180,28 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         attr(observation, "is.observation") <- TRUE
 
         stacked.data.set[[uniqueName("observation",
-                                     stacked.data.set.v.names)]] <- observation
+                                     names(stacked.data.set))]] <- observation
     }
 
-    stacked.data.set
+    data.frame(stacked.data.set)
+}
+
+isIntegerValued <- function(x)
+{
+    if (is.numeric(x))
+    {
+        x.without.na <- removeNA(x)
+        all(floor(x.without.na) == x.without.na)
+    }
+    else
+        FALSE
 }
 
 #' @importFrom utils object.size
 checkStackedDataSetSize <- function(input.data.set, stacking.groups,
                                     stacked.v.ind.in.stacked.data.set,
                                     stacked.data.set.v.names,
-                                    common.labels)
+                                    common.labels.list)
 {
     n.stacked <- ncol(stacking.groups)
 
@@ -1179,84 +1220,43 @@ checkStackedDataSetSize <- function(input.data.set, stacking.groups,
     # May have to lower this if we find that users still get memory errors.
     if (sum(v.sizes) > 4 * 1e9)
     {
-        msg <- paste0("The stacked data set is too large to create. Omit unnecessary ",
-                      "variables to reduce its size.")
-        if (!is.null(common.labels))
+        msg <- paste0("The stacked data set is too large to create. ",
+                      "Consider reducing the number of variables in the stacked data set.")
+        if (!is.null(common.labels.list))
             msg <- paste0(msg, " Also ensure that the common labels are ",
                           "appropriate: ",
-                          paste0(common.labels, collapse = ", "), ".")
+                          paste0(unlist(common.labels.list), collapse = ", "), ".")
         stop(msg)
     }
 }
 
-# Indices of input variables retained after stacking
-retainedVarIndicesInInputDataSet <- function(stacking.groups, n.vars)
+stackedVariableName <- function(group.ind, input.variable.names, taken.names)
 {
-    ind.to.remove <- unlist(lapply(seq_len(nrow(stacking.groups)), function(i) {
-        ind <- removeNA(stacking.groups[i, ])
-        ind <- ind[-which.min(ind)]
-    }))
-    seq_len(n.vars)[-ind.to.remove]
+    ind <- removeNA(group.ind)
+    nm <- input.variable.names[ind]
+    common.prefix <- trimws(getCommonPrefix(nm))
+    common.suffix <- trimws(getCommonSuffix(nm))
+    candidate <- trimws(paste0(common.prefix, common.suffix))
+    if (candidate != "")
+        candidate
+    else
+        "stacked_var"
+
+    uniqueName(candidate, taken.names, "_")
 }
 
-# Indices of stacked variables in stacked data set
-stackedVarIndicesInStackedDataSet <- function(stacking.groups,
-                                           retained.v.ind.in.input.data.set)
+stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.variable.name)
 {
-    first.ind <- apply(stacking.groups, 1, function(group.ind) {
-        ind <- removeNA(group.ind)
-        ind[which.min(ind)]
-    })
-
-    vapply(first.ind, match, integer(1), retained.v.ind.in.input.data.set)
-}
-
-stackedDataSetVariableNames <- function(stacking.groups, input.variable.names,
-                                        retained.v.ind.in.input.data.set,
-                                        stacked.v.ind.in.stacked.data.set)
-{
-    result <- input.variable.names[retained.v.ind.in.input.data.set]
-    result[stacked.v.ind.in.stacked.data.set] <- apply(stacking.groups, 1, function(group.ind) {
-        ind <- removeNA(group.ind)
-        nm <- input.variable.names[ind]
-        common.prefix <- trimws(getCommonPrefix(nm))
-        common.suffix <- trimws(getCommonSuffix(nm))
-        candidate <- trimws(paste0(common.prefix, common.suffix))
-        if (candidate != "")
-            candidate
-        else
-            "stacked_var"
-    })
-
-    dup <- which(duplicated(result))
-    for (i in dup)
-        result[i] <- uniqueName(result[i], result[-i], "_")
-
-    result
-}
-
-stackedDataSetVariableLabels <- function(stacking.groups,
-                                         input.variable.labels,
-                                         retained.v.ind.in.input.data.set,
-                                         stacked.v.ind.in.stacked.data.set,
-                                         stacked.data.set.variable.names)
-{
-    result <- input.variable.labels[retained.v.ind.in.input.data.set]
-    result[stacked.v.ind.in.stacked.data.set] <- apply(stacking.groups, 1, function(group.ind) {
-        ind <- removeNA(group.ind)
-        lbl <- input.variable.labels[ind]
-        common.prefix <- trimws(getCommonPrefix(lbl))
-        common.suffix <- trimws(getCommonSuffix(lbl))
-        if (common.prefix == "" && common.suffix == "")
-            NA_character_
-        else if (common.prefix == common.suffix)
-            common.prefix
-        else
-            trimws(paste(common.prefix, common.suffix))
-    })
-    require.label <- is.na(result)
-    result[require.label] <- stacked.data.set.variable.names[require.label]
-    result
+    ind <- removeNA(group.ind)
+    lbl <- input.variable.labels[ind]
+    common.prefix <- trimws(getCommonPrefix(lbl))
+    common.suffix <- trimws(getCommonSuffix(lbl))
+    if (common.prefix == "" && common.suffix == "")
+        stacked.variable.name
+    else if (common.prefix == common.suffix)
+        common.prefix
+    else
+        trimws(paste(common.prefix, common.suffix))
 }
 
 # Creates a name from new.name that does not exist in existing.names by
@@ -1359,101 +1359,10 @@ getCommonSuffix <- function(nms, whole.words = FALSE)
         common_suffix
 }
 
-# Splits user-input text for variables to omit by commas
-splitVariablesToOmitText <- function(variables.to.omit)
-{
-    if (is.null(variables.to.omit) || length(variables.to.omit) == 0 ||
-        setequal(variables.to.omit, ""))
-        return(character(0))
-
-    unlist(lapply(variables.to.omit, splitByComma))
-}
-
-# Variable names from a data set that can be omitted, i.e., all variable names
-# except original_case and observation variables
-omittableNames <- function(data.set)
-{
-    is.omittable <- vapply(data.set, function(v) {
-        is.original.case <- attr(v, "is.original.case")
-        is.observation <- attr(v, "is.observation")
-        (is.null(is.original.case) || !is.original.case) &&
-            (is.null(is.observation) || !is.observation)
-    }, logical(1))
-    names(data.set)[is.omittable]
-}
-
-# Parses user-input variables to omit which is a character vector,
-# i.e., the variables to omit can be specified over one or more strings.
-parseVariablesToOmit <- function(variables.to.omit, variable.names,
-                                 warning.if.not.found)
-{
-    if (length(variables.to.omit) == 0)
-        return(character(0))
-
-    if (length(warning.if.not.found) == 1)
-        warning.if.not.found <- rep(warning.if.not.found, length(variables.to.omit))
-
-    purpose <- "omitted variable"
-
-    parse.status <- character(length(variables.to.omit))
-
-    result <- character(0)
-    for (i in seq_along(variables.to.omit))
-    {
-        t <- variables.to.omit[i]
-        parsed <- if (grepl("-", t, fixed = TRUE)) # contains range
-            parseVariableRange(t, variable.names, purpose,
-                               "The input range has been ignored.",
-                               warning.if.not.found[i])
-        else if (grepl("*", t, fixed = TRUE)) # contains wildcard
-            parseVariableWildcard(t, variable.names, purpose,
-                                  "This input has been ignored.",
-                                  warning.if.not.found[i])
-        else
-            parseVariableName(t, variable.names, purpose,
-                              "This input has been ignored.",
-                              warning.if.not.found[i])
-
-        result <- c(result, parsed)
-        if (length(parsed) > 0)
-            parse.status[i] <- "parsed"
-        else
-        {
-            is.not.found <- !is.null(attr(parsed, "is.not.found")) &&
-                            attr(parsed, "is.not.found")
-            if (is.not.found)
-                parse.status[i] <- "variable(s) not found"
-            else
-                parse.status[i] <- "bad format"
-        }
-    }
-
-    # Order omitted variables according to variable.names
-    result <- result[order(vapply(result, match, integer(1), variable.names))]
-    attr(result, "parse.status") <- parse.status
-    result
-}
-
-parseVariablesToOmitAfterStacking <- function(variables.to.omit,
-                                              omitted.variables,
-                                              stacked.data.set)
-{
-    parse.status <- attr(omitted.variables, "parse.status")
-    variables.to.omit <- variables.to.omit[parse.status != "bad format"]
-    omittable.names <- omittableNames(stacked.data.set)
-    warning.if.not.found <- parse.status[parse.status != "bad format"] ==
-                            "variable(s) not found"
-
-    c(omitted.variables,
-      parseVariablesToOmit(variables.to.omit,
-                           omittable.names,
-                           warning.if.not.found))
-}
-
 # Parses a user-input variable range
 # See unit tests for parseVariableRange in test-stacking.R
 parseVariableRange <- function(range.text, variable.names, purpose,
-                               on.fail.msg, warning.if.not.found = TRUE)
+                               on.fail.msg)
 {
     dash.ind <- match("-", strsplit(range.text, "")[[1]])
     start.var.text <- trimws(substr(range.text, 1, dash.ind - 1))
@@ -1487,24 +1396,18 @@ parseVariableRange <- function(range.text, variable.names, purpose,
 
     if (is.na(start.ind))
     {
-        if (warning.if.not.found)
-        {
-            warning("The start variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ", on.fail.msg,
-                    " Ensure that the variable name is correctly specified.")
-        }
+        warning("The start variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ", on.fail.msg,
+                " Ensure that the variable name is correctly specified.")
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
     }
     if (is.na(end.ind))
     {
-        if (warning.if.not.found)
-        {
-            warning("The end variable from the ", purpose, " input range '",
-                    range.text, "' ", "could not be identified. ", on.fail.msg,
-                    " Ensure that the variable name is correctly specified.")
-        }
+        warning("The end variable from the ", purpose, " input range '",
+                range.text, "' ", "could not be identified. ", on.fail.msg,
+                " Ensure that the variable name is correctly specified.")
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
@@ -1525,7 +1428,7 @@ parseVariableRange <- function(range.text, variable.names, purpose,
 # See unit tests for parseVariableWildcard in test-stacking.R
 #' @importFrom flipU EscapeRegexSymbols
 parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
-                                  on.fail.msg, warning.if.not.found = TRUE)
+                                  on.fail.msg)
 {
     ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
     start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
@@ -1536,11 +1439,10 @@ parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
     is.match <- grepl(pattern, variable.names)
     if (!any(is.match))
     {
-        if (warning.if.not.found)
-            warning("No matches were found for the ", purpose,
-                    " input wildcard name '", wildcard.text,
-                    "'. Ensure that the wildcard variable name has been correctly specified. ",
-                    on.fail.msg)
+        warning("No matches were found for the ", purpose,
+                " input wildcard name '", wildcard.text,
+                "'. Ensure that the wildcard variable name has been correctly specified. ",
+                on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
@@ -1551,33 +1453,18 @@ parseVariableWildcard <- function(wildcard.text, variable.names, purpose,
 # Parses a user-input variable name
 # See unit tests for parseVariableName in test-stacking.R
 parseVariableName <- function(variable.name.text, variable.names, purpose,
-                              on.fail.msg, warning.if.not.found = TRUE)
+                              on.fail.msg)
 {
     if (variable.name.text %in% variable.names)
         variable.name.text
     else
     {
-        if (warning.if.not.found)
-            warning("The ", purpose, " input variable name '", variable.name.text,
-                    "' could not be identified. ", on.fail.msg)
+        warning("The ", purpose, " input variable name '", variable.name.text,
+                "' could not be identified. ", on.fail.msg)
         result <- character(0)
         attr(result, "is.not.found") <- TRUE
         return(result)
     }
-}
-
-# Returns the names of the variables which will be omitted
-omitVariablesFromDataSet <- function(data.set, variables.to.omit)
-{
-    data.set[!(names(data.set) %in% variables.to.omit)]
-}
-
-# Returns the names of the stacked variables which will be omitted
-omittedStackedVariables <- function(variables.to.omit, stacked.data.set)
-{
-    is.stacked <- vapply(stacked.data.set, attr, logical(1),
-                         "is.stacked")[variables.to.omit]
-    variables.to.omit[!is.na(is.stacked) & is.stacked]
 }
 
 # Cleans a user-input data set name or creates one from the input data set name
@@ -1686,8 +1573,6 @@ print.StackedData <- function(x, ...)
 {
     StackingWidget(x$stacked.data.set.metadata,
                    x$unstackable.names,
-                   x$omitted.variables,
-                   x$omitted.stacked.variables,
                    x$common.labels,
                    x$is.saved.to.cloud)
 }
