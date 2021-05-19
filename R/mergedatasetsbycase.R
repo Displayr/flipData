@@ -132,8 +132,6 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 
-# Converting numeric to date/time based on magnitude of numbers
-
 metadataFromDataSets <- function(data.sets)
 {
     list(variable.names = lapply(data.sets, names),
@@ -232,20 +230,15 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                     val.attrs <- rev(val.attrs)
                 }
 
-                is.combinable <- vapply(remaining.names[[j]],
-                                        isVariableCombinableIntoRow,
-                                        logical(1), j, matched.names[i, ],
-                                        v.names.to.not.combine)
-                candidate.names <- remaining.names[[j]][is.combinable]
-                candidate.labels <- remaining.labels[[j]][is.combinable]
-                candidate.val.attrs <- remaining.val.attrs[[j]][is.combinable]
+                candidates <- candidateMetadata(remaining.names,
+                                                remaining.labels,
+                                                remaining.val.attrs,
+                                                j, matched.names[i, ],
+                                                v.names.to.not.combine)
 
                 matching.name <- findMatchingVariable(nms, lbls, val.attrs,
-                                                      candidate.names,
-                                                      candidate.labels,
-                                                      candidate.val.attrs,
+                                                      candidates,
                                                       match.parameters)
-
                 if (!is.na(matching.name))
                 {
                     matched.names[i, j] <- matching.name
@@ -275,35 +268,24 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
         for (j in seq_along(nms))
         {
             new.row <- rep(NA_character_, n.data.sets)
-            new.row.labels <- rep(NA_character_, n.data.sets)
             is.fuzzy.match.new.row <- rep(FALSE, n.data.sets)
-
             new.row[i] <- nms[j]
             new.row.names <- nms[j]
             new.row.labels <- removeNA(lbls[j])
             new.row.val.attrs <- removeNULL(val.attrs[j])
             for (k in other.data.set.ind)
             {
-                is.combinable <- vapply(remaining.names[[k]],
-                                        isVariableCombinableIntoRow,
-                                        logical(1), k, new.row,
-                                        v.names.to.not.combine)
-
-                if (!any(is.combinable))
-                    next
-
-                candidate.names <- remaining.names[[k]][is.combinable]
-                candidate.labels <- remaining.labels[[k]][is.combinable]
-                candidate.val.attrs <- remaining.val.attrs[[k]][is.combinable]
+                candidates <- candidateMetadata(remaining.names,
+                                                remaining.labels,
+                                                remaining.val.attrs,
+                                                k, new.row,
+                                                v.names.to.not.combine)
 
                 matching.name <- findMatchingVariable(new.row.names,
                                                       new.row.labels,
                                                       new.row.val.attrs,
-                                                      candidate.names,
-                                                      candidate.labels,
-                                                      candidate.val.attrs,
+                                                      candidates,
                                                       match.parameters)
-
                 if (!is.na(matching.name))
                 {
                     matching.ind <- match(matching.name, remaining.names[[k]])
@@ -316,7 +298,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                         new.row.labels <- c(new.row.labels, matching.label)
 
                     matching.val.attr <- remaining.val.attrs[[k]][matching.ind]
-                    if (!is.null(matching.val.attr) && !(matching.val.attr %in% new.row.val.attrs))
+                    if (!is.null(matching.val.attr[[1]]) && !(matching.val.attr %in% new.row.val.attrs))
                         new.row.val.attrs <- c(new.row.val.attrs, matching.val.attr)
 
                     remaining.names[[k]] <- remaining.names[[k]][-matching.ind]
@@ -882,12 +864,28 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
              "the 2nd input data set.")
 }
 
-findMatchingVariable <- function(nms, lbls, val.attrs,
-                                 candidate.names,
-                                 candidate.labels,
-                                 candidate.val.attrs,
+candidateMetadata <- function(remaining.names,
+                              remaining.labels,
+                              remaining.val.attrs,
+                              data.set.ind, row.of.variables,
+                              v.names.to.not.combine)
+{
+    is.combinable <- vapply(remaining.names[[data.set.ind]],
+                            isVariableCombinableIntoRow,
+                            logical(1), data.set.ind, row.of.variables,
+                            v.names.to.not.combine)
+    list(names = remaining.names[[data.set.ind]][is.combinable],
+         labels = remaining.labels[[data.set.ind]][is.combinable],
+         val.attrs = remaining.val.attrs[[data.set.ind]][is.combinable])
+}
+
+findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
                                  match.parameters)
 {
+    candidate.names <- candidates$names
+    candidate.labels <- candidates$labels
+    candidate.val.attrs <- candidates$val.attrs
+
     match.by.variable.names <- match.parameters$match.by.variable.names
     match.by.variable.labels <- match.parameters$match.by.variable.labels
     match.by.value.labels <- match.parameters$match.by.value.labels
@@ -1170,24 +1168,37 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
         {
             merge.ind <- integer(0)
 
-            # Text to Date/Time if possible
-            if (any(v.types %in% "Date/Time") && any(v.types %in% "Text"))
+            # Text and Numeric to Date/Time if possible
+            if (any(v.types %in% "Date/Time") && any(v.types %in% c("Text", "Numeric")))
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
                     isParsableAsDateTime(var.list[[j]])
                 }, logical(1))]
+
+                num.ind <- ind[v.types == "Numeric"]
+                convertible.ind <- num.ind[vapply(num.ind, function(j) {
+                  isConvertibleToDateTime(var.list[[j]])
+                }, logical(1))]
+
                 merge.ind <- c(ind[v.types %in% c("Date", "Date/Time")],
-                               parsable.ind)
+                               parsable.ind, convertible.ind)
             }
-            # Text to Date if possible
-            else if (any(v.types %in% "Date") && any(v.types %in% "Text"))
+            # Text and Numeric to Date if possible
+            else if (any(v.types %in% "Date") && any(v.types %in% c("Text", "Numeric")))
             {
                 text.ind <- ind[v.types == "Text"]
                 parsable.ind <- text.ind[vapply(text.ind, function(j) {
                     isParsableAsDate(var.list[[j]])
                 }, logical(1))]
-                merge.ind <- c(ind[v.types == "Date"], parsable.ind)
+
+                num.ind <- ind[v.types == "Numeric"]
+                convertible.ind <- num.ind[vapply(num.ind, function(j) {
+                  isConvertibleToDate(var.list[[j]])
+                }, logical(1))]
+
+                merge.ind <- c(ind[v.types == "Date"], parsable.ind,
+                               convertible.ind)
             }
             # Text to Duration if possible
             else if (any(v.types %in% "Duration") && any(v.types %in% "Text"))
@@ -1298,6 +1309,20 @@ isParsableAsDiffTime <- function(text)
 {
     missing.ind <- isMissingValue(text)
     all(!is.na(as.difftime(text[!missing.ind])))
+}
+
+isConvertibleToDateTime <- function(num)
+{
+    missing.ind <- is.na(num)
+    # seconds from 1970/1/1 between years 2000 and 2050
+    num[!missing.ind] >= 946684800 && num[!missing.ind] <= 2524608000
+}
+
+isConvertibleToDate <- function(num)
+{
+    missing.ind <- is.na(num)
+    # days from 1970/1/1 between years 2000 and 2050
+    num[!missing.ind] >= 10957 && num[!missing.ind] <= 29220
 }
 
 mergedVariableNames <- function(matched.names, prioritize.early.data.sets)
@@ -1786,12 +1811,15 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     merged.val.attr
 }
 
+#' @importFrom lubridate as_date as_datetime
 combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 {
     n.data.sets <- length(data.sets)
 
-    .combineVar <- function(parser, as.date.time = FALSE)
+    .combineVar <- function(parser)
     {
+        parser.name <- as.character(sys.call()[2])
+
         result <- NULL
         for (i in seq_len(n.data.sets))
         {
@@ -1805,7 +1833,21 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
                 parsed[!missing.ind] <- parser(v[!missing.ind])
                 parsed
             }
-            else if (as.date.time && v.types[i] == "Date")
+            else if (v.types[i] == "Numeric" && parser.name == "AsDateTime")
+            {
+                missing.ind <- is.na(v)
+                converted <- parser(rep(NA_character_, length(v)))
+                converted[!missing.ind] <- as_datetime(v[!missing.ind])
+                converted
+            }
+            else if (v.types[i] == "Numeric" && parser.name == "AsDate")
+            {
+                missing.ind <- is.na(v)
+                converted <- parser(rep(NA_character_, length(v)))
+                converted[!missing.ind] <- as_date(v[!missing.ind])
+                converted
+            }
+            else if (v.types[i] == "Date" && parser.name == "AsDateTime")
                 parser(as.character(v))
             else
                 v
@@ -1822,11 +1864,17 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
 
     if (setequal(unique.v.types, c("Date/Time")) ||
         setequal(unique.v.types, c("Date/Time", "Text")) ||
-        setequal(unique.v.types, c("Date", "Date/Time", "Text")) ||
-        setequal(unique.v.types, c("Date", "Date/Time")))
+        setequal(unique.v.types, c("Date/Time", "Date")) ||
+        setequal(unique.v.types, c("Date/Time", "Numeric")) ||
+        setequal(unique.v.types, c("Date/Time", "Text", "Date")) ||
+        setequal(unique.v.types, c("Date/Time", "Text", "Numeric")) ||
+        setequal(unique.v.types, c("Date/Time", "Date", "Numeric")) ||
+        setequal(unique.v.types, c("Date/Time", "Text", "Date", "Numeric")))
         .combineVar(AsDateTime, as.date.time = TRUE)
     else if (setequal(unique.v.types, c("Date")) ||
-             setequal(unique.v.types, c("Date", "Text")))
+             setequal(unique.v.types, c("Date", "Text")) ||
+             setequal(unique.v.types, c("Date", "Numeric")) ||
+             setequal(unique.v.types, c("Date", "Text", "Numeric")))
         .combineVar(AsDate)
     else if (setequal(unique.v.types, c("Duration")) ||
              setequal(unique.v.types, c("Duration", "Text")))
