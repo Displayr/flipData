@@ -87,8 +87,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                 variables.to.not.combine = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
+                                when.multiple.labels.for.one.value = "Use one of the labels",
                                 use.names.and.labels.from = "First data set",
-                                use.first.value.label = TRUE,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
 {
@@ -115,7 +115,7 @@ MergeDataSetsByCase <- function(data.set.names,
     merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
                                      use.names.and.labels.from,
                                      input.data.sets.metadata$data.set.names,
-                                     use.first.value.label,
+                                     when.multiple.labels.for.one.value,
                                      min.value.label.match.percentage)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
@@ -1469,7 +1469,7 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
 
 mergedDataSet <- function(data.sets, matched.names, merged.names,
                           use.names.and.labels.from, data.set.names,
-                          use.first.value.label,
+                          when.multiple.labels.for.one.value,
                           min.value.label.match.percentage)
 {
     n.vars <- nrow(matched.names)
@@ -1478,7 +1478,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
         compositeVariable(matched.names[i, ], data.sets,
                           use.names.and.labels.from,
-                          use.first.value.label,
+                          when.multiple.labels.for.one.value,
                           min.value.label.match.percentage)
     }))
 
@@ -1494,7 +1494,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 # composite variable
 compositeVariable <- function(variable.names, data.sets,
                               use.names.and.labels.from,
-                              use.first.value.label,
+                              when.multiple.labels.for.one.value,
                               min.value.label.match.percentage)
 {
     if (!is.na(variable.names[1]) && variable.names[1] == "Q1_US")
@@ -1514,7 +1514,7 @@ compositeVariable <- function(variable.names, data.sets,
     result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
         combineCategoricalVariables(var.list, data.sets,
                                     use.names.and.labels.from, v.types,
-                                    use.first.value.label,
+                                    when.multiple.labels.for.one.value,
                                     min.value.label.match.percentage)
     else
         combineNonCategoricalVariables(var.list, data.sets, v.types)
@@ -1528,7 +1528,7 @@ compositeVariable <- function(variable.names, data.sets,
 
 combineCategoricalVariables <- function(var.list, data.sets,
                                         use.names.and.labels.from, v.types,
-                                        use.first.value.label,
+                                        when.multiple.labels.for.one.value,
                                         min.value.label.match.percentage)
 {
     is.string.values <- "Categorical with string values" %in% v.types
@@ -1569,7 +1569,7 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             val <- labelValue(val.attr, lbl)
             merged.val.attr <- mergeValueAttribute(val, lbl, merged.val.attr, map,
-                                                   use.first.value.label,
+                                                   when.multiple.labels.for.one.value,
                                                    min.value.label.match.percentage)
             map <- attr(merged.val.attr, "map")
         }
@@ -1745,7 +1745,7 @@ labelValue <- function(val.attr, label)
 # Merge value attribute (value and label) into merged.val.attr
 #' @importFrom stringdist stringdist
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
-                                use.first.value.label,
+                                when.multiple.labels.for.one.value,
                                 min.value.label.match.percentage)
 {
     if (lbl %in% names(merged.val.attr))
@@ -1781,7 +1781,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                 # labels are similar for the same value so we assume they are the same,
                 # no action required as the value is already in merged.val.attr
             }
-            else if (!use.first.value.label)
+            else if (when.multiple.labels.for.one.value == "Create new values for the labels")
             {
                 new.value <- if (is.numeric(merged.val.attr)) # create new numeric value for label
                     ceiling(max(merged.val.attr)) + 1
