@@ -11,6 +11,8 @@ MergeDataSetsByCase(
   match.by.variable.names = TRUE,
   match.by.variable.labels = TRUE,
   match.by.value.labels = TRUE,
+  ignore.case = TRUE,
+  ignore.special.characters = TRUE,
   min.match.percentage = 100,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
@@ -18,10 +20,8 @@ MergeDataSetsByCase(
   include.merged.data.set.in.output = FALSE,
   prioritize.early.data.sets = TRUE,
   use.first.value.label = TRUE,
-  ignore.case = TRUE,
-  ignore.special.characters = TRUE,
   data.sets.whose.variables.are.kept = seq_along(data.set.names),
-  required.data.sets = NULL
+  min.value.label.match.percentage = 90
 )
 }
 \arguments{
@@ -45,6 +45,13 @@ by setting the flags \code{match.by.variable.names},
 
 \item{match.by.value.labels}{Whether to match using value labels of
 categorical variables.}
+
+\item{ignore.case}{Ignore case when matching variable names.}
+
+\item{ignore.special.characters}{Ignore special characters in variable names
+except when digit characters appear both before and after special characters,
+e.g., Q2__3, in which case all but the first special character is ignored,
+i.e., Q2__3 is equivalent to Q2_3.}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
@@ -75,16 +82,13 @@ there are multiple labels for the same value. Otherwise new values are
 created for each label. If \code{prioritize.early.data.sets} is FALSE, the
 last label is used instead of the first label.}
 
-\item{ignore.case}{Ignore case when matching variable names.}
-
-\item{ignore.special.characters}{Ignore special characters in variable names
-except when digit characters appear both before and after special characters,
-e.g., Q2__3, in which case all but the first special character is ignored,
-i.e., Q2__3 is equivalent to Q2_3.}
-
 \item{data.sets.whose.variables.are.kept}{An integer vector of indices of data
 sets whose variables are to be kept. Any variable not in these data sets
 will not be included in the merged data set.}
+
+\item{min.value.label.match.percentage}{The minimum percentage match for
+value labels to be considered the same when combining value attributes
+from different variables.}
 }
 \value{
 A list with the following elements:

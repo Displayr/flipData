@@ -1536,16 +1536,14 @@ variableType <- function(variable)
         "Numeric"
     else if (is.character(variable))
         "Text"
-    else if (inherits(variable, "POSIXct") ||
-             inherits(variable, "POSIXt") ||
-             inherits(variable, "Date"))
+    else if (inherits(variable, "Date"))
+        "Date"
+    else if (inherits(variable, "POSIXct"))
         "Date/Time"
     else if (inherits(variable, "difftime"))
         "Duration"
     else
-    {
         stop("Variable type not recognised")
-    }
 }
 
 # Whether all elements in a vector are identical

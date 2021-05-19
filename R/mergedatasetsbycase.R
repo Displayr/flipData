@@ -47,6 +47,10 @@
 #' @param data.sets.whose.variables.are.kept An integer vector of indices of data
 #'  sets whose variables are to be kept. Any variable not in these data sets
 #'  will not be included in the merged data set.
+#' @param min.value.label.match.percentage The minimum percentage match for
+#'  value labels to be considered the same when combining value attributes
+#'  from different variables.
+#'
 #' @return A list with the following elements:
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
@@ -86,7 +90,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 prioritize.early.data.sets = TRUE,
                                 use.first.value.label = TRUE,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
-                                required.data.sets = NULL)
+                                min.value.label.match.percentage = 90)
 {
     data.sets <- readDataSets(data.set.names, 2)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
@@ -109,9 +113,10 @@ MergeDataSetsByCase <- function(data.set.names,
     merged.names <- mergedVariableNames(matched.names,
                                         prioritize.early.data.sets)
     merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
-                                      prioritize.early.data.sets,
-                                      input.data.sets.metadata$data.set.names,
-                                      use.first.value.label)
+                                     prioritize.early.data.sets,
+                                     input.data.sets.metadata$data.set.names,
+                                     use.first.value.label,
+                                     min.value.label.match.percentage)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
@@ -123,24 +128,11 @@ MergeDataSetsByCase <- function(data.set.names,
                                  merged.data.set.name)
 }
 
-# Fuzzy matching:
-# Start with last data set first perform exact match against second last data set.
-# For the remaining labels, compute relative distances (0-1) for all possible pairs
-# and match if threshold is met, starting from best matches
-# Repeat for third last data set etc.
-
 # TODO
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 
-# Smarter merging of categories where labels are 'close'
-
-# Deal with case when value and label match differently, e.g. 2013 Q1 and Q2, Q1_CA with 80% tolerance
-# A value cannot be mapped twice?
-
 # Converting numeric to date/time based on magnitude of numbers
-
-# replace variableType in stacking with variableType2
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -158,7 +150,7 @@ metadataFromDataSets <- function(data.sets)
              lapply(data.set, attr, "labels", exact = TRUE)
          }),
          variable.types = lapply(data.sets, function(data.set) {
-             vapply(data.set, variableType2, character(1))
+             vapply(data.set, variableType, character(1))
          }),
          data.set.names = names(data.sets),
          n.data.sets = length(data.sets))
@@ -268,11 +260,10 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
         }
     }
 
+    d.ind <- data.sets.whose.variables.are.kept # shorten name
+    d.ind <- sort(d.ind, decreasing = !prioritize.early.data.sets)
+
     # Find matches for remaining labels
-    d.ind <- data.sets.whose.variables.are.kept # shorter name
-
-    # reverse d.ind if prioritize.early.data.sets?
-
     for (i in d.ind)
     {
         nms <- remaining.names[[i]]
@@ -1002,9 +993,9 @@ findMatchingVariable <- function(nms, lbls, val.attrs,
     # Find fuzzy label match
     if (match.by.variable.labels && length(lbls) > 0)
     {
-        match.percentage <- matchPercentage(candidate.labels, lbls,
-                                            ignore.case, FALSE)
-        best.match.percentage <- max(match.percentage)
+        match.percentages <- matchPercentage(candidate.labels, lbls,
+                                             ignore.case, FALSE)
+        best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
             arr.ind <- which(match.percentage == best.match.percentage,
@@ -1025,13 +1016,13 @@ findMatchingVariable <- function(nms, lbls, val.attrs,
     # Find fuzzy value label match
     if (match.by.value.labels && length(val.attrs) > 0)
     {
-        match.percentage <- matchPercentageValueAttributes(candidate.val.attrs,
-                                                           val.attrs,
-                                                           ignore.case)
-        best.match.percentage <- max(match.percentage)
+        match.percentages <- matchPercentageValueAttributes(candidate.val.attrs,
+                                                            val.attrs,
+                                                            ignore.case)
+        best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
-            arr.ind <- which(match.percentage == best.match.percentage,
+            arr.ind <- which(match.percentages == best.match.percentage,
                              arr.ind = TRUE)
             if (nrow(arr.ind) == 1)
             {
@@ -1161,7 +1152,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
         var.list <- vector(mode = "list", length = n.data.sets)
         var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names.row[j]]])
 
-        v.types <- vapply(var.list[ind], variableType2, character(1))
+        v.types <- vapply(var.list[ind], variableType, character(1))
 
         # All variables have the same type
         if (allIdentical(removeNA(v.types)))
@@ -1452,9 +1443,9 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
 }
 
 mergedDataSet <- function(data.sets, matched.names, merged.names,
-                           prioritize.early.data.sets,
-                           data.set.names,
-                           use.first.value.label)
+                          prioritize.early.data.sets, data.set.names,
+                          use.first.value.label,
+                          min.value.label.match.percentage)
 {
     n.vars <- nrow(matched.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
@@ -1462,7 +1453,8 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
         compositeVariable(matched.names[i, ], data.sets,
                           prioritize.early.data.sets,
-                          use.first.value.label)
+                          use.first.value.label,
+                          min.value.label.match.percentage)
     }))
 
     names(merged.data.set) <- merged.names
@@ -1477,8 +1469,14 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 # composite variable
 compositeVariable <- function(variable.names, data.sets,
                               prioritize.early.data.sets,
-                              use.first.value.label)
+                              use.first.value.label,
+                              min.value.label.match.percentage)
 {
+    if (!is.na(variable.names[1]) && variable.names[1] == "Q1_US")
+    {
+        print(1)
+    }
+
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
          if(!is.na(variable.names[i]))
@@ -1486,12 +1484,13 @@ compositeVariable <- function(variable.names, data.sets,
         else
             NULL
     })
-    v.types <- vapply(var.list, variableType2, character(1))
+    v.types <- vapply(var.list, variableType, character(1))
 
     result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
         combineCategoricalVariables(var.list, data.sets,
                                     prioritize.early.data.sets, v.types,
-                                    use.first.value.label)
+                                    use.first.value.label,
+                                    min.value.label.match.percentage)
     else
         combineNonCategoricalVariables(var.list, data.sets, v.types)
 
@@ -1504,7 +1503,8 @@ compositeVariable <- function(variable.names, data.sets,
 
 combineCategoricalVariables <- function(var.list, data.sets,
                                         prioritize.early.data.sets, v.types,
-                                        use.first.value.label)
+                                        use.first.value.label,
+                                        min.value.label.match.percentage)
 {
     is.string.values <- "Categorical with string values" %in% v.types
 
@@ -1544,7 +1544,8 @@ combineCategoricalVariables <- function(var.list, data.sets,
         {
             val <- labelValue(val.attr, lbl)
             merged.val.attr <- mergeValueAttribute(val, lbl, merged.val.attr, map,
-                                          use.first.value.label)
+                                                   use.first.value.label,
+                                                   min.value.label.match.percentage)
             map <- attr(merged.val.attr, "map")
         }
         if (nrow(map) > 0)
@@ -1682,13 +1683,20 @@ combineCategoricalVariables <- function(var.list, data.sets,
                 if (!is.null(map))
                 {
                     ind <- match(val, map[, 2])
-                    if (!is.na(ind))
-                        val <- map[ind, 1]
+                    if (!is.na(ind)) # input value was mapped to val
+                        return(map[ind, 1])
+                    else
+                    {
+                        ind <- match(val, map[, 1])
+                        # input value was mapped away from val, so input corresponding to val is NA
+                        if (!is.na(ind))
+                            return(ifelse(is.string.values, NA_character_, NA_real_))
+                    }
                 }
                 if (val %in% val.attr.list[[i]])
-                    val
+                    return(val)
                 else
-                    ifelse(is.string.values, NA_character_, NA_real_)
+                    return(ifelse(is.string.values, NA_character_, NA_real_))
             }, ifelse(is.string.values, character(1), numeric(1)), USE.NAMES = FALSE)
         }
     }
@@ -1710,8 +1718,10 @@ labelValue <- function(val.attr, label)
 }
 
 # Merge value attribute (value and label) into merged.val.attr
+#' @importFrom stringdist stringdist
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
-                                use.first.value.label)
+                                use.first.value.label,
+                                min.value.label.match.percentage)
 {
     if (lbl %in% names(merged.val.attr))
     {
@@ -1724,9 +1734,29 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     }
     else
     {
-        if (val %in% merged.val.attr) # different labels with same value
+        nchar.lbls <- pmin(nchar(lbl), nchar(names(merged.val.attr)))
+        match.percentages <- 100 * (1 - stringdist(tolower(lbl), tolower(names(merged.val.attr))) / nchar.lbls)
+        if (max(match.percentages) >= min.value.label.match.percentage)
         {
-            if (!use.first.value.label)
+            merged.val <- merged.val.attr[which.max(match.percentages)]
+            if (merged.val != val)
+            {
+                map <- rbind(map, c(val, merged.val)) # use the value in merged.val.attr
+            }
+            # else: similar label, same value, no action required as we treat
+            #       them as the same and one of them is already in merged.val.attr
+        }
+        else if (val %in% merged.val.attr) # different labels with same value
+        {
+            merged.val.lbl <- names(merged.val.attr)[merged.val.attr == val]
+            match.percentage <- 100 * (1 - stringdist(tolower(lbl), tolower(merged.val.lbl)) /
+                                           min(nchar(lbl), nchar(merged.val.lbl)))
+            if (match.percentage >= 80)
+            {
+                # labels are similar for the same value so we assume they are the same,
+                # no action required as the value is already in merged.val.attr
+            }
+            else if (!use.first.value.label)
             {
                 new.value <- if (is.numeric(merged.val.attr)) # create new numeric value for label
                     ceiling(max(merged.val.attr)) + 1
@@ -1751,6 +1781,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
         else # value and label not in merged.val.attr
             merged.val.attr[lbl] <- val # create new value in merged.val.attr
     }
+
     attr(merged.val.attr, "map") <- map
     merged.val.attr
 }
@@ -1831,33 +1862,6 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
         stop("Unhandled variable types combination: ",
              paste0(unique.v.types, collapse = ", "))
     }
-}
-
-# Gets the variable type from a variable. The types are used internally by
-# R code and not intended to be exposed to the user.
-variableType2 <- function(variable)
-{
-    if (is.null(variable))
-        NA_character_
-    else if (!is.null(attr(variable, "labels", exact = TRUE)))
-    {
-        if (is.numeric(attr(variable, "labels", exact = TRUE)))
-            "Categorical"
-        else
-            "Categorical with string values"
-    }
-    else if (is.numeric(variable))
-        "Numeric"
-    else if (is.character(variable))
-        "Text"
-    else if (inherits(variable, "Date"))
-        "Date"
-    else if (inherits(variable, "POSIXct"))
-        "Date/Time"
-    else if (inherits(variable, "difftime"))
-        "Duration"
-    else
-        stop("Variable type not recognised")
 }
 
 remapValuesInVariable <- function(variable, map)
