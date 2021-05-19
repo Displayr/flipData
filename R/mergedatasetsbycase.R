@@ -8,7 +8,7 @@
 #' @param merged.data.set.name A string of the name of the merged data set in
 #'  the Displayr cloud drive (if run from Displayr) or the local file path of
 #'  the merged data set. If NULL, the data set is not written.
-#' @param select.what.to.match.by Either "Automatically" or "Manually". If
+#' @param select.what.to.match Either "Automatically" or "Manually". If
 #'  the former is chosen, the metadata to match by is chosen automatically,
 #'  whereas if the latter is chosen, the metadata to match by is specified
 #'  by setting the flags \code{match.by.variable.names},
@@ -76,7 +76,7 @@
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
-                                select.what.to.match.by = "Automatically",
+                                select.what.to.match = "Automatically",
                                 match.by.variable.names = TRUE,
                                 match.by.variable.labels = TRUE,
                                 match.by.value.labels = TRUE,
@@ -95,7 +95,7 @@ MergeDataSetsByCase <- function(data.set.names,
     data.sets <- readDataSets(data.set.names, 2)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-    match.parameters <- list(select.what.to.match.by = select.what.to.match.by,
+    match.parameters <- list(select.what.to.match = select.what.to.match,
                              match.by.variable.names = match.by.variable.names,
                              match.by.variable.labels = match.by.variable.labels,
                              match.by.value.labels = match.by.value.labels,
@@ -190,7 +190,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     remaining.val.attrs <-  mapply(function(x, y) x[y], v.val.attrs, remaining.ind,
                                    SIMPLIFY = FALSE)
 
-    if (match.parameters$select.what.to.match.by == "Automatically")
+    if (match.parameters$select.what.to.match == "Automatically")
         match.parameters <- autoSelectWhatToMatchBy(input.data.set.metadata,
                                           match.parameters)
 

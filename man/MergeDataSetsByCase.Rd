@@ -7,7 +7,7 @@
 MergeDataSetsByCase(
   data.set.names,
   merged.data.set.name = NULL,
-  select.what.to.match.by = "Automatically",
+  select.what.to.match = "Automatically",
   match.by.variable.names = TRUE,
   match.by.variable.labels = TRUE,
   match.by.value.labels = TRUE,
@@ -33,7 +33,7 @@ data sets.}
 the Displayr cloud drive (if run from Displayr) or the local file path of
 the merged data set. If NULL, the data set is not written.}
 
-\item{select.what.to.match.by}{Either "Automatically" or "Manually". If
+\item{select.what.to.match}{Either "Automatically" or "Manually". If
 the former is chosen, the metadata to match by is chosen automatically,
 whereas if the latter is chosen, the metadata to match by is specified
 by setting the flags \code{match.by.variable.names},
