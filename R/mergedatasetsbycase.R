@@ -317,7 +317,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     attr(matched.names, "is.fuzzy.match") <- is.fuzzy.match
 
     matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets,
-                                                      variables.to.combine,
+                                                      v.names.to.combine,
                                                       data.sets.whose.variables.are.kept)
     matched.names <- orderMatchedNames(matched.names,
                                        input.data.set.metadata,
@@ -1134,7 +1134,7 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 # Split variable match if variables have different types
 # and type conversion is not possible
 unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
-                                             variables.to.combine,
+                                             v.names.to.combine,
                                              data.sets.whose.variables.are.kept)
 {
     n.data.sets <- length(data.sets)
@@ -1254,10 +1254,10 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
             if (length(new.ind) == 0)
                 break
 
-            # Check that no variables.to.combine are being split
-            for (j in seqRow(variables.to.combine))
+            # Check that no variables to combine are being split
+            for (j in seqRow(v.names.to.combine))
             {
-                rw <- variables.to.combine[j, ]
+                rw <- v.names.to.combine[j, ]
                 if (any(matched.names.row[merge.ind] %in% rw) &&
                     any(matched.names.row[new.ind] %in% rw))
                     warning("The variables named ",
