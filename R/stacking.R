@@ -1081,14 +1081,12 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
 
     has.stacking <- !is.null(stacking.groups) && nrow(stacking.groups) > 0
 
-    if (has.stacking)
-    {
-        n.stacked <- ncol(stacking.groups)
-        first.ind <- apply(stacking.groups, 1, function(rw) removeNA(rw)[1])
-        is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
-    }
-    else
-        first.ind <- integer(0)
+    if (!has.stacking)
+        return(data.frame())
+
+    n.stacked <- ncol(stacking.groups)
+    first.ind <- apply(stacking.groups, 1, function(rw) removeNA(rw)[1])
+    is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
 
     stacked.data.set <- list()
     for (i in seq_along(input.v.names))
