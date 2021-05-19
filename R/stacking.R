@@ -150,7 +150,10 @@ StackData <- function(input.data.set.name,
 
     stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
                                                      input.data.set.name)
-    writeDataSet(stacked.data.set, stacked.data.set.name)
+
+    write.stacked.data.set <- nrow(stacked.data.set) > 0
+    if (write.stacked.data.set)
+        writeDataSet(stacked.data.set, stacked.data.set.name)
 
     # Create an object containing metadata on the stacked data set such as
     # variable names and labels
@@ -161,7 +164,7 @@ StackData <- function(input.data.set.name,
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    result$is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set
@@ -335,9 +338,11 @@ automaticCommonLabels <- function(input.data.set.metadata)
         sum(!is.na(stacking.groups))
     }, numeric(1))
 
-    if (max(score) == -Inf)
+    if (length(score) == 0 || max(score) == -Inf)
     {
-        warning("Common labels could not be found automatically.")
+        warning("No stacking was performed with common labels as they could not be found automatically. ",
+                "To stack with common labels, specify them with reference variables or manually. ",
+                "Otherwise specify stacking manually.")
         return(NULL)
     }
 
