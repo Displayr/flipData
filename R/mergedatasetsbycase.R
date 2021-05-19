@@ -8,10 +8,9 @@
 #' @param merged.data.set.name A string of the name of the merged data set in
 #'  the Displayr cloud drive (if run from Displayr) or the local file path of
 #'  the merged data set. If NULL, the data set is not written.
-#' @param select.what.to.match Either "Automatically" or "Manually". If
-#'  the former is chosen, the metadata to match by is chosen automatically,
-#'  whereas if the latter is chosen, the metadata to match by is specified
-#'  by setting the flags \code{match.by.variable.names},
+#' @param auto.select.what.to.match.by If TRUE, the metadata to match by is
+#'  chosen automatically, whereas if FALSE, the metadata to match by is
+#'  specified by setting the flags \code{match.by.variable.names},
 #'  \code{match.by.variable.labels} and match.by.value.labels.
 #' @param match.by.variable.names Whether to match using variable names.
 #' @param match.by.variable.labels Whether to match using variable names.
@@ -37,13 +36,14 @@
 #'  suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 #' @param include.merged.data.set.in.output Whether to include the merged data
 #'  set in the output.
-#' @param prioritize.early.data.sets Whether earlier data sets should be
-#'  given priority instead of later data sets when determining which
-#'  names and labels to use.
-#' @param use.first.value.label Whether to use the first label for a value if
-#'  there are multiple labels for the same value. Otherwise new values are
-#'  created for each label. If \code{prioritize.early.data.sets} is FALSE, the
-#'  last label is used instead of the first label.
+#' @param when.multiple.labels.for.one.value Either "Use one of the labels" or
+#'  "Create new values for the labels". When the former is chosen, the label
+#'  from the earliest/latest data set will be chosen if use.names.and.labels.from
+#'  is "First data set"/"Last data set". If the latter is chosen, new values
+#'  are generated for the extra labels.
+#' @param use.names.and.labels.from Either "First data set" or "Last data set".
+#'  This sets the preference for either the first or last data set when
+#'  choosing which names and labels to use in the merged data set.
 #' @param data.sets.whose.variables.are.kept An integer vector of indices of data
 #'  sets whose variables are to be kept. Any variable not in these data sets
 #'  will not be included in the merged data set.
@@ -76,7 +76,7 @@
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
-                                select.what.to.match = "Automatically",
+                                auto.select.what.to.match.by = TRUE,
                                 match.by.variable.names = TRUE,
                                 match.by.variable.labels = TRUE,
                                 match.by.value.labels = TRUE,
@@ -87,7 +87,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 variables.to.not.combine = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
-                                prioritize.early.data.sets = TRUE,
+                                use.names.and.labels.from = "First data set",
                                 use.first.value.label = TRUE,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
@@ -95,7 +95,7 @@ MergeDataSetsByCase <- function(data.set.names,
     data.sets <- readDataSets(data.set.names, 2)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-    match.parameters <- list(select.what.to.match = select.what.to.match,
+    match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
                              match.by.variable.names = match.by.variable.names,
                              match.by.variable.labels = match.by.variable.labels,
                              match.by.value.labels = match.by.value.labels,
@@ -109,11 +109,11 @@ MergeDataSetsByCase <- function(data.set.names,
                                     variables.to.not.combine,
                                     variables.to.omit, data.sets,
                                     data.sets.whose.variables.are.kept,
-                                    prioritize.early.data.sets)
+                                    use.names.and.labels.from)
     merged.names <- mergedVariableNames(matched.names,
-                                        prioritize.early.data.sets)
+                                        use.names.and.labels.from)
     merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
-                                     prioritize.early.data.sets,
+                                     use.names.and.labels.from,
                                      input.data.sets.metadata$data.set.names,
                                      use.first.value.label,
                                      min.value.label.match.percentage)
@@ -158,7 +158,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                            variables.to.combine, variables.to.not.combine,
                            variables.to.omit, data.sets,
                            data.sets.whose.variables.are.kept,
-                           prioritize.early.data.sets)
+                           use.names.and.labels.from)
 {
     v.names.to.combine <- parseVariablesToCombine(variables.to.combine,
                                                   input.data.set.metadata,
@@ -190,7 +190,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     remaining.val.attrs <-  mapply(function(x, y) x[y], v.val.attrs, remaining.ind,
                                    SIMPLIFY = FALSE)
 
-    if (match.parameters$select.what.to.match == "Automatically")
+    if (match.parameters$auto.select.what.to.match.by)
         match.parameters <- autoSelectWhatToMatchBy(input.data.set.metadata,
                                           match.parameters)
 
@@ -223,7 +223,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                     v.val.attrs[[data.set.ind]][nms.ind[j]]
                 })))
 
-                if (!prioritize.early.data.sets)
+                if (use.names.and.labels.from == "Last data set")
                 {
                     nms <- rev(nms)
                     lbls <- rev(lbls)
@@ -254,7 +254,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     }
 
     d.ind <- data.sets.whose.variables.are.kept # shorten name
-    d.ind <- sort(d.ind, decreasing = !prioritize.early.data.sets)
+    d.ind <- sort(d.ind, decreasing = use.names.and.labels.from == "Last data set")
 
     # Find matches for remaining labels
     for (i in d.ind)
@@ -321,7 +321,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                                                       data.sets.whose.variables.are.kept)
     matched.names <- orderMatchedNames(matched.names,
                                        input.data.set.metadata,
-                                       prioritize.early.data.sets)
+                                       use.names.and.labels.from)
     matched.names
 }
 
@@ -1325,10 +1325,10 @@ isConvertibleToDate <- function(num)
     num[!missing.ind] >= 10957 && num[!missing.ind] <= 29220
 }
 
-mergedVariableNames <- function(matched.names, prioritize.early.data.sets)
+mergedVariableNames <- function(matched.names, use.names.and.labels.from)
 {
     merged.names <- apply(matched.names, 1, function(nms) {
-        if (prioritize.early.data.sets)
+        if (use.names.and.labels.from == "First data set")
             removeNA(nms)[1]
         else
             removeNA(rev(nms))[1]
@@ -1354,7 +1354,7 @@ mergedVariableNames <- function(matched.names, prioritize.early.data.sets)
 }
 
 orderMatchedNames <- function(matched.names, input.data.set.metadata,
-                              prioritize.early.data.sets)
+                              use.names.and.labels.from)
 {
     n.data.sets <- input.data.set.metadata$n.data.sets
     v.names <- input.data.set.metadata$variable.names
@@ -1380,7 +1380,7 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
         }, integer(1))
     }))
 
-    ordering <- mergeIndicesList(v.indices, prioritize.early.data.sets,
+    ordering <- mergeIndicesList(v.indices, use.names.and.labels.from,
                                  indices.to.keep.togther)
 
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
@@ -1393,7 +1393,7 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
 # and merges them into a single integer vector, respecting the order in
 # each vector as much as possible, with earlier vectors taking precedence
 # in case of ties.
-mergeIndicesList <- function(indices.list, prioritize.early.elements,
+mergeIndicesList <- function(indices.list, use.names.and.labels.from,
                              indices.to.keep.togther = NULL)
 {
     # A set of indices are kept together by replacing all in a set with a
@@ -1412,7 +1412,7 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
     else
         representative.indices <- integer(0)
 
-    if (!prioritize.early.elements)
+    if (use.names.and.labels.from == "Last data set")
         indices.list <- rev(indices.list)
 
     merged.indices <- integer()
@@ -1468,7 +1468,7 @@ mergeIndicesList <- function(indices.list, prioritize.early.elements,
 }
 
 mergedDataSet <- function(data.sets, matched.names, merged.names,
-                          prioritize.early.data.sets, data.set.names,
+                          use.names.and.labels.from, data.set.names,
                           use.first.value.label,
                           min.value.label.match.percentage)
 {
@@ -1477,7 +1477,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 
     merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
         compositeVariable(matched.names[i, ], data.sets,
-                          prioritize.early.data.sets,
+                          use.names.and.labels.from,
                           use.first.value.label,
                           min.value.label.match.percentage)
     }))
@@ -1493,7 +1493,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 # Combine variables from different data sets (end-to-end) to create a
 # composite variable
 compositeVariable <- function(variable.names, data.sets,
-                              prioritize.early.data.sets,
+                              use.names.and.labels.from,
                               use.first.value.label,
                               min.value.label.match.percentage)
 {
@@ -1513,7 +1513,7 @@ compositeVariable <- function(variable.names, data.sets,
 
     result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
         combineCategoricalVariables(var.list, data.sets,
-                                    prioritize.early.data.sets, v.types,
+                                    use.names.and.labels.from, v.types,
                                     use.first.value.label,
                                     min.value.label.match.percentage)
     else
@@ -1521,13 +1521,13 @@ compositeVariable <- function(variable.names, data.sets,
 
     attr(result, "label") <- variableLabelFromDataSets(variable.names,
                                                        data.sets,
-                                                       prioritize.early.data.sets)
+                                                       use.names.and.labels.from)
 
     result
 }
 
 combineCategoricalVariables <- function(var.list, data.sets,
-                                        prioritize.early.data.sets, v.types,
+                                        use.names.and.labels.from, v.types,
                                         use.first.value.label,
                                         min.value.label.match.percentage)
 {
@@ -1551,7 +1551,7 @@ combineCategoricalVariables <- function(var.list, data.sets,
 
     cat.types <- c("Categorical", "Categorical with string values")
     cat.ind <- which(v.types %in% cat.types)
-    if (!prioritize.early.data.sets)
+    if (use.names.and.labels.from == "Last data set")
         cat.ind <- rev(cat.ind)
 
     merged.val.attr <- val.attr.list[[cat.ind[1]]]
@@ -1921,9 +1921,9 @@ remapValuesInVariable <- function(variable, map)
 }
 
 variableLabelFromDataSets <- function(variable.names, data.sets,
-                                      prioritize.early.data.sets)
+                                      use.names.and.labels.from)
 {
-    ind <- if (prioritize.early.data.sets)
+    ind <- if (use.names.and.labels.from == "First data set")
         seq_along(data.sets)
     else
         rev(seq_along(data.sets))

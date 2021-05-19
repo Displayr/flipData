@@ -7,7 +7,7 @@
 MergeDataSetsByCase(
   data.set.names,
   merged.data.set.name = NULL,
-  select.what.to.match = "Automatically",
+  auto.select.what.to.match.by = TRUE,
   match.by.variable.names = TRUE,
   match.by.variable.labels = TRUE,
   match.by.value.labels = TRUE,
@@ -18,7 +18,7 @@ MergeDataSetsByCase(
   variables.to.not.combine = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
-  prioritize.early.data.sets = TRUE,
+  use.names.and.labels.from = "First data set",
   use.first.value.label = TRUE,
   data.sets.whose.variables.are.kept = seq_along(data.set.names),
   min.value.label.match.percentage = 90
@@ -33,10 +33,9 @@ data sets.}
 the Displayr cloud drive (if run from Displayr) or the local file path of
 the merged data set. If NULL, the data set is not written.}
 
-\item{select.what.to.match}{Either "Automatically" or "Manually". If
-the former is chosen, the metadata to match by is chosen automatically,
-whereas if the latter is chosen, the metadata to match by is specified
-by setting the flags \code{match.by.variable.names},
+\item{auto.select.what.to.match.by}{If TRUE, the metadata to match by is
+chosen automatically, whereas if FALSE, the metadata to match by is
+specified by setting the flags \code{match.by.variable.names},
 \code{match.by.variable.labels} and match.by.value.labels.}
 
 \item{match.by.variable.names}{Whether to match using variable names.}
@@ -73,14 +72,9 @@ suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.}
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
 
-\item{prioritize.early.data.sets}{Whether earlier data sets should be
-given priority instead of later data sets when determining which
-names and labels to use.}
-
-\item{use.first.value.label}{Whether to use the first label for a value if
-there are multiple labels for the same value. Otherwise new values are
-created for each label. If \code{prioritize.early.data.sets} is FALSE, the
-last label is used instead of the first label.}
+\item{use.names.and.labels.from}{Either "First data set" or "Last data set".
+This sets the preference for either the first or last data set when
+choosing which names and labels to use in the merged data set.}
 
 \item{data.sets.whose.variables.are.kept}{An integer vector of indices of data
 sets whose variables are to be kept. Any variable not in these data sets
@@ -89,6 +83,12 @@ will not be included in the merged data set.}
 \item{min.value.label.match.percentage}{The minimum percentage match for
 value labels to be considered the same when combining value attributes
 from different variables.}
+
+\item{when.multiple.labels.for.one.value}{Either "Use one of the labels" or
+"Create new values for the labels". When the former is chosen, the label
+from the earliest/latest data set will be chosen if use.names.and.labels.from
+is "First data set"/"Last data set". If the latter is chosen, new values
+are generated for the extra labels.}
 }
 \value{
 A list with the following elements:
