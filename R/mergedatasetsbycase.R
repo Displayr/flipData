@@ -1753,7 +1753,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
         merged.val <- labelValue(merged.val.attr, lbl)
         if (val != merged.val) # same label with different values
         {
-            map <- rbind(map, c(val, merged.val)) # use the value in merged.val.attr
+            map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in merged.val.attr
         }
         # else: same label, same value, no action required as it is already in merged.val.attr
     }
@@ -1766,7 +1766,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
             merged.val <- merged.val.attr[which.max(match.percentages)]
             if (merged.val != val)
             {
-                map <- rbind(map, c(val, merged.val)) # use the value in merged.val.attr
+                map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in merged.val.attr
             }
             # else: similar label, same value, no action required as we treat
             #       them as the same and one of them is already in merged.val.attr
@@ -1799,7 +1799,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                 }
 
                 merged.val.attr[lbl] <- new.value
-                map <- rbind(map, c(val, new.value))
+                map <- rbind(map, c(val, new.value), deparse.level = 0)
             }
             # else "Use first value", no action required as it is already in merged.val.attr
         }
