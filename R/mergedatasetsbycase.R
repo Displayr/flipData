@@ -1761,9 +1761,9 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     {
         nchar.lbls <- pmin(nchar(lbl), nchar(names(merged.val.attr)))
         match.percentages <- 100 * (1 - stringdist(tolower(lbl), tolower(names(merged.val.attr))) / nchar.lbls)
-        if (max(match.percentages) >= min.value.label.match.percentage)
+        if (max(match.percentages) >= min.value.label.match.percentage) # label is close enough
         {
-            merged.val <- merged.val.attr[which.max(match.percentages)]
+            merged.val <- unname(merged.val.attr[which.max(match.percentages)])
             if (merged.val != val)
             {
                 map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in merged.val.attr
