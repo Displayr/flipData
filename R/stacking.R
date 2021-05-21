@@ -161,6 +161,7 @@ StackData <- function(input.data.set.name,
                                                             stacked.data.set.name)
 
     result <- list()
+    result$input.data.set.metadata <- input.data.set.metadata
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$common.labels.list <- common.labels.list
@@ -252,7 +253,7 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
     else if (stack.with.common.labels == "Disabled")
     {
         if (!is.null(manual.common.labels) && length(manual.common.labels) > 0)
-            warning("Input common labels have been ignored.")
+            warning("Input common labels have been ignored as stacking with common labels has been disabled.")
         return(NULL)
     }
     else
@@ -1131,13 +1132,13 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         else if (input.v.names[i] %in% included.variable.names)
         {
             input.var <- input.data.set[[i]]
+            val.attr <- attr(input.var, "labels", exact = TRUE)
             if (isIntegerValued(input.var))
                 input.var <- as.integer(input.var)
             v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
             attr(v, "label") <- input.v.labels[i]
-            val.attr <- attr(input.var, "labels", exact = TRUE)
             if (!is.null(val.attr))
             {
                 if (is.integer(v))
@@ -1252,12 +1253,14 @@ stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.varia
 {
     ind <- removeNA(group.ind)
     lbl <- input.variable.labels[ind]
-    common.prefix <- trimws(getCommonPrefix(lbl))
-    common.suffix <- trimws(getCommonSuffix(lbl))
+    common.prefix <- trimws(getCommonPrefix(lbl, whole.words = TRUE))
+    common.suffix <- trimws(getCommonSuffix(lbl, whole.words = TRUE))
     if (common.prefix == "" && common.suffix == "")
-        stacked.variable.name
+        lbl[1]
     else if (common.prefix == common.suffix)
         common.prefix
+    else if (nchar(common.prefix) <= 1 && nchar(common.suffix) <= 1)
+        lbl[1]
     else
         trimws(paste(common.prefix, common.suffix))
 }
@@ -1573,7 +1576,8 @@ splitByComma <- function(input.text)
 #' @export
 print.StackedData <- function(x, ...)
 {
-    StackingWidget(x$stacked.data.set.metadata,
+    StackingWidget(x$input.data.set.metadata,
+                   x$stacked.data.set.metadata,
                    x$unstackable.names,
                    x$common.labels,
                    x$is.saved.to.cloud)
