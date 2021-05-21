@@ -131,6 +131,7 @@ MergeDataSetsByCase <- function(data.set.names,
 # TODO
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
+# Indicate what is being matched, how many fuzzy matched variables in subtitles
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -1876,7 +1877,7 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
         setequal(unique.v.types, c("Date/Time", "Text", "Numeric")) ||
         setequal(unique.v.types, c("Date/Time", "Date", "Numeric")) ||
         setequal(unique.v.types, c("Date/Time", "Text", "Date", "Numeric")))
-        .combineVar(AsDateTime, as.date.time = TRUE)
+        .combineVar(AsDateTime)
     else if (setequal(unique.v.types, c("Date")) ||
              setequal(unique.v.types, c("Date", "Text")) ||
              setequal(unique.v.types, c("Date", "Numeric")) ||
