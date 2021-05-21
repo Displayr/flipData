@@ -404,6 +404,10 @@ maxOneToManyValueLabelProportion <- function(v.val.attrs)
 
             v.val.attrs.i <- v.val.attrs[[i]]
             v.val.attrs.j <- v.val.attrs[[j]]
+
+            if (length(v.val.attrs.i) == 0 || length(v.val.attrs.j) == 0)
+                next
+
             for (k in seq_along(v.val.attrs.i))
             {
                 n.matches <- sum(vapply(v.val.attrs.j, function(val.attr.j) {
@@ -954,7 +958,9 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     if (match.by.value.labels && length(val.attrs) > 0)
     {
         ind <- unlist(lapply(val.attrs, function(val.attr) {
-            which(vapply(candidate.val.attrs, setequal, logical(1), val.attr))
+            which(vapply(candidate.val.attrs, function(candidate.val.attr) {
+                setequal(names(candidate.val.attr), names(val.attr))
+            }, logical(1)))
         }))
 
         if (length(ind) == 1)
@@ -1504,11 +1510,6 @@ compositeVariable <- function(variable.names, data.sets,
                               when.multiple.labels.for.one.value,
                               min.value.label.match.percentage)
 {
-    if (!is.na(variable.names[1]) && variable.names[1] == "Q1_US")
-    {
-        print(1)
-    }
-
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
          if(!is.na(variable.names[i]))
