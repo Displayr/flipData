@@ -236,6 +236,9 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                                                 j, matched.names[i, ],
                                                 v.names.to.not.combine)
 
+                if (length(candidates$names) == 0)
+                    next
+
                 matching.name <- findMatchingVariable(nms, lbls, val.attrs,
                                                       candidates,
                                                       match.parameters)
@@ -280,6 +283,9 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                                                 remaining.val.attrs,
                                                 k, new.row,
                                                 v.names.to.not.combine)
+
+                if (length(candidates$names) == 0)
+                    next
 
                 matching.name <- findMatchingVariable(new.row.names,
                                                       new.row.labels,
