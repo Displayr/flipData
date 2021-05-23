@@ -132,6 +132,8 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 # Indicate what is being matched, how many fuzzy matched variables in subtitles
+# Indicate how match occurred and fuzzy match %
+# Indicate which variables were renamed
 
 metadataFromDataSets <- function(data.sets)
 {
