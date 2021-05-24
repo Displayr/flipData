@@ -12,14 +12,14 @@ MergeDataSetsByCase(
   match.by.variable.labels = TRUE,
   match.by.value.labels = TRUE,
   ignore.case = TRUE,
-  ignore.special.characters = TRUE,
+  ignore.non.alpha.numeric = TRUE,
   min.match.percentage = 100,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
+  when.multiple.labels.for.one.value = "Create new values for the labels",
   use.names.and.labels.from = "First data set",
-  use.first.value.label = TRUE,
   data.sets.whose.variables.are.kept = seq_along(data.set.names),
   min.value.label.match.percentage = 90
 )
@@ -45,12 +45,12 @@ specified by setting the flags \code{match.by.variable.names},
 \item{match.by.value.labels}{Whether to match using value labels of
 categorical variables.}
 
-\item{ignore.case}{Ignore case when matching variable names.}
+\item{ignore.case}{Ignore case when matching text.}
 
-\item{ignore.special.characters}{Ignore special characters in variable names
-except when digit characters appear both before and after special characters,
-e.g., Q2__3, in which case all but the first special character is ignored,
-i.e., Q2__3 is equivalent to Q2_3.}
+\item{ignore.non.alpha.numeric}{Ignore non-alphanumeric characters when
+matching text except when numeric characters appear both before and after
+non-alphanumeric characters e.g., "24 - 29", in which case the characters
+are still ignored but the separation between the numbers is noted.}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
@@ -72,6 +72,12 @@ suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.}
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
 
+\item{when.multiple.labels.for.one.value}{Either "Use one of the labels" or
+"Create new values for the labels". When the former is chosen, the label
+from the earliest/latest data set will be chosen if use.names.and.labels.from
+is "First data set"/"Last data set". If the latter is chosen, new values
+are generated for the extra labels.}
+
 \item{use.names.and.labels.from}{Either "First data set" or "Last data set".
 This sets the preference for either the first or last data set when
 choosing which names and labels to use in the merged data set.}
@@ -83,12 +89,6 @@ will not be included in the merged data set.}
 \item{min.value.label.match.percentage}{The minimum percentage match for
 value labels to be considered the same when combining value attributes
 from different variables.}
-
-\item{when.multiple.labels.for.one.value}{Either "Use one of the labels" or
-"Create new values for the labels". When the former is chosen, the label
-from the earliest/latest data set will be chosen if use.names.and.labels.from
-is "First data set"/"Last data set". If the latter is chosen, new values
-are generated for the extra labels.}
 }
 \value{
 A list with the following elements:

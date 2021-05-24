@@ -16,11 +16,11 @@
 #' @param match.by.variable.labels Whether to match using variable names.
 #' @param match.by.value.labels Whether to match using value labels of
 #'  categorical variables.
-#' @param ignore.case Ignore case when matching variable names.
-#' @param ignore.special.characters Ignore special characters in variable names
-#'  except when digit characters appear both before and after special characters,
-#'  e.g., Q2__3, in which case all but the first special character is ignored,
-#'  i.e., Q2__3 is equivalent to Q2_3.
+#' @param ignore.case Ignore case when matching text.
+#' @param ignore.non.alpha.numeric Ignore non-alphanumeric characters when
+#'  matching text except when numeric characters appear both before and after
+#'  non-alphanumeric characters e.g., "24 - 29", in which case the characters
+#'  are still ignored but the separation between the numbers is noted.
 #' @param min.match.percentage To be decided, possibly a percentage.
 #' @param variables.to.combine A character vector of pairs of comma-separated
 #'  variable names indicating which variables are to be combined together.
@@ -81,13 +81,13 @@ MergeDataSetsByCase <- function(data.set.names,
                                 match.by.variable.labels = TRUE,
                                 match.by.value.labels = TRUE,
                                 ignore.case = TRUE,
-                                ignore.special.characters = TRUE,
+                                ignore.non.alpha.numeric = TRUE,
                                 min.match.percentage = 100,
                                 variables.to.combine = NULL,
                                 variables.to.not.combine = NULL,
                                 variables.to.omit = NULL,
                                 include.merged.data.set.in.output = FALSE,
-                                when.multiple.labels.for.one.value = "Use one of the labels",
+                                when.multiple.labels.for.one.value = "Create new values for the labels",
                                 use.names.and.labels.from = "First data set",
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
@@ -100,7 +100,7 @@ MergeDataSetsByCase <- function(data.set.names,
                              match.by.variable.labels = match.by.variable.labels,
                              match.by.value.labels = match.by.value.labels,
                              ignore.case = ignore.case,
-                             ignore.special.characters = ignore.special.characters,
+                             ignore.non.alpha.numeric = ignore.non.alpha.numeric,
                              min.match.percentage = min.match.percentage)
 
     matched.names <- matchVariables(input.data.sets.metadata,
@@ -134,6 +134,7 @@ MergeDataSetsByCase <- function(data.set.names,
 # Indicate what is being matched, how many fuzzy matched variables in subtitles
 # Indicate how match occurred and fuzzy match %
 # Indicate which variables were renamed
+# Make renamed variable next to original
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -673,6 +674,7 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                 parsed.names <- addToParsedNames(parsed.names, range.vars,
                                                  data.set.ind, data.set.names,
                                                  source.text, t)
+                source.text[data.set.ind] <- t
             }
             else # data set index not supplied for range
             {
@@ -687,6 +689,7 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                     parsed.names <- addToParsedNames(parsed.names,
                                                      range.vars, j, data.set.names,
                                                      source.text, t)
+                    source.text[j] <- t
                     is.range.found <- TRUE
                 }
                 if (!is.range.found)
@@ -869,12 +872,10 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
     else
         stop("The manually specified names to match '",
              source.text[data.set.ind], "' and '", input.text,
-             "' are both present in data set '",
-             data.set.names[data.set.ind], "' and cannot be matched. ",
-             "To specify a variable from a specific data set, append '(x)' ",
-             "to the variable name when specifying it, ",
-             "where 'x' is replaced with the data set index, e.g., use 2 for ",
-             "the 2nd input data set.")
+             "' are both present in data set ", data.set.ind,
+             " and cannot be matched. ",
+             "To specify a variable from a specific data set, append '(x)' to the variable name when specifying it, ",
+             "where 'x' is replaced with the data set index, e.g., use 2 for the 2nd input data set.")
 }
 
 candidateMetadata <- function(remaining.names,
@@ -892,6 +893,7 @@ candidateMetadata <- function(remaining.names,
          val.attrs = remaining.val.attrs[[data.set.ind]][is.combinable])
 }
 
+
 findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
                                  match.parameters)
 {
@@ -903,7 +905,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     match.by.variable.labels <- match.parameters$match.by.variable.labels
     match.by.value.labels <- match.parameters$match.by.value.labels
     ignore.case <- match.parameters$ignore.case
-    ignore.special.characters <- match.parameters$ignore.special.characters
+    ignore.non.alpha.numeric <- match.parameters$ignore.non.alpha.numeric
     min.match.percentage <- match.parameters$min.match.percentage
 
     if (!match.by.variable.names &&
@@ -919,11 +921,18 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     if (match.by.variable.names)
     {
         ind <- removeNA(match(nms, candidate.names))
+
         if (length(ind) == 1)
         {
-            result <- candidate.names[ind]
-            attr(result, "is.fuzzy.match") <- FALSE
-            return(result)
+            is.diff <- isLabelsDifferent(candidate.labels[ind], lbls,
+                                         candidate.val.attrs[[ind]], val.attrs,
+                                         match.parameters)
+            if (!is.diff)
+            {
+                result <- candidate.names[ind]
+                attr(result, "is.fuzzy.match") <- FALSE
+                return(result)
+            }
         }
         else if (length(ind) > 1)
         {
@@ -983,55 +992,49 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     # Find fuzzy name match
     if (match.by.variable.names)
     {
-        match.percentage <- matchPercentage(candidate.names, nms, ignore.case,
-                                            ignore.special.characters)
-        best.match.percentage <- max(match.percentage)
-        if (best.match.percentage >= min.match.percentage)
+        match.percentages <- matchPercentages(candidate.names, nms, ignore.case,
+                                              ignore.non.alpha.numeric)
+        sorted.match.percentages <- unique(sort(match.percentages, decreasing = TRUE))
+
+        for (p in sorted.match.percentages)
         {
-            arr.ind <- which(match.percentage == best.match.percentage,
-                             arr.ind = TRUE)
+            if (p < min.match.percentage)
+                break
+
+            arr.ind <- which(match.percentages == p, arr.ind = TRUE)
+            is.numbers.preserved <- vapply(seqRow(arr.ind), function(i) {
+                isNumbersPreserved(candidate.names[arr.ind[, 1]], nms[arr.ind[, 2]])
+            }, logical(1))
+            arr.ind <- arr.ind[is.numbers.preserved, , drop = FALSE]
+
             if (nrow(arr.ind) == 1)
             {
-                result <- candidate.names[arr.ind[1, 1]]
-                attr(result, "is.fuzzy.match") <- !is.exact.match
-                return(result)
+                is.diff <- isLabelsDifferent(candidate.labels[arr.ind[1, 1]],
+                                             lbls,
+                                             candidate.val.attrs[[arr.ind[1, 1]]],
+                                             val.attrs, match.parameters)
+                if (!is.diff)
+                {
+                    result <- candidate.names[arr.ind[1, 1]]
+                    attr(result, "is.fuzzy.match") <- !is.exact.match
+                    return(result)
+                }
             }
-
-            candidate.names <- candidate.names[arr.ind[, 1]]
-            candidate.labels <- candidate.labels[arr.ind[, 1]]
-            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
+            else if (nrow(arr.ind) > 1)
+            {
+                candidate.names <- candidate.names[arr.ind[, 1]]
+                candidate.labels <- candidate.labels[arr.ind[, 1]]
+                candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
+            }
         }
     }
 
     # Find fuzzy label match
     if (match.by.variable.labels && length(lbls) > 0)
     {
-        match.percentages <- matchPercentage(candidate.labels, lbls,
-                                             ignore.case, FALSE)
-        best.match.percentage <- max(match.percentages)
-        if (best.match.percentage >= min.match.percentage)
-        {
-            arr.ind <- which(match.percentage == best.match.percentage,
-                             arr.ind = TRUE)
-            if (nrow(arr.ind) == 1)
-            {
-                result <- candidate.names[arr.ind[1, 1]]
-                attr(result, "is.fuzzy.match") <- !is.exact.match
-                return(result)
-            }
-
-            candidate.names <- candidate.names[arr.ind[, 1]]
-            candidate.labels <- candidate.labels[arr.ind[, 1]]
-            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
-        }
-    }
-
-    # Find fuzzy value label match
-    if (match.by.value.labels && length(val.attrs) > 0)
-    {
-        match.percentages <- matchPercentageValueAttributes(candidate.val.attrs,
-                                                            val.attrs,
-                                                            ignore.case)
+        match.percentages <- matchPercentages(candidate.labels, lbls,
+                                             ignore.case,
+                                             ignore.non.alpha.numeric)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -1050,32 +1053,75 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         }
     }
 
-    if (length(candidate.names) < n.input.candidate.names)
+    # Find fuzzy value label match
+    if (match.by.value.labels && length(val.attrs) > 0)
     {
-        result <- candidate.names[1]
-        attr(result, "is.fuzzy.match") <- !is.exact.match
-        result
+        match.percentages <- matchPercentagesForValueAttributes(candidate.val.attrs,
+                                                                val.attrs,
+                                                                ignore.case,
+                                                                ignore.non.alpha.numeric)
+        best.match.percentage <- max(match.percentages)
+        if (best.match.percentage >= min.match.percentage)
+        {
+            arr.ind <- which(match.percentages == best.match.percentage,
+                             arr.ind = TRUE)
+            if (nrow(arr.ind) == 1)
+            {
+                result <- candidate.names[arr.ind[1, 1]]
+                attr(result, "is.fuzzy.match") <- !is.exact.match
+                return(result)
+            }
+        }
     }
-    else
-        NA_character_
+
+    NA_character_
+}
+
+isLabelsDifferent <- function(lbl, lbls.to.compare.against,
+                              val.attr, val.attrs.to.compare.against,
+                              match.parameters)
+{
+    if (is.null(val.attr) || length(val.attrs.to.compare.against) == 0)
+        return(FALSE)
+
+    val.lbls <- normalizeValueLabels(names(val.attr))
+
+    any.intersect <- any(vapply(val.attrs.to.compare.against, function(x) {
+        length(intersect(normalizeValueLabels(names(x)), val.lbls)) > 0
+    }, logical(1)))
+
+    if (any.intersect)
+        return(FALSE)
+
+    ignore.case <- match.parameters$ignore.case
+    ignore.non.alpha.numeric <- match.parameters$ignore.non.alpha.numeric
+    min.match.percentage <- match.parameters$min.match.percentage
+
+    match.percentages.lbl <- matchPercentages(lbl,
+                                              lbls.to.compare.against,
+                                              ignore.case,
+                                              ignore.non.alpha.numeric)
+
+    all(match.percentages.lbl < min.match.percentage)
 }
 
 #' @importFrom stringdist stringdistmatrix
-matchPercentage <- function(strings.1, strings.2, ignore.case,
-                            ignore.special.characters)
+matchPercentages <- function(strings.1, strings.2, ignore.case,
+                             ignore.non.alpha.numeric)
 {
     if (ignore.case)
     {
         strings.1 <- tolower(strings.1)
         strings.2 <- tolower(strings.2)
     }
-    if (ignore.special.characters)
+    if (ignore.non.alpha.numeric)
     {
-        strings.1 <- removeSpecialCharactersFromNames(strings.1)
-        strings.2 <- removeSpecialCharactersFromNames(strings.2)
+        strings.1 <- removeNonAlphaNumericCharacters(strings.1)
+        strings.2 <- removeNonAlphaNumericCharacters(strings.2)
     }
 
-    distances <- stringdistmatrix(strings.1, strings.2)
+    distances <- 2 * stringdistmatrix(strings.1, strings.2,
+                                      weight = string.dist.weight)
     nchar.1 <- matrix(rep(nchar(strings.1), length(strings.2)),
                       nrow = length(strings.1))
     nchar.2 <- matrix(rep(nchar(strings.2), each = length(strings.1)),
@@ -1083,9 +1129,28 @@ matchPercentage <- function(strings.1, strings.2, ignore.case,
     100 * (1 - distances / (pmax(nchar.1, nchar.2)))
 }
 
-matchPercentageValueAttributes <- function(val.attrs.1, val.attrs.2,
-                                           ignore.case)
+matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
+                                               ignore.case,
+                                               ignore.non.alpha.numeric)
 {
+    val.attrs.1 <- lapply(val.attrs.1, function(x) {
+        if (is.null(x))
+            NULL
+        if (ignore.case)
+            names(x) <- tolower(names(x))
+        if (ignore.non.alpha.numeric)
+            names(x) <- tolower(removeNonAlphaNumericCharacters(x))
+    })
+
+    val.attrs.2 <- lapply(val.attrs.2, function(x) {
+        if (is.null(x))
+            NULL
+        if (ignore.case)
+            names(x) <- tolower(names(x))
+        if (ignore.non.alpha.numeric)
+            names(x) <- tolower(removeNonAlphaNumericCharacters(x))
+    })
+
     result <- matrix(nrow = length(val.attrs.1), ncol = length(val.attrs.2))
     for (i in seq_along(val.attrs.1))
     {
@@ -1098,9 +1163,9 @@ matchPercentageValueAttributes <- function(val.attrs.1, val.attrs.2,
                 result[i, j] <- 0
                 next
             }
-            match.percentage <- matchPercentage(names(val.attr.1),
-                                                names(val.attr.2),
-                                                ignore.case, FALSE)
+            match.percentage <- matchPercentages(names(val.attr.1),
+                                                 names(val.attr.2),
+                                                 FALSE, FALSE)
             result[i, j] <- mean(c(mean(apply(match.percentage, 1, max)),
                                    mean(apply(match.percentage, 2, max))))
         }
@@ -1108,24 +1173,64 @@ matchPercentageValueAttributes <- function(val.attrs.1, val.attrs.2,
     result
 }
 
-# Remove special characters (@#_\$.) from variable names, except when the
-# removal of the special characters results in numeric characters connecting,
-# e.g., Q2_1 becoming Q21. In such a case we just remove all but the first
-# character, e.g., Q2__1 becomes Q2_1.
-removeSpecialCharactersFromNames <- function(nms)
+#' @importFrom stringdist stringdist
+matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against)
 {
-    pattern <- paste0("(^(@|#|_|\\\\|\\$|\\.)+)|", # special characters at start
-                      "((@|#|_|\\\\|\\$|\\.)+$)|", # special characters at end
-                      "((?<=[[:alpha:]])(@|#|_|\\\\|\\$|\\.)+(?=[[:alpha:]]))|", # special characters between alphabet characters
-                      "((?<=[[:alpha:]])(@|#|_|\\\\|\\$|\\.)+(?=\\d))|", # special characters between alphabet character and digit
-                      "((?<=\\d)(@|#|_|\\\\|\\$|\\.)+(?=[[:alpha:]]))") # special characters between digit and alphabet character
-    nms <- gsub(pattern, "", nms, perl = TRUE)
+    nchar.lbls <- pmax(nchar(lbl), nchar(lbls.to.compare.against))
+    lbl <- normalizeValueLabels(lbl)
+    lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against)
+    100 * (1 - 2 * stringdist(lbl, lbls.to.compare.against,
+                              weight = string.dist.weight) / nchar.lbls)
+}
 
-    # Remove all but the first special character when there are multiple
-    # consecutive special characters
-    nms <- gsub("(?<=(@|#|_|\\\\|\\$|\\.))(@|#|_|\\\\|\\$|\\.)+", "", nms, perl = TRUE)
+normalizeValueLabels <- function(lbls)
+{
+    lbls <- tolower(lbls)
+    removeNonAlphaNumericCharacters(lbls)
+}
 
-    nms
+# Remove non-alphanumeric characters from input text, except when the
+# removal of the characters results in numeric characters connecting,
+# e.g., "20 - 29" becoming "2029". In such a situation we replace the
+# characters with an underscore.
+removeNonAlphaNumericCharacters <- function(txt)
+{
+    pattern <- paste0("(^[^a-zA-Z0-9]+)|", # non-alphanum characters at start
+                      "([^a-zA-Z0-9]+$)|", # non-alphanum characters at end
+                      "((?<=[[:alpha:]])[^a-zA-Z0-9]+(?=[[:alpha:]]))|", # non-alphanum characters between alphabet characters
+                      "((?<=[[:alpha:]])[^a-zA-Z0-9]+(?=\\d))|", # non-alphanum characters between alphabet character and digit
+                      "((?<=\\d)[^a-zA-Z0-9]+(?=[[:alpha:]]))") # non-alphanum characters between digit and alphabet character
+    txt <- gsub(pattern, "", txt, perl = TRUE)
+
+    # Replace remaining non-alphanum characters with an underscore
+    txt <- gsub("[^a-zA-Z0-9]+", "_", txt, perl = TRUE)
+
+    txt
+}
+
+isNumbersPreserved <- function(string.1, string.2)
+{
+    nums.1 <- strsplit(string.1, "[^0-9]")[[1]]
+    nums.1 <- nums.1[nums.1 != ""]
+    nums.2 <- strsplit(string.2, "[^0-9]")[[1]]
+    nums.2 <- nums.2[nums.2 != ""]
+
+    if (length(nums.1) > length(nums.2))
+    {
+        temp <- nums.1
+        nums.1 <- nums.2
+        nums.2 <- temp
+    }
+
+    for (num in nums.1)
+    {
+        ind <- match(num, nums.2)
+        if (is.na(ind))
+            return(FALSE)
+        else
+            nums.2 <- nums.2[-ind]
+    }
+    TRUE
 }
 
 # Checks that a variable doesn't violate variables.to.not.combine when it is
@@ -1753,7 +1858,6 @@ labelValue <- function(val.attr, label)
 }
 
 # Merge value attribute (value and label) into merged.val.attr
-#' @importFrom stringdist stringdist
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                                 when.multiple.labels.for.one.value,
                                 min.value.label.match.percentage)
@@ -1769,8 +1873,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     }
     else
     {
-        nchar.lbls <- pmin(nchar(lbl), nchar(names(merged.val.attr)))
-        match.percentages <- 100 * (1 - stringdist(tolower(lbl), tolower(names(merged.val.attr))) / nchar.lbls)
+        match.percentages <- matchPercentagesForValueLabels(lbl, names(merged.val.attr))
         if (max(match.percentages) >= min.value.label.match.percentage) # label is close enough
         {
             merged.val <- unname(merged.val.attr[which.max(match.percentages)])
@@ -1783,15 +1886,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
         }
         else if (val %in% merged.val.attr) # different labels with same value
         {
-            merged.val.lbl <- names(merged.val.attr)[merged.val.attr == val]
-            match.percentage <- 100 * (1 - stringdist(tolower(lbl), tolower(merged.val.lbl)) /
-                                           min(nchar(lbl), nchar(merged.val.lbl)))
-            if (match.percentage >= 80)
-            {
-                # labels are similar for the same value so we assume they are the same,
-                # no action required as the value is already in merged.val.attr
-            }
-            else if (when.multiple.labels.for.one.value == "Create new values for the labels")
+            if (when.multiple.labels.for.one.value == "Create new values for the labels")
             {
                 new.value <- if (is.numeric(merged.val.attr)) # create new numeric value for label
                     ceiling(max(merged.val.attr)) + 1
@@ -1811,7 +1906,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                 merged.val.attr[lbl] <- new.value
                 map <- rbind(map, c(val, new.value), deparse.level = 0)
             }
-            # else "Use first value", no action required as it is already in merged.val.attr
+            # else "Use one of the labels", no action required as it is already in merged.val.attr
         }
         else # value and label not in merged.val.attr
             merged.val.attr[lbl] <- val # create new value in merged.val.attr
@@ -2022,6 +2117,13 @@ removeNULL <- function(x)
 {
     x[!vapply(x, is.null, logical(1))]
 }
+
+# Weight values to be passed to stringdist and stringdistmatrix.
+# Deletions and insertions are given half the distance of substitutions and
+# transpositions as correct fuzzy matches often have one string as a subset of
+# another, instead of edits of another. We multiply the output of stringdist
+# and stringdistmatrix by 2 so that an insertion/deletion has distance 1.
+string.dist.weight <- c(d = 0.5, i = 0.5, s = 1, t = 1)
 
 #' @importFrom flipFormat DataSetMergingWidget
 #' @export
