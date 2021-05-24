@@ -132,9 +132,9 @@ MergeDataSetsByCase <- function(data.set.names,
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 # Indicate what is being matched, how many fuzzy matched variables in subtitles
-# Indicate how match occurred and fuzzy match %
+# Indicate how match occurred, whether fuzzy
 # Indicate which variables were renamed
-# Make renamed variable next to original
+# Improve renamed variable note
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -1447,12 +1447,8 @@ isConvertibleToDate <- function(num)
 
 mergedVariableNames <- function(matched.names, use.names.and.labels.from)
 {
-    merged.names <- apply(matched.names, 1, function(nms) {
-        if (use.names.and.labels.from == "First data set")
-            removeNA(nms)[1]
-        else
-            removeNA(rev(nms))[1]
-    })
+    merged.names <- namesFromEarliestDataSet(matched.names,
+                                             use.names.and.labels.from)
 
     # Merged names may contain duplicate variable names due to the user
     # specifying variables with the same name to not be combined or variables
@@ -1473,6 +1469,16 @@ mergedVariableNames <- function(matched.names, use.names.and.labels.from)
     merged.names
 }
 
+namesFromEarliestDataSet <- function(matched.names, use.names.and.labels.from)
+{
+    apply(matched.names, 1, function(nms) {
+        if (use.names.and.labels.from == "First data set")
+            removeNA(nms)[1]
+        else
+            removeNA(rev(nms))[1]
+    })
+}
+
 orderMatchedNames <- function(matched.names, input.data.set.metadata,
                               use.names.and.labels.from)
 {
@@ -1482,29 +1488,24 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
     # Convert list of variable names to list of row indices relative to the
     # matched names matrix, removing any names that do not appear in
     # matched.names (i.e., those that have been omitted).
-    # This is because mergeIndicesList works with indices instead of names.
     v.indices <- lapply(seq_len(n.data.sets), function(i) {
         removeNA(match(v.names[[i]], matched.names[, i]))
     })
 
-    # We require non-combinable names to appear consecutively. Therefore
-    # we create a matrix of row indices (relative to the matched names matrix)
-    # where each row specifies which variables should be kept together.
-    non.combinable.variables <- attr(matched.names, "non.combinable.variables")
-    indices.to.keep.togther <- do.call("rbind", lapply(seqRow(non.combinable.variables), function(i) {
-        vapply(seq_len(n.data.sets), function(j) {
-            if (!is.na(non.combinable.variables[i, j]))
-                match(non.combinable.variables[i, j], matched.names[, j])
-            else
-                NA_integer_
-        }, integer(1))
-    }))
+    # We want to keep the variables that will have the same merged names
+    # (before deduplication) together.
+    nms <- namesFromEarliestDataSet(matched.names,
+                                    use.names.and.labels.from)
+    tab <- table(nms)
+    duplicated.names <- names(tab[tab > 1])
+    indices.to.keep.togther <- lapply(duplicated.names,
+                                      function(nm) which(nm == nms))
 
     ordering <- mergeIndicesList(v.indices, use.names.and.labels.from,
                                  indices.to.keep.togther)
 
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
-    attr(ordered.matched.names, "non.combinable.variables") <- non.combinable.variables
+    attr(ordered.matched.names, "non.combinable.variables") <- attr(matched.names, "non.combinable.variables")
     attr(ordered.matched.names, "is.fuzzy.match") <- attr(matched.names, "is.fuzzy.match")[ordering, , drop = FALSE]
     ordered.matched.names
 }
@@ -1520,12 +1521,12 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
     # representative, which is then replaced with the set after merging
     if (!is.null(indices.to.keep.togther))
     {
-        representative.indices <- apply(indices.to.keep.togther, 1,
-                                        function(indices) removeNA(indices)[1])
+        representative.indices <- vapply(indices.to.keep.togther, `[`,
+                                         integer(1), 1)
         indices.list <- lapply(seq_along(indices.list), function(j) {
             indices <- indices.list[[j]]
-            for (i in which(!is.na(indices.to.keep.togther[, j])))
-                indices[indices == indices.to.keep.togther[i, j]] <- representative.indices[i]
+            for (i in seq_along(indices.to.keep.togther))
+                indices[indices %in% indices.to.keep.togther[[i]]] <- representative.indices[i]
             indices
         })
     }
@@ -1574,7 +1575,7 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
         if (!is.na(ind))
             # If selected.index is a representative, replace it with the set
             merged.indices <- c(merged.indices,
-                                unique(removeNA(indices.to.keep.togther[ind, ])))
+                                indices.to.keep.togther[[ind]])
         else
             merged.indices <- c(merged.indices, selected.index)
 
