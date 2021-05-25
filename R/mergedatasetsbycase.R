@@ -131,10 +131,6 @@ MergeDataSetsByCase <- function(data.set.names,
 # TODO
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
-# Indicate what is being matched, how many fuzzy matched variables in subtitles
-# Indicate how match occurred, whether fuzzy
-# Indicate which variables were renamed
-# Improve renamed variable note
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -202,6 +198,9 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                            v.names.to.combine)
     is.fuzzy.match <- matrix(FALSE, nrow = nrow(matched.names),
                              ncol = n.data.sets)
+    matched.by <- matrix(NA_character_, nrow = nrow(matched.names),
+                         ncol = n.data.sets)
+    matched.by[!is.na(matched.names)] <- "Manual"
 
     # Find matches to manually combined names
     if (!is.null(matched.names))
@@ -254,6 +253,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                     remaining.labels[[j]] <- remaining.labels[[j]][-matching.ind]
                     is.fuzzy.match[i, j] <- attr(matching.name,
                                                  "is.fuzzy.match")
+                    matched.by[i, j] <- attr(matching.name, "matched.by")
                     next
                 }
             }
@@ -275,7 +275,8 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
         for (j in seq_along(nms))
         {
             new.row <- rep(NA_character_, n.data.sets)
-            is.fuzzy.match.new.row <- rep(FALSE, n.data.sets)
+            is.fuzzy.match.for.new.row <- rep(FALSE, n.data.sets)
+            matched.by.for.new.row <- rep(NA_character_, n.data.sets)
             new.row[i] <- nms[j]
             new.row.names <- nms[j]
             new.row.labels <- removeNA(lbls[j])
@@ -314,17 +315,22 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                     remaining.names[[k]] <- remaining.names[[k]][-matching.ind]
                     remaining.labels[[k]] <- remaining.labels[[k]][-matching.ind]
                     remaining.val.attrs[[k]] <- remaining.val.attrs[[k]][-matching.ind]
-                    is.fuzzy.match.new.row[k] <- attr(matching.name,
-                                                      "is.fuzzy.match")
+                    is.fuzzy.match.for.new.row[k] <- attr(matching.name,
+                                                          "is.fuzzy.match")
+                    matched.by.for.new.row[k] <- attr(matching.name,
+                                                      "matched.by")
                     next
                 }
             }
             matched.names <- rbind(matched.names, new.row, deparse.level = 0)
-            is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.new.row,
+            is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.for.new.row,
                                     deparse.level = 0)
+            matched.by <- rbind(matched.by, matched.by.for.new.row,
+                                deparse.level = 0)
         }
     }
     attr(matched.names, "is.fuzzy.match") <- is.fuzzy.match
+    attr(matched.names, "matched.by") <- matched.by
 
     matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets,
                                                       v.names.to.combine,
@@ -332,6 +338,8 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     matched.names <- orderMatchedNames(matched.names,
                                        input.data.set.metadata,
                                        use.names.and.labels.from)
+
+    attr(matched.names, "match.parameters") <- match.parameters
     matched.names
 }
 
@@ -340,9 +348,11 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
     v.val.attrs <- input.data.set.metadata$variable.value.attributes
+    n.data.sets <- input.data.set.metadata$n.data.sets
 
     if (match.parameters$ignore.case)
     {
+        v.names <- lapply(v.names, tolower)
         v.labels <- lapply(v.labels, tolower)
         v.val.attrs <- lapply(v.val.attrs, function(val.attrs) {
             lapply(removeNULL(val.attrs), function(val.attr) {
@@ -352,18 +362,58 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
         })
     }
 
-    # Matching by variable names is generally worthwhile, and it is not easy
-    # to determine when names should not be matched, so we always automatically
-    # match by names.
-    match.parameters$match.by.variable.names <- TRUE
+    if (match.parameters$ignore.non.alpha.numeric)
+    {
+        v.names <- lapply(v.names, removeNonAlphaNumericCharacters)
+        v.labels <- lapply(v.labels, removeNonAlphaNumericCharacters)
+        v.val.attrs <- lapply(v.val.attrs, function(val.attrs) {
+            lapply(removeNULL(val.attrs), function(val.attr) {
+                names(val.attr) <- removeNonAlphaNumericCharacters(names(val.attr))
+                val.attr
+            })
+        })
+    }
 
-    # Don't match by variable labels if more than 50% of labels in a data set
+    # Don't match by variable labels if more than 25% of labels in a data set
     # map to two or more labels in another data set.
-    match.parameters$match.by.variable.labels <- maxOneToManyLabelProportion(v.labels) <= 0.5
+    match.parameters$match.by.variable.labels <- maxOneToManyLabelProportion(v.labels) <= 0.25
+
+    if (match.parameters$match.by.variable.labels)
+    {
+        unique.lbls <- unique(unlist(v.labels))
+        unique.lbls <- unique.lbls[unique.lbls != ""]
+        duplicated.lbls <- unlist(lapply(v.labels,
+                                         function(lbls) lbls[duplicated(lbls)]))
+        unique.lbls <- setdiff(unique.lbls, duplicated.lbls)
+
+        n.tested <- 0
+        n.matching.names <- 0
+        for (lbl in unique.lbls)
+        {
+            indices <- vapply(v.labels,
+                              function(lbls) match(lbl, lbls), integer(1))
+            if (sum(!is.na(indices)) < 2)
+                next
+
+            all.identical <- allIdentical(removeNA(vapply(seq_len(n.data.sets), function(i) {
+                if (!is.na(indices[i]))
+                    v.names[[i]][indices[i]]
+                else
+                    NA_character_
+            }, character(1))))
+
+            n.tested <- n.tested + 1
+            if (all.identical)
+                n.matching.names <- n.matching.names + 1
+        }
+
+        match.parameters$match.by.variable.names <- n.tested < 0.5 * length(unique.lbls) ||
+                                                    n.matching.names / n.tested >= 0.5
+    }
 
     # Don't match by value labels if more than 50% of value label sets in a data
     # set maps to two or more sets of value labels in another data set.
-    match.parameters$match.by.value.labels <- maxOneToManyValueLabelProportion(v.val.attrs) <= 0.5
+    match.parameters$match.by.value.labels <- maxOneToManyValueLabelProportion(v.val.attrs) <= 0.25
 
     match.parameters
 }
@@ -931,6 +981,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
             {
                 result <- candidate.names[ind]
                 attr(result, "is.fuzzy.match") <- FALSE
+                attr(result, "matched.by") <- "Variable name"
                 return(result)
             }
         }
@@ -954,6 +1005,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         {
             result <- candidate.names[ind]
             attr(result, "is.fuzzy.match") <- FALSE
+            attr(result, "matched.by") <- "Variable label"
             return(result)
         }
         else if (length(ind) > 1)
@@ -978,6 +1030,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         {
             result <- candidate.names[ind]
             attr(result, "is.fuzzy.match") <- FALSE
+            attr(result, "matched.by") <- "Value label"
             return(result)
         }
         else if (length(ind) > 1)
@@ -993,7 +1046,8 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     if (match.by.variable.names)
     {
         match.percentages <- matchPercentages(candidate.names, nms, ignore.case,
-                                              ignore.non.alpha.numeric)
+                                              ignore.non.alpha.numeric,
+                                              min.match.percentage)
         sorted.match.percentages <- unique(sort(match.percentages, decreasing = TRUE))
 
         for (p in sorted.match.percentages)
@@ -1017,6 +1071,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
                 {
                     result <- candidate.names[arr.ind[1, 1]]
                     attr(result, "is.fuzzy.match") <- !is.exact.match
+                    attr(result, "matched.by") <- "Variable name"
                     return(result)
                 }
             }
@@ -1034,7 +1089,8 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     {
         match.percentages <- matchPercentages(candidate.labels, lbls,
                                              ignore.case,
-                                             ignore.non.alpha.numeric)
+                                             ignore.non.alpha.numeric,
+                                             min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -1044,6 +1100,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
             {
                 result <- candidate.names[arr.ind[1, 1]]
                 attr(result, "is.fuzzy.match") <- !is.exact.match
+                attr(result, "matched.by") <- "Variable label"
                 return(result)
             }
 
@@ -1059,7 +1116,8 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         match.percentages <- matchPercentagesForValueAttributes(candidate.val.attrs,
                                                                 val.attrs,
                                                                 ignore.case,
-                                                                ignore.non.alpha.numeric)
+                                                                ignore.non.alpha.numeric,
+                                                                min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -1069,6 +1127,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
             {
                 result <- candidate.names[arr.ind[1, 1]]
                 attr(result, "is.fuzzy.match") <- !is.exact.match
+                attr(result, "matched.by") <- "Value label"
                 return(result)
             }
         }
@@ -1100,14 +1159,16 @@ isLabelsDifferent <- function(lbl, lbls.to.compare.against,
     match.percentages.lbl <- matchPercentages(lbl,
                                               lbls.to.compare.against,
                                               ignore.case,
-                                              ignore.non.alpha.numeric)
+                                              ignore.non.alpha.numeric,
+                                              min.match.percentage)
 
     all(match.percentages.lbl < min.match.percentage)
 }
 
 #' @importFrom stringdist stringdistmatrix
 matchPercentages <- function(strings.1, strings.2, ignore.case,
-                             ignore.non.alpha.numeric)
+                             ignore.non.alpha.numeric,
+                             min.match.percentage)
 {
     if (ignore.case)
     {
@@ -1120,8 +1181,14 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         strings.2 <- removeNonAlphaNumericCharacters(strings.2)
     }
 
-    distances <- 2 * stringdistmatrix(strings.1, strings.2,
-                                      weight = string.dist.weight)
+    n.char.1 <- nchar(strings.1)
+    distances <- do.call("cbind", lapply(strings.2, function(s) {
+        ind <- 100 * (1 - abs(nchar(s) - n.char.1) / pmax(nchar(s), n.char.1)) >= min.match.percentage
+        d <- rep(Inf, length(n.char.1))
+        d[ind] <- 2 * stringdist(s, strings.1[ind], weight = string.dist.weight)
+        d
+    }))
+
     nchar.1 <- matrix(rep(nchar(strings.1), length(strings.2)),
                       nrow = length(strings.1))
     nchar.2 <- matrix(rep(nchar(strings.2), each = length(strings.1)),
@@ -1131,7 +1198,8 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
 
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.case,
-                                               ignore.non.alpha.numeric)
+                                               ignore.non.alpha.numeric,
+                                               min.match.percentage)
 {
     val.attrs.1 <- lapply(val.attrs.1, function(x) {
         if (is.null(x))
@@ -1139,7 +1207,7 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
         if (ignore.case)
             names(x) <- tolower(names(x))
         if (ignore.non.alpha.numeric)
-            names(x) <- tolower(removeNonAlphaNumericCharacters(x))
+            names(x) <- removeNonAlphaNumericCharacters(x)
     })
 
     val.attrs.2 <- lapply(val.attrs.2, function(x) {
@@ -1148,7 +1216,7 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
         if (ignore.case)
             names(x) <- tolower(names(x))
         if (ignore.non.alpha.numeric)
-            names(x) <- tolower(removeNonAlphaNumericCharacters(x))
+            names(x) <- removeNonAlphaNumericCharacters(x)
     })
 
     result <- matrix(nrow = length(val.attrs.1), ncol = length(val.attrs.2))
@@ -1165,7 +1233,8 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
             }
             match.percentage <- matchPercentages(names(val.attr.1),
                                                  names(val.attr.2),
-                                                 FALSE, FALSE)
+                                                 FALSE, FALSE,
+                                                 min.match.percentage)
             result[i, j] <- mean(c(mean(apply(match.percentage, 1, max)),
                                    mean(apply(match.percentage, 2, max))))
         }
@@ -1261,11 +1330,13 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
     result <- matrix(nrow = 0, ncol = n.data.sets)
     non.combinable.variables <- matrix(nrow = 0, ncol = n.data.sets)
     is.fuzzy.match <- matrix(nrow = 0, ncol = n.data.sets)
+    matched.by <- matrix(nrow = 0, ncol = n.data.sets)
 
     for (i in seqRow(matched.names))
     {
         matched.names.row <- matched.names[i, ]
-        is.fuzzy.match.row <- attr(matched.names, "is.fuzzy.match")[i, ]
+        is.fuzzy.match.for.row <- attr(matched.names, "is.fuzzy.match")[i, ]
+        matched.by.for.row <- attr(matched.names, "matched.by")[i, ]
         ind <- which(!is.na(matched.names.row))
         var.list <- vector(mode = "list", length = n.data.sets)
         var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names.row[j]]])
@@ -1276,8 +1347,9 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
         if (allIdentical(removeNA(v.types)))
         {
             result <- rbind(result, matched.names.row, deparse.level = 0)
-            is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.row,
+            is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.for.row,
                                     deparse.level = 0)
+            matched.by <- rbind(matched.by, matched.by.for.row, deparse.level = 0)
             next
         }
 
@@ -1362,10 +1434,15 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
                 new.row[merge.ind] <- matched.names.row[merge.ind]
                 result <- rbind(result, new.row, deparse.level = 0)
 
-                is.fuzzy.match.new.row <- rep(FALSE, n.data.sets)
-                is.fuzzy.match.new.row[merge.ind] <- is.fuzzy.match.row[merge.ind]
-                is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.new.row,
+                is.fuzzy.match.for.new.row <- rep(FALSE, n.data.sets)
+                is.fuzzy.match.for.new.row[merge.ind] <- is.fuzzy.match.for.row[merge.ind]
+                is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.for.new.row,
                                         deparse.level = 0)
+
+                matched.by.for.new.row <- rep(FALSE, n.data.sets)
+                matched.by.for.new.row[merge.ind] <- matched.by.for.row[merge.ind]
+                matched.by <- rbind(matched.by, matched.by.for.new.row,
+                                    deparse.level = 0)
             }
 
             # Remove the merged indices from consideration and break if none
@@ -1397,6 +1474,7 @@ unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
     }
     attr(result, "non.combinable.variables") <- non.combinable.variables
     attr(result, "is.fuzzy.match") <- is.fuzzy.match
+    attr(result, "matched.by") <- matched.by
     result
 }
 
@@ -1507,6 +1585,7 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
     attr(ordered.matched.names, "non.combinable.variables") <- attr(matched.names, "non.combinable.variables")
     attr(ordered.matched.names, "is.fuzzy.match") <- attr(matched.names, "is.fuzzy.match")[ordering, , drop = FALSE]
+    attr(ordered.matched.names, "matched.by") <- attr(matched.names, "matched.by")[ordering, , drop = FALSE]
     ordered.matched.names
 }
 
