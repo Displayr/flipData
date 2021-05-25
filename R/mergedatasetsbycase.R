@@ -1249,7 +1249,8 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
 {
     nchar.lbls <- pmax(nchar(lbl), nchar(lbls.to.compare.against))
     lbl <- normalizeValueLabels(lbl, match.parameters)
-    lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against)
+    lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against,
+                                                    match.parameters)
     100 * (1 - 2 * stringdist(lbl, lbls.to.compare.against,
                               weight = string.dist.weight) / nchar.lbls)
 }
