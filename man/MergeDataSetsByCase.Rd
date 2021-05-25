@@ -12,7 +12,7 @@ MergeDataSetsByCase(
   match.by.variable.labels = TRUE,
   match.by.value.labels = TRUE,
   ignore.case = TRUE,
-  ignore.non.alpha.numeric = TRUE,
+  ignore.non.alphanumeric = TRUE,
   min.match.percentage = 100,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
@@ -47,7 +47,7 @@ categorical variables.}
 
 \item{ignore.case}{Ignore case when matching text.}
 
-\item{ignore.non.alpha.numeric}{Ignore non-alphanumeric characters when
+\item{ignore.non.alphanumeric}{Ignore non-alphanumeric characters when
 matching text except when numeric characters appear both before and after
 non-alphanumeric characters e.g., "24 - 29", in which case the characters
 are still ignored but the separation between the numbers is noted.}

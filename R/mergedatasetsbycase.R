@@ -17,7 +17,7 @@
 #' @param match.by.value.labels Whether to match using value labels of
 #'  categorical variables.
 #' @param ignore.case Ignore case when matching text.
-#' @param ignore.non.alpha.numeric Ignore non-alphanumeric characters when
+#' @param ignore.non.alphanumeric Ignore non-alphanumeric characters when
 #'  matching text except when numeric characters appear both before and after
 #'  non-alphanumeric characters e.g., "24 - 29", in which case the characters
 #'  are still ignored but the separation between the numbers is noted.
@@ -81,7 +81,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 match.by.variable.labels = TRUE,
                                 match.by.value.labels = TRUE,
                                 ignore.case = TRUE,
-                                ignore.non.alpha.numeric = TRUE,
+                                ignore.non.alphanumeric = TRUE,
                                 min.match.percentage = 100,
                                 variables.to.combine = NULL,
                                 variables.to.not.combine = NULL,
@@ -100,8 +100,9 @@ MergeDataSetsByCase <- function(data.set.names,
                              match.by.variable.labels = match.by.variable.labels,
                              match.by.value.labels = match.by.value.labels,
                              ignore.case = ignore.case,
-                             ignore.non.alpha.numeric = ignore.non.alpha.numeric,
-                             min.match.percentage = min.match.percentage)
+                             ignore.non.alphanumeric = ignore.non.alphanumeric,
+                             min.match.percentage = min.match.percentage,
+                             min.value.label.match.percentage = min.value.label.match.percentage)
 
     matched.names <- matchVariables(input.data.sets.metadata,
                                     match.parameters,
@@ -116,7 +117,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                      use.names.and.labels.from,
                                      input.data.sets.metadata$data.set.names,
                                      when.multiple.labels.for.one.value,
-                                     min.value.label.match.percentage)
+                                     match.parameters)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
@@ -362,7 +363,7 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
         })
     }
 
-    if (match.parameters$ignore.non.alpha.numeric)
+    if (match.parameters$ignore.non.alphanumeric)
     {
         v.names <- lapply(v.names, removeNonAlphaNumericCharacters)
         v.labels <- lapply(v.labels, removeNonAlphaNumericCharacters)
@@ -955,7 +956,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     match.by.variable.labels <- match.parameters$match.by.variable.labels
     match.by.value.labels <- match.parameters$match.by.value.labels
     ignore.case <- match.parameters$ignore.case
-    ignore.non.alpha.numeric <- match.parameters$ignore.non.alpha.numeric
+    ignore.non.alphanumeric <- match.parameters$ignore.non.alphanumeric
     min.match.percentage <- match.parameters$min.match.percentage
 
     if (!match.by.variable.names &&
@@ -1046,7 +1047,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     if (match.by.variable.names)
     {
         match.percentages <- matchPercentages(candidate.names, nms, ignore.case,
-                                              ignore.non.alpha.numeric,
+                                              ignore.non.alphanumeric,
                                               min.match.percentage)
         sorted.match.percentages <- unique(sort(match.percentages, decreasing = TRUE))
 
@@ -1089,7 +1090,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     {
         match.percentages <- matchPercentages(candidate.labels, lbls,
                                              ignore.case,
-                                             ignore.non.alpha.numeric,
+                                             ignore.non.alphanumeric,
                                              min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
@@ -1116,7 +1117,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         match.percentages <- matchPercentagesForValueAttributes(candidate.val.attrs,
                                                                 val.attrs,
                                                                 ignore.case,
-                                                                ignore.non.alpha.numeric,
+                                                                ignore.non.alphanumeric,
                                                                 min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
@@ -1143,23 +1144,23 @@ isLabelsDifferent <- function(lbl, lbls.to.compare.against,
     if (is.null(val.attr) || length(val.attrs.to.compare.against) == 0)
         return(FALSE)
 
-    val.lbls <- normalizeValueLabels(names(val.attr))
+    val.lbls <- normalizeValueLabels(names(val.attr), match.parameters)
 
     any.intersect <- any(vapply(val.attrs.to.compare.against, function(x) {
-        length(intersect(normalizeValueLabels(names(x)), val.lbls)) > 0
+        length(intersect(normalizeValueLabels(names(x), match.parameters), val.lbls)) > 0
     }, logical(1)))
 
     if (any.intersect)
         return(FALSE)
 
     ignore.case <- match.parameters$ignore.case
-    ignore.non.alpha.numeric <- match.parameters$ignore.non.alpha.numeric
+    ignore.non.alphanumeric <- match.parameters$ignore.non.alphanumeric
     min.match.percentage <- match.parameters$min.match.percentage
 
     match.percentages.lbl <- matchPercentages(lbl,
                                               lbls.to.compare.against,
                                               ignore.case,
-                                              ignore.non.alpha.numeric,
+                                              ignore.non.alphanumeric,
                                               min.match.percentage)
 
     all(match.percentages.lbl < min.match.percentage)
@@ -1167,7 +1168,7 @@ isLabelsDifferent <- function(lbl, lbls.to.compare.against,
 
 #' @importFrom stringdist stringdistmatrix
 matchPercentages <- function(strings.1, strings.2, ignore.case,
-                             ignore.non.alpha.numeric,
+                             ignore.non.alphanumeric,
                              min.match.percentage)
 {
     if (ignore.case)
@@ -1175,7 +1176,7 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         strings.1 <- tolower(strings.1)
         strings.2 <- tolower(strings.2)
     }
-    if (ignore.non.alpha.numeric)
+    if (ignore.non.alphanumeric)
     {
         strings.1 <- removeNonAlphaNumericCharacters(strings.1)
         strings.2 <- removeNonAlphaNumericCharacters(strings.2)
@@ -1198,7 +1199,7 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
 
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.case,
-                                               ignore.non.alpha.numeric,
+                                               ignore.non.alphanumeric,
                                                min.match.percentage)
 {
     val.attrs.1 <- lapply(val.attrs.1, function(x) {
@@ -1206,7 +1207,7 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
             NULL
         if (ignore.case)
             names(x) <- tolower(names(x))
-        if (ignore.non.alpha.numeric)
+        if (ignore.non.alphanumeric)
             names(x) <- removeNonAlphaNumericCharacters(x)
     })
 
@@ -1215,7 +1216,7 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
             NULL
         if (ignore.case)
             names(x) <- tolower(names(x))
-        if (ignore.non.alpha.numeric)
+        if (ignore.non.alphanumeric)
             names(x) <- removeNonAlphaNumericCharacters(x)
     })
 
@@ -1243,19 +1244,23 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
 }
 
 #' @importFrom stringdist stringdist
-matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against)
+matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
+                                           match.parameters)
 {
     nchar.lbls <- pmax(nchar(lbl), nchar(lbls.to.compare.against))
-    lbl <- normalizeValueLabels(lbl)
+    lbl <- normalizeValueLabels(lbl, match.parameters)
     lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against)
     100 * (1 - 2 * stringdist(lbl, lbls.to.compare.against,
                               weight = string.dist.weight) / nchar.lbls)
 }
 
-normalizeValueLabels <- function(lbls)
+normalizeValueLabels <- function(lbls, match.parameters)
 {
-    lbls <- tolower(lbls)
-    removeNonAlphaNumericCharacters(lbls)
+    if (match.parameters$ignore.case)
+        lbls <- tolower(lbls)
+    if (match.parameters$ignore.non.alphanumeric)
+        lbls <- removeNonAlphaNumericCharacters(lbls)
+    lbls
 }
 
 # Remove non-alphanumeric characters from input text, except when the
@@ -1670,7 +1675,7 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
 mergedDataSet <- function(data.sets, matched.names, merged.names,
                           use.names.and.labels.from, data.set.names,
                           when.multiple.labels.for.one.value,
-                          min.value.label.match.percentage)
+                          match.parameters)
 {
     n.vars <- nrow(matched.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
@@ -1679,7 +1684,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
         compositeVariable(matched.names[i, ], data.sets,
                           use.names.and.labels.from,
                           when.multiple.labels.for.one.value,
-                          min.value.label.match.percentage)
+                          match.parameters)
     }))
 
     names(merged.data.set) <- merged.names
@@ -1695,7 +1700,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 compositeVariable <- function(variable.names, data.sets,
                               use.names.and.labels.from,
                               when.multiple.labels.for.one.value,
-                              min.value.label.match.percentage)
+                              match.parameters)
 {
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
@@ -1710,7 +1715,7 @@ compositeVariable <- function(variable.names, data.sets,
         combineCategoricalVariables(var.list, data.sets,
                                     use.names.and.labels.from, v.types,
                                     when.multiple.labels.for.one.value,
-                                    min.value.label.match.percentage)
+                                    match.parameters)
     else
         combineNonCategoricalVariables(var.list, data.sets, v.types)
 
@@ -1724,7 +1729,7 @@ compositeVariable <- function(variable.names, data.sets,
 combineCategoricalVariables <- function(var.list, data.sets,
                                         use.names.and.labels.from, v.types,
                                         when.multiple.labels.for.one.value,
-                                        min.value.label.match.percentage)
+                                        match.parameters)
 {
     is.string.values <- "Categorical with string values" %in% v.types
 
@@ -1765,7 +1770,7 @@ combineCategoricalVariables <- function(var.list, data.sets,
             val <- labelValue(val.attr, lbl)
             merged.val.attr <- mergeValueAttribute(val, lbl, merged.val.attr, map,
                                                    when.multiple.labels.for.one.value,
-                                                   min.value.label.match.percentage)
+                                                   match.parameters)
             map <- attr(merged.val.attr, "map")
         }
         if (nrow(map) > 0)
@@ -1940,7 +1945,7 @@ labelValue <- function(val.attr, label)
 # Merge value attribute (value and label) into merged.val.attr
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                                 when.multiple.labels.for.one.value,
-                                min.value.label.match.percentage)
+                                match.parameters)
 {
     if (lbl %in% names(merged.val.attr))
     {
@@ -1953,8 +1958,10 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     }
     else
     {
-        match.percentages <- matchPercentagesForValueLabels(lbl, names(merged.val.attr))
-        if (max(match.percentages) >= min.value.label.match.percentage) # label is close enough
+        match.percentages <- matchPercentagesForValueLabels(lbl,
+                                                            names(merged.val.attr),
+                                                            match.parameters)
+        if (max(match.percentages) >= match.parameters$min.value.label.match.percentage) # label is close enough
         {
             merged.val <- unname(merged.val.attr[which.max(match.percentages)])
             if (merged.val != val)
