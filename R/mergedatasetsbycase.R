@@ -547,7 +547,7 @@ parseVariablesToCombine <- function(variables.to.combine,
         non.missing.ind <- which(!is.na(result[i, ]))
         for (j in non.missing.ind)
         {
-            row.var.names <- result
+            row.var.names <- result[i, ]
             row.var.names[j] <- NA_character_
             is.compatible <- isVariableCompatible(result[i, j], j, row.var.names,
                                                   input.data.set.metadata$variable.names,
