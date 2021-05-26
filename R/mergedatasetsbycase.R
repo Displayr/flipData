@@ -1237,36 +1237,35 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         d
     }))
 
+    subset.distance <- 0.5
     for (i in seq_along(strings.2))
     {
-        if (100 * (1 - 1 / n.char.2[i]) < min.match.percentage)
+        if (100 * (1 - subset.distance / n.char.2[i]) < min.match.percentage)
             next
 
         ind <- which(n.char.2[i] > n.char.1 & n.char.1 > n.char.2[i] - n.char.1)
         if (length(ind) == 0)
             next
-        distances[ind[stri_detect_fixed(strings.2[i], strings.1[ind])], i] <- 1
+        ind <- ind[stri_detect_fixed(strings.2[i], strings.1[ind])]
+        if (length(ind) == 1)
+            distances[ind, i] <- subset.distance
     }
     for (i in seq_along(strings.2))
     {
         ind <- which(n.char.2[i] < n.char.1 & n.char.2[i] > n.char.1 - n.char.2[i] &
-                     100 * (1 - 1 / n.char.1) >= min.match.percentage)
+                     100 * (1 - subset.distance / n.char.1) >= min.match.percentage)
         if (length(ind) == 0)
             next
-        distances[ind[stri_detect_fixed(strings.1[ind], strings.2[i])], i] <- 1
+        ind <- ind[stri_detect_fixed(strings.1[ind], strings.2[i])]
+        if (length(ind) == 1)
+            distances[ind, i] <- subset.distance
     }
 
-    nchar.1 <- matrix(rep(nchar(strings.1), length(strings.2)),
+    nchar.matrix.1 <- matrix(rep(n.char.1, length(strings.2)),
                       nrow = length(strings.1))
-    nchar.2 <- matrix(rep(nchar(strings.2), each = length(strings.1)),
+    nchar.matrix.2 <- matrix(rep(n.char.2, each = length(strings.1)),
                       nrow = length(strings.1))
-    100 * (1 - distances / (pmax(nchar.1, nchar.2)))
-}
-
-substringDistance <- function(n.char.sub.string, n.char.strings,
-                              reference.n.char = 5)
-{
-    (reference.n.char / n.char.sub.string)# * sqrt(n.char.strings - n.char.sub.string)
+    100 * (1 - distances / (pmax(nchar.matrix.1, nchar.matrix.2)))
 }
 
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
