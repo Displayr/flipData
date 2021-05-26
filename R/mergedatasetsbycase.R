@@ -1079,16 +1079,10 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
 
         if (length(ind) == 1)
         {
-            is.diff <- isLabelsDifferent(candidate.labels[ind], lbls,
-                                         candidate.val.attrs[[ind]], val.attrs,
-                                         match.parameters)
-            if (!is.diff)
-            {
-                result <- candidate.names[ind]
-                attr(result, "is.fuzzy.match") <- FALSE
-                attr(result, "matched.by") <- "Variable name"
-                return(result)
-            }
+            result <- candidate.names[ind]
+            attr(result, "is.fuzzy.match") <- FALSE
+            attr(result, "matched.by") <- "Variable name"
+            return(result)
         }
         else if (length(ind) > 1)
         {
@@ -1145,17 +1139,10 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
 
             if (nrow(arr.ind) == 1)
             {
-                is.diff <- isLabelsDifferent(candidate.labels[arr.ind[1, 1]],
-                                             lbls,
-                                             candidate.val.attrs[[arr.ind[1, 1]]],
-                                             val.attrs, match.parameters)
-                if (!is.diff)
-                {
-                    result <- candidate.names[arr.ind[1, 1]]
-                    attr(result, "is.fuzzy.match") <- !is.exact.match
-                    attr(result, "matched.by") <- "Variable name"
-                    return(result)
-                }
+                result <- candidate.names[arr.ind[1, 1]]
+                attr(result, "is.fuzzy.match") <- !is.exact.match
+                attr(result, "matched.by") <- "Variable name"
+                return(result)
             }
             else if (nrow(arr.ind) > 1)
             {
@@ -1190,35 +1177,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     }
 
     NA_character_
-}
-
-isLabelsDifferent <- function(lbl, lbls.to.compare.against,
-                              val.attr, val.attrs.to.compare.against,
-                              match.parameters)
-{
-    if (is.null(val.attr) || length(val.attrs.to.compare.against) == 0)
-        return(FALSE)
-
-    val.lbls <- normalizeValueLabels(names(val.attr), match.parameters)
-
-    any.intersect <- any(vapply(val.attrs.to.compare.against, function(x) {
-        length(intersect(normalizeValueLabels(names(x), match.parameters), val.lbls)) > 0
-    }, logical(1)))
-
-    if (any.intersect)
-        return(FALSE)
-
-    ignore.case <- match.parameters$ignore.case
-    ignore.non.alphanumeric <- match.parameters$ignore.non.alphanumeric
-    min.match.percentage <- match.parameters$min.match.percentage
-
-    match.percentages.lbl <- matchPercentages(lbl,
-                                              lbls.to.compare.against,
-                                              ignore.case,
-                                              ignore.non.alphanumeric,
-                                              min.match.percentage)
-
-    all(match.percentages.lbl < min.match.percentage)
 }
 
 #' @importFrom stringdist stringdistmatrix
@@ -1292,20 +1250,22 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
 {
     val.attrs.1 <- lapply(val.attrs.1, function(x) {
         if (is.null(x))
-            NULL
+            return(NULL)
         if (ignore.case)
             names(x) <- tolower(names(x))
         if (ignore.non.alphanumeric)
             names(x) <- removeNonAlphaNumericCharacters(x)
+        x
     })
 
     val.attrs.2 <- lapply(val.attrs.2, function(x) {
         if (is.null(x))
-            NULL
+            return(NULL)
         if (ignore.case)
             names(x) <- tolower(names(x))
         if (ignore.non.alphanumeric)
             names(x) <- removeNonAlphaNumericCharacters(x)
+        x
     })
 
     result <- matrix(nrow = length(val.attrs.1), ncol = length(val.attrs.2))
