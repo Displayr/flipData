@@ -13,7 +13,7 @@ MergeDataSetsByCase(
   match.by.value.labels = TRUE,
   ignore.case = TRUE,
   ignore.non.alphanumeric = TRUE,
-  min.match.percentage = 100,
+  min.match.percentage = 90,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
   variables.to.omit = NULL,

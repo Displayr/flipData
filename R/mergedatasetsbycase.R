@@ -82,7 +82,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 match.by.value.labels = TRUE,
                                 ignore.case = TRUE,
                                 ignore.non.alphanumeric = TRUE,
-                                min.match.percentage = 100,
+                                min.match.percentage = 90,
                                 variables.to.combine = NULL,
                                 variables.to.not.combine = NULL,
                                 variables.to.omit = NULL,
@@ -163,7 +163,8 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
 {
     v.names.to.combine <- parseVariablesToCombine(variables.to.combine,
                                                   input.data.set.metadata,
-                                                  data.sets.whose.variables.are.kept)
+                                                  data.sets.whose.variables.are.kept,
+                                                  data.sets)
     v.names.to.not.combine <- parseVariablesToNotCombine(variables.to.not.combine,
                                                          input.data.set.metadata)
     v.names.to.omit <- parseVariablesToOmitForMerging(variables.to.omit,
@@ -175,6 +176,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     v.names <- input.data.set.metadata$variable.names
     v.labels <- input.data.set.metadata$variable.labels
     v.val.attrs <- input.data.set.metadata$variable.value.attributes
+    v.types <- input.data.set.metadata$variable.types
     n.data.sets <- input.data.set.metadata$n.data.sets
 
     remaining.names <- lapply(seq_len(n.data.sets), function(i) {
@@ -246,12 +248,22 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                 matching.name <- findMatchingVariable(nms, lbls, val.attrs,
                                                       candidates,
                                                       match.parameters)
+
                 if (!is.na(matching.name))
                 {
+                    is.compatible <- isVariableCompatible(matching.name, j,
+                                                          matched.names,
+                                                          v.names, v.types,
+                                                          v.val.attrs,
+                                                          data.sets)
+                    if (!is.compatible)
+                        next
+
                     matched.names[i, j] <- matching.name
                     matching.ind <- match(matching.name, remaining.names[[j]])
                     remaining.names[[j]] <- remaining.names[[j]][-matching.ind]
                     remaining.labels[[j]] <- remaining.labels[[j]][-matching.ind]
+                    remaining.val.attrs[[j]] <- remaining.val.attrs[[j]][-matching.ind]
                     is.fuzzy.match[i, j] <- attr(matching.name,
                                                  "is.fuzzy.match")
                     matched.by[i, j] <- attr(matching.name, "matched.by")
@@ -282,6 +294,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
             new.row.names <- nms[j]
             new.row.labels <- removeNA(lbls[j])
             new.row.val.attrs <- removeNULL(val.attrs[j])
+
             for (k in other.data.set.ind)
             {
                 candidates <- candidateMetadata(remaining.names,
@@ -300,10 +313,18 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                                                       match.parameters)
                 if (!is.na(matching.name))
                 {
-                    matching.ind <- match(matching.name, remaining.names[[k]])
+                    is.compatible <- isVariableCompatible(matching.name, k,
+                                                          new.row, v.names,
+                                                          v.types, v.val.attrs,
+                                                          data.sets)
+                    if (!is.compatible)
+                        next
+
                     new.row[k] <- matching.name
                     if (!(matching.name %in% new.row.names))
                         new.row.names <- c(new.row.names, matching.name)
+
+                    matching.ind <- match(matching.name, remaining.names[[k]])
 
                     matching.label <- remaining.labels[[k]][matching.ind]
                     if (!is.na(matching.label) && !(matching.label %in% new.row.labels))
@@ -333,9 +354,6 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     attr(matched.names, "is.fuzzy.match") <- is.fuzzy.match
     attr(matched.names, "matched.by") <- matched.by
 
-    matched.names <- unmatchVariablesOfDifferentTypes(matched.names, data.sets,
-                                                      v.names.to.combine,
-                                                      data.sets.whose.variables.are.kept)
     matched.names <- orderMatchedNames(matched.names,
                                        input.data.set.metadata,
                                        use.names.and.labels.from)
@@ -481,8 +499,10 @@ maxOneToManyValueLabelProportion <- function(v.val.attrs)
 # Parse the character vector variables.to.combine and return a matrix where
 # each row contains a set of variables to be combined, with the columns
 # corresponding to the input data sets.
-parseVariablesToCombine <- function(variables.to.combine, input.data.set.metadata,
-                                    data.sets.whose.variables.are.kept)
+parseVariablesToCombine <- function(variables.to.combine,
+                                    input.data.set.metadata,
+                                    data.sets.whose.variables.are.kept,
+                                    data.sets)
 {
     result <- do.call("rbind",
                       lapply(variables.to.combine, parseInputVariableText,
@@ -511,13 +531,34 @@ parseVariablesToCombine <- function(variables.to.combine, input.data.set.metadat
             warning("The variables named ",
                     paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
                     " specified to be combined have been removed as they are not in the data sets whose variables are to be kept.")
-            FALSE
+            return(FALSE)
         }
-        else
-            TRUE
+
+        non.missing.ind <- which(!is.na(result[i, ]))
+        for (j in non.missing.ind)
+        {
+            row.var.names <- result
+            row.var.names[j] <- NA_character_
+            is.compatible <- isVariableCompatible(result[i, j], j, row.var.names,
+                                                  input.data.set.metadata$variable.names,
+                                                  input.data.set.metadata$variable.types,
+                                                  input.data.set.metadata$variable.value.attributes,
+                                                  data.sets)
+            if (!is.compatible)
+            {
+                warning("The variables named ",
+                        paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
+                        " specified to be combined could not be combined as their variable types are incompatible.")
+                return(FALSE)
+            }
+        }
+
+        return(TRUE)
     }, logical(1))
 
-    result[is.retained, , drop = FALSE]
+    result <- result[is.retained, , drop = FALSE]
+
+    result
 }
 
 # Parse the character vector variables.to.not.combine and return a matrix where
@@ -561,15 +602,15 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
         {
             range.start.without.index <- removeDataSetIndex(range.start)
             range.end.without.index <- removeDataSetIndex(range.end)
-            range.vars <- variablesFromRange(var.names[[data.set.ind]],
-                                             range.start.without.index,
-                                             range.end.without.index,
-                                             data.set.names[data.set.ind],
-                                             input.text)
+            range.var.names <- variablesFromRange(var.names[[data.set.ind]],
+                                                  range.start.without.index,
+                                                  range.end.without.index,
+                                                  data.set.names[data.set.ind],
+                                                  input.text)
 
             result <- matrix(NA_character_, nrow = end.ind - start.ind + 1,
                              ncol = n.data.sets)
-            result[, data.set.ind] <- range.vars
+            result[, data.set.ind] <- range.var.names
             return(result)
         }
         else # data set index not supplied for range
@@ -717,12 +758,12 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
             {
                 range.start.without.index <- removeDataSetIndex(range.start)
                 range.end.without.index <- removeDataSetIndex(range.end)
-                range.vars <- variablesFromRange(var.names[[data.set.ind]],
-                                                 range.start.without.index,
-                                                 range.end.without.index,
-                                                 data.set.names[data.set.ind],
-                                                 t)
-                parsed.names <- addToParsedNames(parsed.names, range.vars,
+                range.var.names <- variablesFromRange(var.names[[data.set.ind]],
+                                                      range.start.without.index,
+                                                      range.end.without.index,
+                                                      data.set.names[data.set.ind],
+                                                      t)
+                parsed.names <- addToParsedNames(parsed.names, range.var.names,
                                                  data.set.ind, data.set.names,
                                                  source.text, t)
                 source.text[data.set.ind] <- t
@@ -732,13 +773,17 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                 is.range.found <- FALSE
                 for (j in seq_len(n.data.sets))
                 {
-                    range.vars <- variablesFromRange(var.names[[j]], range.start, range.end,
-                                       data.set.names[j], t, FALSE)
-                    if (is.null(range.vars))
+                    range.var.names <- variablesFromRange(var.names[[j]],
+                                                          range.start,
+                                                          range.end,
+                                                          data.set.names[j],
+                                                          t, FALSE)
+                    if (is.null(range.var.names))
                         next
 
                     parsed.names <- addToParsedNames(parsed.names,
-                                                     range.vars, j, data.set.names,
+                                                     range.var.names, j,
+                                                     data.set.names,
                                                      source.text, t)
                     source.text[j] <- t
                     is.range.found <- TRUE
@@ -932,12 +977,12 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
 candidateMetadata <- function(remaining.names,
                               remaining.labels,
                               remaining.val.attrs,
-                              data.set.ind, row.of.variables,
+                              data.set.ind, row.variables,
                               v.names.to.not.combine)
 {
     is.combinable <- vapply(remaining.names[[data.set.ind]],
                             isVariableCombinableIntoRow,
-                            logical(1), data.set.ind, row.of.variables,
+                            logical(1), data.set.ind, row.variables,
                             v.names.to.not.combine)
     list(names = remaining.names[[data.set.ind]][is.combinable],
          labels = remaining.labels[[data.set.ind]][is.combinable],
@@ -968,6 +1013,55 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     n.input.candidate.names <- length(candidate.names)
     is.exact.match <- FALSE
 
+    # Find exact label match
+    if (match.by.variable.labels && length(lbls) > 0)
+    {
+        ind <- unlist(lapply(lbls, function(lbl) {
+            which(lbl == candidate.labels)
+        }))
+
+        if (length(ind) == 1)
+        {
+            result <- candidate.names[ind]
+            attr(result, "is.fuzzy.match") <- FALSE
+            attr(result, "matched.by") <- "Variable label"
+            return(result)
+        }
+        else if (length(ind) > 1)
+        {
+            candidate.names <- candidate.names[ind]
+            candidate.labels <- candidate.labels[ind]
+            candidate.val.attrs <- candidate.val.attrs[ind]
+            is.exact.match <- TRUE
+        }
+    }
+
+    # Find fuzzy label match
+    if (match.by.variable.labels && length(lbls) > 0)
+    {
+        match.percentages <- matchPercentages(candidate.labels, lbls,
+                                              ignore.case,
+                                              ignore.non.alphanumeric,
+                                              min.match.percentage)
+        best.match.percentage <- max(match.percentages)
+        if (best.match.percentage >= min.match.percentage)
+        {
+            arr.ind <- which(match.percentages == best.match.percentage,
+                             arr.ind = TRUE)
+            if (nrow(arr.ind) == 1)
+            {
+                result <- candidate.names[arr.ind[1, 1]]
+                attr(result, "is.fuzzy.match") <- !is.exact.match
+                attr(result, "matched.by") <- "Variable label"
+                return(result)
+            }
+
+            candidate.names <- candidate.names[arr.ind[, 1]]
+            candidate.labels <- candidate.labels[arr.ind[, 1]]
+            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
+        }
+    }
+
     # Find exact name match
     if (match.by.variable.names)
     {
@@ -985,29 +1079,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
                 attr(result, "matched.by") <- "Variable name"
                 return(result)
             }
-        }
-        else if (length(ind) > 1)
-        {
-            candidate.names <- candidate.names[ind]
-            candidate.labels <- candidate.labels[ind]
-            candidate.val.attrs <- candidate.val.attrs[ind]
-            is.exact.match <- TRUE
-        }
-    }
-
-    # Find exact label match
-    if (match.by.variable.labels && length(lbls) > 0)
-    {
-        ind <- unlist(lapply(lbls, function(lbl) {
-            which(lbl == candidate.labels)
-        }))
-
-        if (length(ind) == 1)
-        {
-            result <- candidate.names[ind]
-            attr(result, "is.fuzzy.match") <- FALSE
-            attr(result, "matched.by") <- "Variable label"
-            return(result)
         }
         else if (length(ind) > 1)
         {
@@ -1085,32 +1156,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         }
     }
 
-    # Find fuzzy label match
-    if (match.by.variable.labels && length(lbls) > 0)
-    {
-        match.percentages <- matchPercentages(candidate.labels, lbls,
-                                             ignore.case,
-                                             ignore.non.alphanumeric,
-                                             min.match.percentage)
-        best.match.percentage <- max(match.percentages)
-        if (best.match.percentage >= min.match.percentage)
-        {
-            arr.ind <- which(match.percentages == best.match.percentage,
-                             arr.ind = TRUE)
-            if (nrow(arr.ind) == 1)
-            {
-                result <- candidate.names[arr.ind[1, 1]]
-                attr(result, "is.fuzzy.match") <- !is.exact.match
-                attr(result, "matched.by") <- "Variable label"
-                return(result)
-            }
-
-            candidate.names <- candidate.names[arr.ind[, 1]]
-            candidate.labels <- candidate.labels[arr.ind[, 1]]
-            candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
-        }
-    }
-
     # Find fuzzy value label match
     if (match.by.value.labels && length(val.attrs) > 0)
     {
@@ -1167,6 +1212,7 @@ isLabelsDifferent <- function(lbl, lbls.to.compare.against,
 }
 
 #' @importFrom stringdist stringdistmatrix
+#' @importFrom stringi stri_detect_fixed
 matchPercentages <- function(strings.1, strings.2, ignore.case,
                              ignore.non.alphanumeric,
                              min.match.percentage)
@@ -1183,18 +1229,44 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
     }
 
     n.char.1 <- nchar(strings.1)
+    n.char.2 <- nchar(strings.2)
     distances <- do.call("cbind", lapply(strings.2, function(s) {
         ind <- 100 * (1 - abs(nchar(s) - n.char.1) / pmax(nchar(s), n.char.1)) >= min.match.percentage
         d <- rep(Inf, length(n.char.1))
-        d[ind] <- 2 * stringdist(s, strings.1[ind], weight = string.dist.weight)
+        d[ind] <- stringdist(s, strings.1[ind])
         d
     }))
+
+    for (i in seq_along(strings.2))
+    {
+        if (100 * (1 - 1 / n.char.2[i]) < min.match.percentage)
+            next
+
+        ind <- which(n.char.2[i] > n.char.1 & n.char.1 > n.char.2[i] - n.char.1)
+        if (length(ind) == 0)
+            next
+        distances[ind[stri_detect_fixed(strings.2[i], strings.1[ind])], i] <- 1
+    }
+    for (i in seq_along(strings.2))
+    {
+        ind <- which(n.char.2[i] < n.char.1 & n.char.2[i] > n.char.1 - n.char.2[i] &
+                     100 * (1 - 1 / n.char.1) >= min.match.percentage)
+        if (length(ind) == 0)
+            next
+        distances[ind[stri_detect_fixed(strings.1[ind], strings.2[i])], i] <- 1
+    }
 
     nchar.1 <- matrix(rep(nchar(strings.1), length(strings.2)),
                       nrow = length(strings.1))
     nchar.2 <- matrix(rep(nchar(strings.2), each = length(strings.1)),
                       nrow = length(strings.1))
     100 * (1 - distances / (pmax(nchar.1, nchar.2)))
+}
+
+substringDistance <- function(n.char.sub.string, n.char.strings,
+                              reference.n.char = 5)
+{
+    (reference.n.char / n.char.sub.string)# * sqrt(n.char.strings - n.char.sub.string)
 }
 
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
@@ -1251,8 +1323,7 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
     lbl <- normalizeValueLabels(lbl, match.parameters)
     lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against,
                                                     match.parameters)
-    100 * (1 - 2 * stringdist(lbl, lbls.to.compare.against,
-                              weight = string.dist.weight) / nchar.lbls)
+    100 * (1 - stringdist(lbl, lbls.to.compare.against) / nchar.lbls)
 }
 
 normalizeValueLabels <- function(lbls, match.parameters)
@@ -1313,175 +1384,131 @@ isNumbersPreserved <- function(string.1, string.2)
 # are compatible (this is done later in unmatchVariablesOfDifferentTypes).
 isVariableCombinableIntoRow <- function(name.to.combine,
                                         data.set.ind,
-                                        row.of.variables,
+                                        row.variables,
                                         v.names.to.not.combine)
 {
     if (is.null(v.names.to.not.combine))
         return(TRUE)
 
-    row.of.variables[data.set.ind] <- name.to.combine
+    row.variables[data.set.ind] <- name.to.combine
 
     all(apply(v.names.to.not.combine, 1, function(nms) {
-        sum(nms == row.of.variables, na.rm = TRUE) < 2
+        sum(nms == row.variables, na.rm = TRUE) < 2
     }))
 }
 
-# Split variable match if variables have different types
-# and type conversion is not possible
-unmatchVariablesOfDifferentTypes <- function(matched.names, data.sets,
-                                             v.names.to.combine,
-                                             data.sets.whose.variables.are.kept)
+isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
+                                 variable.names, variable.types,
+                                 variable.value.attributes, data.sets)
 {
-    n.data.sets <- length(data.sets)
-    result <- matrix(nrow = 0, ncol = n.data.sets)
-    non.combinable.variables <- matrix(nrow = 0, ncol = n.data.sets)
-    is.fuzzy.match <- matrix(nrow = 0, ncol = n.data.sets)
-    matched.by <- matrix(nrow = 0, ncol = n.data.sets)
+    var.ind <- match(variable.name, variable.names[[data.set.ind]])
+    var.type <- variable.types[[data.set.ind]][var.ind]
+    var.vals <- data.sets[[data.set.ind]][[var.ind]]
+    var.val.attr <- variable.value.attributes[[data.set.ind]][[var.ind]]
 
-    for (i in seqRow(matched.names))
+    non.missing.ind <- which(!is.na(row.variables))
+    row.vars.ind <- vapply(non.missing.ind, function(i) {
+        match(row.variables[i], variable.names[[i]])
+    }, integer(1))
+    row.vars.types <- vapply(seq_along(row.vars.ind), function(i) {
+        variable.types[[non.missing.ind[i]]][row.vars.ind[i]]
+    }, character(1))
+    row.vars.vals <- lapply(seq_along(row.vars.ind), function(i) {
+        data.sets[[non.missing.ind[i]]][[row.vars.ind[i]]]
+    })
+    row.vars.val.attr <- lapply(seq_along(row.vars.ind), function(i) {
+        variable.value.attributes[[non.missing.ind[i]]][[row.vars.ind[i]]]
+    })
+
+    date.types <- c("Date", "Date/Time")
+    cat.types <- c("Categorical", "Categorical with string values")
+
+    if (var.type == "Numeric")
     {
-        matched.names.row <- matched.names[i, ]
-        is.fuzzy.match.for.row <- attr(matched.names, "is.fuzzy.match")[i, ]
-        matched.by.for.row <- attr(matched.names, "matched.by")[i, ]
-        ind <- which(!is.na(matched.names.row))
-        var.list <- vector(mode = "list", length = n.data.sets)
-        var.list[ind] <- lapply(ind, function(j) data.sets[[j]][[matched.names.row[j]]])
+        if (any(date.types %in% row.vars.types))
+            return(isConvertibleToDateTime(var.vals))
 
-        v.types <- vapply(var.list[ind], variableType, character(1))
+        if ("Duration" %in% row.vars.types)
+            return(FALSE)
 
-        # All variables have the same type
-        if (allIdentical(removeNA(v.types)))
+        if (any(cat.types %in% row.vars.types))
         {
-            result <- rbind(result, matched.names.row, deparse.level = 0)
-            is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.for.row,
-                                    deparse.level = 0)
-            matched.by <- rbind(matched.by, matched.by.for.row, deparse.level = 0)
-            next
+            cat.ind <- which(row.vars.types %in% cat.types)
+            n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
+                as.character(row.vars.val.attr[[i]])
+            }))))
+            return(length(unique(var.vals)) <= 2 * n.values)
         }
-
-        cat.types <- c("Categorical", "Categorical with string values")
-
-        k <- 1
-        repeat
-        {
-            merge.ind <- integer(0)
-
-            # Text and Numeric to Date/Time if possible
-            if (any(v.types %in% "Date/Time") && any(v.types %in% c("Text", "Numeric")))
-            {
-                text.ind <- ind[v.types == "Text"]
-                parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsDateTime(var.list[[j]])
-                }, logical(1))]
-
-                num.ind <- ind[v.types == "Numeric"]
-                convertible.ind <- num.ind[vapply(num.ind, function(j) {
-                  isConvertibleToDateTime(var.list[[j]])
-                }, logical(1))]
-
-                merge.ind <- c(ind[v.types %in% c("Date", "Date/Time")],
-                               parsable.ind, convertible.ind)
-            }
-            # Text and Numeric to Date if possible
-            else if (any(v.types %in% "Date") && any(v.types %in% c("Text", "Numeric")))
-            {
-                text.ind <- ind[v.types == "Text"]
-                parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsDate(var.list[[j]])
-                }, logical(1))]
-
-                num.ind <- ind[v.types == "Numeric"]
-                convertible.ind <- num.ind[vapply(num.ind, function(j) {
-                  isConvertibleToDate(var.list[[j]])
-                }, logical(1))]
-
-                merge.ind <- c(ind[v.types == "Date"], parsable.ind,
-                               convertible.ind)
-            }
-            # Text to Duration if possible
-            else if (any(v.types %in% "Duration") && any(v.types %in% "Text"))
-            {
-                text.ind <- ind[v.types == "Text"]
-                parsable.ind <- text.ind[vapply(text.ind, function(j) {
-                    isParsableAsDiffTime(var.list[[j]])
-                }, logical(1))]
-                merge.ind <- c(ind[v.types == "Duration"], parsable.ind)
-            }
-            # Numeric or text to categorical as long as there aren't too many
-            # unique values: less than max of 20 or 150% of the number of
-            # categorical values.
-            else if (any(v.types %in% cat.types))
-            {
-                cat.ind <- ind[v.types %in% cat.types]
-
-                n.values <- length(unique(unlist(lapply(cat.ind, function (j) {
-                    as.character(attr(var.list[[j]], "labels", exact = TRUE))
-                }))))
-
-                num.or.text.ind <- ind[v.types %in% c("Numeric", "Text")]
-                num.or.text.merge.ind <- num.or.text.ind[vapply(num.or.text.ind, function(j) {
-                    length(unique(var.list[[j]])) <= max(20, n.values * 1.5)
-                }, logical(1))]
-
-                merge.ind <- c(cat.ind, num.or.text.merge.ind)
-            }
-            # Text to numeric or numeric to text
-            else if (any(v.types %in% "Numeric") && any(v.types %in% "Text"))
-                merge.ind <- c(ind[v.types %in% c("Numeric", "Text")])
-            # Date to Date/Time
-            else if (any(v.types %in% "Date") && any(v.types %in% "Date/Time"))
-                merge.ind <- c(ind[v.types %in% c("Date", "Date/Time")])
-            else
-                merge.ind <- ind[v.types == v.types[1]]
-
-            if (any(merge.ind %in% data.sets.whose.variables.are.kept))
-            {
-                new.row <- rep(NA_character_, n.data.sets)
-                new.row[merge.ind] <- matched.names.row[merge.ind]
-                result <- rbind(result, new.row, deparse.level = 0)
-
-                is.fuzzy.match.for.new.row <- rep(FALSE, n.data.sets)
-                is.fuzzy.match.for.new.row[merge.ind] <- is.fuzzy.match.for.row[merge.ind]
-                is.fuzzy.match <- rbind(is.fuzzy.match, is.fuzzy.match.for.new.row,
-                                        deparse.level = 0)
-
-                matched.by.for.new.row <- rep(FALSE, n.data.sets)
-                matched.by.for.new.row[merge.ind] <- matched.by.for.row[merge.ind]
-                matched.by <- rbind(matched.by, matched.by.for.new.row,
-                                    deparse.level = 0)
-            }
-
-            # Remove the merged indices from consideration and break if none
-            # are left, otherwise repeat.
-            new.ind <- setdiff(ind, merge.ind)
-            if (length(new.ind) == 0)
-                break
-
-            # Check that no variables to combine are being split
-            for (j in seqRow(v.names.to.combine))
-            {
-                rw <- v.names.to.combine[j, ]
-                if (any(matched.names.row[merge.ind] %in% rw) &&
-                    any(matched.names.row[new.ind] %in% rw))
-                    warning("The variables named ",
-                            paste0("'", unique(removeNA(rw)), "'", collapse = ", "),
-                            " specified to be combined could not be ",
-                            "combined due to incompatible variable types.")
-            }
-
-            v.types <- v.types[ind %in% new.ind]
-            ind <- new.ind
-            k <- k + 1
-        }
-        if (k > 1)
-            non.combinable.variables <- rbind(non.combinable.variables,
-                                              matched.names.row,
-                                              deparse.level = 0)
+        return(TRUE)
     }
-    attr(result, "non.combinable.variables") <- non.combinable.variables
-    attr(result, "is.fuzzy.match") <- is.fuzzy.match
-    attr(result, "matched.by") <- matched.by
-    result
+    else if (var.type == "Text")
+    {
+        if (any(date.types %in% row.vars.types))
+            return(isParsableAsDateTime(var.vals))
+
+        if ("Duration" %in% row.vars.types)
+            return(isParsableAsDiffTime(var.vals))
+
+        if (any(cat.types %in% row.vars.types))
+        {
+            cat.ind <- which(row.vars.types %in% cat.types)
+            n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
+                as.character(row.vars.val.attr[[i]])
+            }))))
+            return(length(unique(var.vals)) <= 2 * n.values)
+        }
+        return(TRUE)
+    }
+    else if (var.type %in% date.types)
+    {
+        if (any(date.types %in% row.vars.types))
+            return(TRUE)
+        if (any(c("Categorical", "Categorical with string values", "Duration") %in% row.vars.types))
+            return(FALSE)
+
+        for (i in seq_along(row.vars.types))
+        {
+            if (row.vars.types[i] == "Numeric")
+            {
+                if (!isConvertibleToDateTime(row.vars.vals[[i]]))
+                    return(FALSE)
+            }
+            else # row.vars.types[i] == "Text"
+            {
+                if (!isParsableAsDateTime(row.vars.vals[[i]]))
+                    return(FALSE)
+            }
+        }
+        return(TRUE)
+    }
+    else if (var.type == "Duration")
+    {
+        if (any(c("Numeric", date.types, cat.types) %in% row.vars.types))
+            return(FALSE)
+
+        for (i in seq_along(row.vars.types))
+        {
+            if (row.vars.types[i] == "Text" &&
+                !isParsableAsDiffTime(row.vars.vals[[i]]))
+                return(FALSE)
+        }
+        return(TRUE)
+    }
+    else if (var.type %in% cat.types)
+    {
+        if (any(c(date.types, "Duration") %in% row.vars.types))
+            return(FALSE)
+
+        for (i in seq_along(row.vars.types))
+        {
+            if (row.vars.types[i] %in% c("Numeric", "Text") &&
+                length(unique(row.vars.vals[[i]])) > 2 * length(var.val.attr))
+                return(FALSE)
+        }
+        return(TRUE)
+    }
+    else
+        stop("Variable type not recognised")
 }
 
 isMissingValue <- function(text)
@@ -2205,13 +2232,6 @@ removeNULL <- function(x)
 {
     x[!vapply(x, is.null, logical(1))]
 }
-
-# Weight values to be passed to stringdist and stringdistmatrix.
-# Deletions and insertions are given half the distance of substitutions and
-# transpositions as correct fuzzy matches often have one string as a subset of
-# another, instead of edits of another. We multiply the output of stringdist
-# and stringdistmatrix by 2 so that an insertion/deletion has distance 1.
-string.dist.weight <- c(d = 0.5, i = 0.5, s = 1, t = 1)
 
 #' @importFrom flipFormat DataSetMergingWidget
 #' @export
