@@ -443,7 +443,7 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
     # Don't match by value labels if more than 50% of value label sets in a data
     # set maps to two or more sets of value labels in another data set.
     match.parameters$match.by.value.labels <- maxOneToManyValueLabelProportion(v.val.attrs) <= 0.25
-
+    dput(match.parameters)
     match.parameters
 }
 
