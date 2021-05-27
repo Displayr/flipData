@@ -1206,8 +1206,11 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
     n.char.2 <- nchar(strings.2)
 
     distances <- do.call("cbind", lapply(strings.2, function(s) {
-        ind <- 100 * (1 - abs(nchar(s) - n.char.1) / pmax(nchar(s), n.char.1)) >= min.match.percentage
         d <- rep(Inf, length(n.char.1))
+        if (s == "")
+            return(d)
+        ind <- which(n.char.1 > 0)
+        ind <- ind[100 * (1 - abs(nchar(s) - n.char.1[ind]) / pmax(nchar(s), n.char.1[ind])) >= min.match.percentage]
         d[ind] <- stringdist(s, strings.1[ind])
         d
     }))
