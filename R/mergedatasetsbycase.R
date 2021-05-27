@@ -1300,16 +1300,22 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
     lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against,
                                                     match.parameters)
 
+    if (lbl == "")
+        return(rep(0, length(lbls.to.compare.against)))
+
     distances <- stringdist(lbl, lbls.to.compare.against)
 
-    is.subset <- (stri_detect_fixed(lbl, lbls.to.compare.against) |
-                  stri_detect_fixed(lbls.to.compare.against, lbl)) &
-                  lbl != lbls.to.compare.against
+    is.subset <- rep(FALSE, length(lbls.to.compare.against))
+    ind <- lbls.to.compare.against != ""
+
+    is.subset[ind] <- (stri_detect_fixed(lbl, lbls.to.compare.against[ind]) |
+                       stri_detect_fixed(lbls.to.compare.against[ind], lbl)) &
+                       lbl != lbls.to.compare.against[ind]
 
     if (sum(is.subset) == 1)
         distances[is.subset] <- 0.5
 
-    100 * (1 - distances) / nchar.lbls
+    100 * (1 - distances / nchar.lbls)
 }
 
 normalizeValueLabels <- function(lbls, match.parameters)
