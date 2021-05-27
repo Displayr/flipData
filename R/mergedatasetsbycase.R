@@ -319,7 +319,7 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             }, character(1))))
             val.attrs <- unique(removeNULL(lapply(seq_along(nms), function(k) {
                 data.set.ind <- non.missing.ind[k]
-                v.val.attrs[[data.set.ind]][nms.ind[k]]
+                v.val.attrs[[data.set.ind]][[nms.ind[k]]]
             })))
 
             if (use.names.and.labels.from == "Last data set")
@@ -1094,31 +1094,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         }
     }
 
-    # Find exact value labels match
-    if (match.by.value.labels && length(val.attrs) > 0)
-    {
-        ind <- unlist(lapply(val.attrs, function(val.attr) {
-            which(vapply(candidate.val.attrs, function(candidate.val.attr) {
-                setequal(names(candidate.val.attr), names(val.attr))
-            }, logical(1)))
-        }))
-
-        if (length(ind) == 1)
-        {
-            result <- candidate.names[ind]
-            attr(result, "is.fuzzy.match") <- FALSE
-            attr(result, "matched.by") <- "Value label"
-            return(result)
-        }
-        else if (length(ind) > 1)
-        {
-            candidate.names <- candidate.names[ind]
-            candidate.labels <- candidate.labels[ind]
-            candidate.val.attrs <- candidate.val.attrs[ind]
-            is.exact.match <- TRUE
-        }
-    }
-
     # Find fuzzy name match
     if (match.by.variable.names)
     {
@@ -1151,6 +1126,31 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
                 candidate.labels <- candidate.labels[arr.ind[, 1]]
                 candidate.val.attrs <- candidate.val.attrs[arr.ind[, 1]]
             }
+        }
+    }
+
+    # Find exact value labels match
+    if (match.by.value.labels && length(val.attrs) > 0)
+    {
+        ind <- unlist(lapply(val.attrs, function(val.attr) {
+            which(vapply(candidate.val.attrs, function(candidate.val.attr) {
+                setequal(names(candidate.val.attr), names(val.attr))
+            }, logical(1)))
+        }))
+
+        if (length(ind) == 1)
+        {
+            result <- candidate.names[ind]
+            attr(result, "is.fuzzy.match") <- FALSE
+            attr(result, "matched.by") <- "Value label"
+            return(result)
+        }
+        else if (length(ind) > 1)
+        {
+            candidate.names <- candidate.names[ind]
+            candidate.labels <- candidate.labels[ind]
+            candidate.val.attrs <- candidate.val.attrs[ind]
+            is.exact.match <- TRUE
         }
     }
 
@@ -1252,47 +1252,32 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.non.alphanumeric,
                                                min.match.percentage)
 {
-    val.attrs.1 <- lapply(val.attrs.1, function(x) {
+    lbls.combined.1 <- vapply(val.attrs.1, function(x) {
         if (is.null(x))
-            return(NULL)
+            return("")
+        lbls <- names(x)
+        lbls <- lbls[lbls != ""]
         if (ignore.case)
-            names(x) <- tolower(names(x))
+            lbls <- tolower(lbls)
         if (ignore.non.alphanumeric)
-            names(x) <- removeNonAlphaNumericCharacters(x)
-        x
-    })
+            lbls <- removeNonAlphaNumericCharacters(lbls)
+        paste0(sort(lbls), collapse = ",")
+    }, character(1))
 
-    val.attrs.2 <- lapply(val.attrs.2, function(x) {
+    lbls.combined.2 <- vapply(val.attrs.2, function(x) {
         if (is.null(x))
-            return(NULL)
+            return("")
+        lbls <- names(x)
+        lbls <- lbls[lbls != ""]
         if (ignore.case)
-            names(x) <- tolower(names(x))
+            lbls <- tolower(lbls)
         if (ignore.non.alphanumeric)
-            names(x) <- removeNonAlphaNumericCharacters(x)
-        x
-    })
+            lbls <- removeNonAlphaNumericCharacters(lbls)
+        paste0(sort(lbls), collapse = ",")
+    }, character(1))
 
-    result <- matrix(nrow = length(val.attrs.1), ncol = length(val.attrs.2))
-    for (i in seq_along(val.attrs.1))
-    {
-        for (j in seq_along(val.attrs.2))
-        {
-            val.attr.1 <- val.attrs.1[[i]]
-            val.attr.2 <- val.attrs.2[[j]]
-            if (is.null(val.attr.1) || is.null(val.attr.2))
-            {
-                result[i, j] <- 0
-                next
-            }
-            match.percentage <- matchPercentages(names(val.attr.1),
-                                                 names(val.attr.2),
-                                                 FALSE, FALSE,
-                                                 min.match.percentage)
-            result[i, j] <- mean(c(mean(apply(match.percentage, 1, max)),
-                                   mean(apply(match.percentage, 2, max))))
-        }
-    }
-    result
+    matchPercentages(lbls.combined.1, lbls.combined.2, FALSE, FALSE,
+                     min.match.percentage)
 }
 
 #' @importFrom stringdist stringdist
@@ -1342,12 +1327,12 @@ removeNonAlphaNumericCharacters <- function(txt)
                       "((?<=[[:alpha:]])[^a-zA-Z0-9]+(?=[[:alpha:]]))|", # non-alphanum characters between alphabet characters
                       "((?<=[[:alpha:]])[^a-zA-Z0-9]+(?=\\d))|", # non-alphanum characters between alphabet character and digit
                       "((?<=\\d)[^a-zA-Z0-9]+(?=[[:alpha:]]))") # non-alphanum characters between digit and alphabet character
-    txt <- gsub(pattern, "", txt, perl = TRUE)
+    result <- gsub(pattern, "", txt, perl = TRUE)
 
     # Replace remaining non-alphanum characters with an underscore
-    txt <- gsub("[^a-zA-Z0-9]+", "_", txt, perl = TRUE)
+    result <- gsub("[^a-zA-Z0-9]+", "_", result, perl = TRUE)
 
-    txt
+    result
 }
 
 isNumbersPreserved <- function(string.1, string.2)
@@ -1433,7 +1418,7 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
             n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
                 as.character(row.vars.val.attr[[i]])
             }))))
-            return(length(unique(var.vals)) <= 2 * n.values)
+            return(length(unique(var.vals)) <= max(2 * n.values, 5))
         }
         return(TRUE)
     }
@@ -1451,7 +1436,7 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
             n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
                 as.character(row.vars.val.attr[[i]])
             }))))
-            return(length(unique(var.vals)) <= 2 * n.values)
+            return(length(unique(var.vals)) <= max(2 * n.values, 5))
         }
         return(TRUE)
     }
