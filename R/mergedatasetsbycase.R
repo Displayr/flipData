@@ -585,7 +585,8 @@ parseVariablesToNotCombine <- function(variables.to.not.combine,
 parseVariablesToOmitForMerging <- function(variables.to.omit,
                                            input.data.set.metadata)
 {
-    split.text <- unlist(lapply(variables.to.omit, splitByComma),
+    split.text <- unlist(lapply(variables.to.omit, splitByComma,
+                                ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
     do.call("rbind", lapply(split.text, parseVariablesToOmitText,
                             input.data.set.metadata))
@@ -598,7 +599,38 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
     data.set.names <- input.data.set.metadata$data.set.names
 
     dash.ind <- match("-", strsplit(input.text, "")[[1]])
-    if (!is.na(dash.ind)) # range of variables
+    if (is.na(dash.ind)) # single variable (not range)
+    {
+        data.set.ind <- parseDataSetIndices(input.text, n.data.sets)
+        if (length(data.set.ind) > 0) # data set indices supplied
+        {
+            input.text.without.index <- removeDataSetIndices(input.text)
+            result <- matrix(nrow = 1, ncol = n.data.sets)
+            for (i in data.set.ind)
+            {
+                if (!(input.text.without.index %in% var.names[[i]]))
+                    variableNotFoundError(input.text.without.index,
+                                          data.set.names[i])
+
+                result[i] <- input.text.without.index
+            }
+            return(result)
+        }
+        else # data set index not supplied
+        {
+            ind.with.match <- which(vapply(var.names, function(nms) {
+                input.text %in% nms
+            }, logical(1)))
+
+            if (length(ind.with.match) == 0)
+                variableNotFoundError(input.text)
+
+            result <- matrix(nrow = 1, ncol = n.data.sets)
+            result[ind.with.match] <- input.text
+            return(result)
+        }
+    }
+    else # range of variables
     {
         range.start <- trimws(substr(input.text, 1, dash.ind - 1))
         range.end <- trimws(substr(input.text, dash.ind + 1, nchar(input.text)))
@@ -606,19 +638,18 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
         data.set.ind <- parseDataSetIndicesForRange(range.start,
                                                     range.end,
                                                     n.data.sets)
-        if (!is.na(data.set.ind)) # data set index supplied for range
+        if (length(data.set.ind) > 0) # data set indices supplied for range
         {
-            range.start.without.index <- removeDataSetIndex(range.start)
-            range.end.without.index <- removeDataSetIndex(range.end)
-            range.var.names <- variablesFromRange(var.names[[data.set.ind]],
-                                                  range.start.without.index,
-                                                  range.end.without.index,
-                                                  data.set.names[data.set.ind],
-                                                  input.text)
-
+            range.start.without.index <- removeDataSetIndices(range.start)
+            range.end.without.index <- removeDataSetIndices(range.end)
             result <- matrix(NA_character_, nrow = end.ind - start.ind + 1,
                              ncol = n.data.sets)
-            result[, data.set.ind] <- range.var.names
+            for (i in data.set.ind)
+                result[, i] <- variablesFromRange(var.names[[i]],
+                                                  range.start.without.index,
+                                                  range.end.without.index,
+                                                  data.set.names[i],
+                                                  input.text)
             return(result)
         }
         else # data set index not supplied for range
@@ -646,34 +677,6 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
                 else
                     nms
             })))
-        }
-    }
-    else # single variable (not range)
-    {
-        data.set.ind <- parseDataSetIndex(input.text, n.data.sets)
-        if (!is.na(data.set.ind)) # data set index supplied
-        {
-            input.text.without.index <- removeDataSetIndex(input.text)
-            if (!(input.text.without.index %in% var.names[[data.set.ind]]))
-                variableNotFoundError(input.text.without.index,
-                                      data.set.names[data.set.ind])
-
-            result <- matrix(nrow = 1, ncol = n.data.sets)
-            result[data.set.ind] <- input.text.without.index
-            return(result)
-        }
-        else # data set index not supplied
-        {
-            ind.with.match <- which(vapply(var.names, function(nms) {
-                input.text %in% nms
-            }, logical(1)))
-
-            if (length(ind.with.match) == 0)
-                variableNotFoundError(input.text)
-
-            result <- matrix(nrow = 1, ncol = n.data.sets)
-            result[ind.with.match] <- input.text
-            return(result)
         }
     }
 }
@@ -744,7 +747,7 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
     n.data.sets <- input.data.set.metadata$n.data.sets
     var.names <- input.data.set.metadata$variable.names
     data.set.names <- input.data.set.metadata$data.set.names
-    split.text <- splitByComma(input.text)
+    split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
 
     parsed.names <- vector(mode = "list", length = n.data.sets)
     source.text <- rep(NA_character_, n.data.sets)
@@ -753,7 +756,51 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
         t <- split.text[i]
         dash.ind <- match("-", strsplit(t, "")[[1]])
 
-        if (!is.na(dash.ind)) # range of variables
+        if (is.na(dash.ind)) # single variable (not range)
+        {
+            data.set.ind <- parseDataSetIndices(t, n.data.sets)
+            if (length(data.set.ind) > 0) # data set indices supplied
+            {
+                t.without.index <- removeDataSetIndices(t)
+                for (j in data.set.ind)
+                {
+                    if (!(t.without.index %in% var.names[[j]]))
+                        variableNotFoundError(t.without.index,
+                                              data.set.names[j])
+
+                    parsed.names <- addToParsedNames(parsed.names,
+                                                     t.without.index,
+                                                     j, data.set.names,
+                                                     source.text, t)
+                    source.text[j] <- t
+                }
+            }
+            else # data set index not supplied
+            {
+                ind.with.match <- which(vapply(var.names, function(nms) {
+                    t %in% nms
+                }, logical(1)))
+
+                if (length(ind.with.match) == 0)
+                    variableNotFoundError(t)
+
+                for (j in ind.with.match)
+                {
+                    # Existing variable was specified with data set index which
+                    # takes precedence over this variable which does not have an
+                    # index
+                    if (!is.na(source.text[j]) &&
+                        grepl("\\([[.+]]+\\)", source.text[j]))
+                        next
+
+                    parsed.names <- addToParsedNames(parsed.names, t,
+                                                     j, data.set.names,
+                                                     source.text, t)
+                    source.text[j] <- t
+                }
+            }
+        }
+        else # range of variables
         {
             range.start <- trimws(substr(t, 1, dash.ind - 1))
             range.end <- trimws(substr(t, dash.ind + 1, nchar(t)))
@@ -762,19 +809,22 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                                                         range.end,
                                                         n.data.sets)
 
-            if (!is.na(data.set.ind)) # data set index supplied for range
+            if (length(data.set.ind) > 0) # data set indices supplied for range
             {
-                range.start.without.index <- removeDataSetIndex(range.start)
-                range.end.without.index <- removeDataSetIndex(range.end)
-                range.var.names <- variablesFromRange(var.names[[data.set.ind]],
-                                                      range.start.without.index,
-                                                      range.end.without.index,
-                                                      data.set.names[data.set.ind],
-                                                      t)
-                parsed.names <- addToParsedNames(parsed.names, range.var.names,
-                                                 data.set.ind, data.set.names,
-                                                 source.text, t)
-                source.text[data.set.ind] <- t
+                range.start.without.index <- removeDataSetIndices(range.start)
+                range.end.without.index <- removeDataSetIndices(range.end)
+                for (j in data.set.ind)
+                {
+                    range.var.names <- variablesFromRange(var.names[[j]],
+                                                          range.start.without.index,
+                                                          range.end.without.index,
+                                                          data.set.names[j],
+                                                          t)
+                    parsed.names <- addToParsedNames(parsed.names, range.var.names,
+                                                     j, data.set.names,
+                                                     source.text, t)
+                    source.text[j] <- t
+                }
             }
             else # data set index not supplied for range
             {
@@ -789,12 +839,20 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                     if (is.null(range.var.names))
                         next
 
+                    is.range.found <- TRUE
+
+                    # Existing variable was specified with data set index which
+                    # takes precedence over this variable which does not have an
+                    # index
+                    if (!is.na(source.text[j]) &&
+                        grepl("\\([[.+]]+\\)", source.text[j]))
+                        next
+
                     parsed.names <- addToParsedNames(parsed.names,
                                                      range.var.names, j,
                                                      data.set.names,
                                                      source.text, t)
                     source.text[j] <- t
-                    is.range.found <- TRUE
                 }
                 if (!is.range.found)
                     stop("The input range '", t, "' was not found ",
@@ -802,53 +860,15 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                          "range has been correctly specified.")
             }
         }
-        else # single variable (not range)
-        {
-            data.set.ind <- parseDataSetIndex(t, n.data.sets)
-            if (!is.na(data.set.ind)) # data set index supplied
-            {
-                t.without.index <- removeDataSetIndex(t)
-                if (!(t.without.index %in% var.names[[data.set.ind]]))
-                    variableNotFoundError(t.without.index,
-                                          data.set.names[data.set.ind])
-
-                parsed.names <- addToParsedNames(parsed.names,
-                                                 t.without.index,
-                                                 data.set.ind,
-                                                 data.set.names,
-                                                 source.text, t)
-                source.text[data.set.ind] <- t
-            }
-            else # data set index not supplied
-            {
-                ind.with.match <- which(vapply(var.names, function(nms) {
-                    t %in% nms
-                }, logical(1)))
-
-                if (length(ind.with.match) == 0)
-                    variableNotFoundError(t)
-
-                for (j in ind.with.match)
-                {
-                    parsed.names <- addToParsedNames(parsed.names, t,
-                                                     j, data.set.names,
-                                                     source.text, t)
-                    source.text[j] <- t
-                    is.var.found <- TRUE
-                }
-            }
-        }
     }
 
     if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
         stop("The input '", input.text, "' does not specify any variables. ",
-             "This input needs to specify variables from two or more ",
-             "data sets.")
+             "This input needs to specify variables from two or more data sets.")
 
     if (sum(!vapply(parsed.names, is.null, logical(1))) == 1)
-      stop("The input '", input.text, "' only specifies variables from one ",
-           "data set. This input needs to specify variables from two or more ",
-           "data sets.")
+      stop("The input '", input.text, "' only specifies variables from one data set. ",
+           "This input needs to specify variables from two or more data sets.")
 
     n.vars <- vapply(parsed.names, length, integer(1))
     if (!allIdentical(n.vars[n.vars > 0]))
@@ -867,26 +887,39 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
 }
 
 # Parse variable names with '(x)' appended where 'x' is a data set index
-parseDataSetIndex <- function(input.text, n.data.sets)
+parseDataSetIndices <- function(input.text, n.data.sets)
 {
-    if (grepl("\\([[:digit:]]+\\)$", input.text))
+    if (grepl("\\(.+\\)$", input.text))
     {
-        split.into.char <- strsplit(input.text, "")[[1]]
-        start.ind <- match("(", split.into.char) + 1
-        end.ind <- match(")", split.into.char) - 1
-        data.set.ind <- as.integer(substr(input.text, start.ind, end.ind))
-        if (data.set.ind < 1 || data.set.ind > n.data.sets)
-            stop("The data set index in the input '", input.text,
-                 "' is out of range.")
+        split.char <- strsplit(input.text, "")[[1]]
+        start.ind <- match("(", split.char) + 1
+        end.ind <- match(")", split.char) - 1
+        data.set.ind <- as.integer(trimws(strsplit(substr(input.text,
+                                                          start.ind,
+                                                          end.ind), ",")[[1]]))
+        if (any(is.na(data.set.ind)))
+            stop("The data set indices in the input '", input.text,
+                 "' could not be parsed. ",
+                 "They need to be numbers corresponding to the data sets, e.g., 'Q2(3)'.")
+
+        if (any(data.set.ind < 1) || any(data.set.ind > n.data.sets))
+        {
+            if (length(data.set.ind) == 1)
+                stop("The data set index in the input '", input.text,
+                     "' is out of range.")
+            else
+                stop("The data set indices in the input '", input.text,
+                     "' are out of range.")
+        }
         data.set.ind
     }
     else
-        NA
+        integer(0)
 }
 
-removeDataSetIndex <- function(input.text)
+removeDataSetIndices <- function(input.text)
 {
-    if (grepl("\\([[:digit:]]+\\)$", input.text))
+    if (grepl("\\(.+\\)$", input.text))
     {
         split.into.char <- strsplit(input.text, "")[[1]]
         end.ind <- match("(", split.into.char) - 1
@@ -900,21 +933,14 @@ removeDataSetIndex <- function(input.text)
 # as long as they are consistent
 parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data.sets)
 {
-    data.set.ind.start <- parseDataSetIndex(input.text.start, n.data.sets)
-    data.set.ind.end <- parseDataSetIndex(input.text.end, n.data.sets)
-    if (!is.na(data.set.ind.start))
-    {
-        if (!is.na(data.set.ind.end) && data.set.ind.start != data.set.ind.end)
-            stop("The specified variable range contains two ",
-                 "different data set indices: '", t, "'. The ",
-                 "indices need refer to the same data set.")
-        else
-            data.set.ind.start
-    }
-    else if (!is.na(data.set.ind.end))
-        data.set.ind.end
-    else
-        NA
+    data.set.ind.start <- parseDataSetIndices(input.text.start, n.data.sets)
+    data.set.ind.end <- parseDataSetIndices(input.text.end, n.data.sets)
+
+    if (!setequal(data.set.ind.start, data.set.ind.end))
+        stop("The following specified variable range contains two different data set indices: '",
+             input.text.start, "-", input.text.end,
+             "'. The indices need refer to the same data sets.")
+    data.set.ind.start
 }
 
 variablesFromRange <- function(variable.names, range.start, range.end,
@@ -968,7 +994,8 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
                              data.set.ind, data.set.names, source.text,
                              input.text)
 {
-    if (is.na(source.text[data.set.ind]))
+    if (is.na(source.text[data.set.ind]) ||
+        (grepl("\\(.+\\)$", input.text) && !grepl("\\(.+\\)$", source.text[data.set.ind])))
     {
         parsed.names[[data.set.ind]] <- input.text.without.index
         parsed.names

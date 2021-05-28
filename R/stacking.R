@@ -1565,10 +1565,41 @@ removeNA <- function(x)
 }
 
 # Split string by comma separators, removing whitespace and empty strings
-splitByComma <- function(input.text)
+splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 {
-    split.text <- trimws(strsplit(input.text, ",")[[1]])
-    split.text[split.text != ""]
+    if (!ignore.commas.in.parentheses)
+    {
+        split.text <- trimws(strsplit(input.text, ",")[[1]])
+        return(split.text[split.text != ""])
+    }
+    else
+    {
+        split.char <- strsplit(input.text, "")[[1]]
+        result <- c()
+        start.ind <- 1
+        in.parentheses <- FALSE
+        for (i in seq_along(split.char))
+        {
+            if (i == length(split.char))
+            {
+                result <- c(result, paste0(split.char[start.ind:i],
+                                           collapse = ""))
+            }
+            else if (!in.parentheses && split.char[i] == "(")
+                in.parentheses <- TRUE
+            else if (in.parentheses && split.char[i] == ")")
+                in.parentheses <- FALSE
+            else if (!in.parentheses && split.char[i] == "," && i > 1)
+            {
+                result <- c(result, paste0(split.char[start.ind:(i - 1)],
+                                           collapse = ""))
+                start.ind <- i + 1
+            }
+        }
+        result <- trimws(result)
+        result <- result[result != ""]
+        result
+    }
 }
 
 #' @importFrom flipFormat StackingWidget
