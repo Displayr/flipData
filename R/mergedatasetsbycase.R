@@ -1211,40 +1211,25 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         if (s == "")
             return(d)
         ind <- which(n.char.1 > 0)
-        ind <- ind[100 * (1 - abs(nchar(s) - n.char.1[ind]) / pmax(nchar(s), n.char.1[ind])) >= min.match.percentage]
+        ind <- ind[adjustedMatchPercentage(abs(nchar(s) - n.char.1[ind]), pmax(nchar(s), n.char.1[ind])) >= min.match.percentage]
         d[ind] <- stringdist(s, strings.1[ind])
         d
     }))
-
-    subset.distance <- 0.5
-    for (i in seq_along(strings.2))
-    {
-        if (100 * (1 - subset.distance / n.char.2[i]) < min.match.percentage)
-            next
-
-        ind <- which(n.char.2[i] > n.char.1 & n.char.1 > n.char.2[i] - n.char.1)
-        if (length(ind) == 0)
-            next
-        ind <- ind[stri_detect_fixed(strings.2[i], strings.1[ind])]
-        if (length(ind) == 1)
-            distances[ind, i] <- subset.distance
-    }
-    for (i in seq_along(strings.2))
-    {
-        ind <- which(n.char.2[i] < n.char.1 & n.char.2[i] > n.char.1 - n.char.2[i] &
-                         100 * (1 - subset.distance / n.char.1) >= min.match.percentage)
-        if (length(ind) == 0)
-            next
-        ind <- ind[stri_detect_fixed(strings.1[ind], strings.2[i])]
-        if (length(ind) == 1)
-            distances[ind, i] <- subset.distance
-    }
 
     nchar.matrix.1 <- matrix(rep(n.char.1, length(strings.2)),
                       nrow = length(strings.1))
     nchar.matrix.2 <- matrix(rep(n.char.2, each = length(strings.1)),
                       nrow = length(strings.1))
-    100 * (1 - distances / (pmax(nchar.matrix.1, nchar.matrix.2)))
+    adjustedMatchPercentage(distances, pmax(nchar.matrix.1, nchar.matrix.2))
+}
+
+adjustedMatchPercentage <- function(distances, denominators)
+{
+    scale.parameter <- 20
+    result <- 100 * (1 - (distances / denominators) ^ pmax((denominators - distances) / scale.parameter, 1))
+    ind <- result == 100
+    result[ind] <- result[ind] - 1e-12 * distances[ind]
+    result
 }
 
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
@@ -1294,17 +1279,7 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
 
     distances <- stringdist(lbl, lbls.to.compare.against)
 
-    is.subset <- rep(FALSE, length(lbls.to.compare.against))
-    ind <- lbls.to.compare.against != ""
-
-    is.subset[ind] <- (stri_detect_fixed(lbl, lbls.to.compare.against[ind]) |
-                       stri_detect_fixed(lbls.to.compare.against[ind], lbl)) &
-                       lbl != lbls.to.compare.against[ind]
-
-    if (sum(is.subset) == 1)
-        distances[is.subset] <- 0.5
-
-    100 * (1 - distances / nchar.lbls)
+    adjustedMatchPercentage(distances, nchar.lbls)
 }
 
 normalizeValueLabels <- function(lbls, match.parameters)
