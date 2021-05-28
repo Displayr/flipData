@@ -538,12 +538,9 @@ parseVariablesToCombine <- function(variables.to.combine,
 
     is.retained <- vapply(seqRow(result), function(i) {
         if (all(is.na(result[i, data.sets.whose.variables.are.kept])))
-        {
-            warning("The variables named ",
+            stop("The variables named ",
                     paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
-                    " specified to be combined have been removed as they are not in the data sets whose variables are to be kept.")
-            return(FALSE)
-        }
+                    " specified to be combined are not in the data sets whose variables are to be kept.")
 
         non.missing.ind <- which(!is.na(result[i, ]))
         for (j in non.missing.ind)
@@ -876,7 +873,7 @@ parseDataSetIndex <- function(input.text, n.data.sets)
     {
         split.into.char <- strsplit(input.text, "")[[1]]
         start.ind <- match("(", split.into.char) + 1
-        end.ind <- match("(", split.into.char) + 1
+        end.ind <- match(")", split.into.char) - 1
         data.set.ind <- as.integer(substr(input.text, start.ind, end.ind))
         if (data.set.ind < 1 || data.set.ind > n.data.sets)
             stop("The data set index in the input '", input.text,
