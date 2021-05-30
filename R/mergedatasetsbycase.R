@@ -132,6 +132,8 @@ MergeDataSetsByCase <- function(data.set.names,
 # TODO
 
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
+# Improve matching (match after all percentages are computed)
+# Allow manual combining of all variable types
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -551,12 +553,14 @@ parseVariablesToCombine <- function(variables.to.combine,
                                                   input.data.set.metadata$variable.names,
                                                   input.data.set.metadata$variable.types,
                                                   input.data.set.metadata$variable.value.attributes,
-                                                  data.sets)
+                                                  data.sets, FALSE)
             if (!is.compatible)
             {
                 warning("The variables named ",
                         paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
-                        " specified to be combined could not be combined as their variable types are incompatible.")
+                        " specified to be combined could not be combined as '",
+                        result[i, j], "' is incompatible with the others.")
+
                 return(FALSE)
             }
         }
@@ -1379,7 +1383,8 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 
 isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
                                  variable.names, variable.types,
-                                 variable.value.attributes, data.sets)
+                                 variable.value.attributes, data.sets,
+                                 restrict.unique.numeric.and.text.values = TRUE)
 {
     var.ind <- match(variable.name, variable.names[[data.set.ind]])
     var.type <- variable.types[[data.set.ind]][var.ind]
@@ -1411,13 +1416,14 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (any(cat.types %in% row.vars.types))
+        if (restrict.unique.numeric.and.text.values &&
+            any(cat.types %in% row.vars.types))
         {
             cat.ind <- which(row.vars.types %in% cat.types)
             n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
                 as.character(row.vars.val.attr[[i]])
             }))))
-            return(length(unique(var.vals)) <= max(2 * n.values, 5))
+            return(length(unique(var.vals)) <= max(2 * n.values, 20))
         }
         return(TRUE)
     }
@@ -1429,13 +1435,14 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         if ("Duration" %in% row.vars.types)
             return(isParsableAsDiffTime(var.vals))
 
-        if (any(cat.types %in% row.vars.types))
+        if (restrict.unique.numeric.and.text.values &&
+            any(cat.types %in% row.vars.types))
         {
             cat.ind <- which(row.vars.types %in% cat.types)
             n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
                 as.character(row.vars.val.attr[[i]])
             }))))
-            return(length(unique(var.vals)) <= max(2 * n.values, 5))
+            return(length(unique(var.vals)) <= max(2 * n.values, 20))
         }
         return(TRUE)
     }
@@ -1479,10 +1486,13 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         if (any(c(date.types, "Duration") %in% row.vars.types))
             return(FALSE)
 
+        if (!restrict.unique.numeric.and.text.values)
+            return(TRUE)
+
         for (i in seq_along(row.vars.types))
         {
             if (row.vars.types[i] %in% c("Numeric", "Text") &&
-                length(unique(row.vars.vals[[i]])) > 2 * length(var.val.attr))
+                length(unique(row.vars.vals[[i]])) > max(2 * length(var.val.attr), 20))
                 return(FALSE)
         }
         return(TRUE)
