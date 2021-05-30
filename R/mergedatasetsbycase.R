@@ -794,7 +794,7 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                     # takes precedence over this variable which does not have an
                     # index
                     if (!is.na(source.text[j]) &&
-                        grepl("\\([[.+]]+\\)", source.text[j]))
+                        grepl("\\(.+\\)", source.text[j]))
                         next
 
                     parsed.names <- addToParsedNames(parsed.names, t,
@@ -849,7 +849,7 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                     # takes precedence over this variable which does not have an
                     # index
                     if (!is.na(source.text[j]) &&
-                        grepl("\\([[.+]]+\\)", source.text[j]))
+                        grepl("\\(.+\\)", source.text[j]))
                         next
 
                     parsed.names <- addToParsedNames(parsed.names,
