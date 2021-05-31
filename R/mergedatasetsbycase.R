@@ -134,6 +134,7 @@ MergeDataSetsByCase <- function(data.set.names,
 # Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
 # Improve matching (match after all percentages are computed)
 # Allow manual combining of all variable types
+# Variables to keep
 
 metadataFromDataSets <- function(data.sets)
 {
@@ -543,28 +544,6 @@ parseVariablesToCombine <- function(variables.to.combine,
             stop("The variables named ",
                     paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
                     " specified to be combined are not in the data sets whose variables are to be kept.")
-
-        non.missing.ind <- which(!is.na(result[i, ]))
-        for (j in non.missing.ind)
-        {
-            row.var.names <- result[i, ]
-            row.var.names[j] <- NA_character_
-            is.compatible <- isVariableCompatible(result[i, j], j, row.var.names,
-                                                  input.data.set.metadata$variable.names,
-                                                  input.data.set.metadata$variable.types,
-                                                  input.data.set.metadata$variable.value.attributes,
-                                                  data.sets, FALSE)
-            if (!is.compatible)
-            {
-                warning("The variables named ",
-                        paste0("'", unique(removeNA(result[i, ])), "'", collapse = ", "),
-                        " specified to be combined could not be combined as '",
-                        result[i, j], "' is incompatible with the others.")
-
-                return(FALSE)
-            }
-        }
-
         return(TRUE)
     }, logical(1))
 
@@ -1383,8 +1362,7 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 
 isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
                                  variable.names, variable.types,
-                                 variable.value.attributes, data.sets,
-                                 restrict.unique.numeric.and.text.values = TRUE)
+                                 variable.value.attributes, data.sets)
 {
     var.ind <- match(variable.name, variable.names[[data.set.ind]])
     var.type <- variable.types[[data.set.ind]][var.ind]
@@ -1416,15 +1394,11 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (restrict.unique.numeric.and.text.values &&
-            any(cat.types %in% row.vars.types))
-        {
-            cat.ind <- which(row.vars.types %in% cat.types)
-            n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
-                as.character(row.vars.val.attr[[i]])
-            }))))
-            return(length(unique(var.vals)) <= max(2 * n.values, 20))
-        }
+        if (any(cat.types %in% row.vars.types))
+            return(isConvertibleToCategorical("Numeric", var.vals,
+                                              row.vars.val.attr[row.vars.types %in% cat.types],
+                                              20))
+
         return(TRUE)
     }
     else if (var.type == "Text")
@@ -1435,15 +1409,11 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         if ("Duration" %in% row.vars.types)
             return(isParsableAsDiffTime(var.vals))
 
-        if (restrict.unique.numeric.and.text.values &&
-            any(cat.types %in% row.vars.types))
-        {
-            cat.ind <- which(row.vars.types %in% cat.types)
-            n.values <- length(unique(unlist(lapply(cat.ind, function (i) {
-                as.character(row.vars.val.attr[[i]])
-            }))))
-            return(length(unique(var.vals)) <= max(2 * n.values, 20))
-        }
+        if (any(cat.types %in% row.vars.types))
+            return(isConvertibleToCategorical("Text", var.vals,
+                                              row.vars.val.attr[row.vars.types %in% cat.types],
+                                              20))
+
         return(TRUE)
     }
     else if (var.type %in% date.types)
@@ -1485,14 +1455,12 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
     {
         if (any(c(date.types, "Duration") %in% row.vars.types))
             return(FALSE)
-
-        if (!restrict.unique.numeric.and.text.values)
-            return(TRUE)
-
         for (i in seq_along(row.vars.types))
         {
-            if (row.vars.types[i] %in% c("Numeric", "Text") &&
-                length(unique(row.vars.vals[[i]])) > max(2 * length(var.val.attr), 20))
+            val.attrs <- c(list(var.val.attr),
+                           row.vars.val.attr[row.vars.types %in% cat.types])
+            if(!isConvertibleToCategorical(row.vars.types[i], row.vars.vals[[i]],
+                                           val.attrs, 20))
                 return(FALSE)
         }
         return(TRUE)
@@ -1544,6 +1512,20 @@ isConvertibleToDate <- function(num)
     missing.ind <- is.na(num)
     # days from 1970/1/1 between years 2000 and 2050
     num[!missing.ind] >= 10957 && num[!missing.ind] <= 29220
+}
+
+isConvertibleToCategorical <- function(variable.type, values, val.attrs,
+                                       max.unique.values)
+{
+    if (variable.type %in% c("Categorical", "Categorical with string values"))
+        return(TRUE)
+
+    if (variable.type %in% c("Date", "Date/Time", "Duration"))
+        return(FALSE)
+
+    n.category.values <- length(unique(unlist(lapply(val.attrs, as.character))))
+    return(length(unique(var.vals)) <= max(2 * n.category.values,
+                                           max.unique.values))
 }
 
 mergedVariableNames <- function(matched.names, use.names.and.labels.from)
@@ -1729,13 +1711,34 @@ compositeVariable <- function(variable.names, data.sets,
     })
     v.types <- vapply(var.list, variableType, character(1))
 
-    result <- if (any(v.types %in% c("Categorical", "Categorical with string values")))
-        combineCategoricalVariables(var.list, data.sets,
-                                    use.names.and.labels.from, v.types,
-                                    when.multiple.labels.for.one.value,
-                                    match.parameters)
+    cat.types <- c("Categorical", "Categorical with string values")
+    if (any(v.types %in% cat.types))
+    {
+        combine.as.categorical.var <- TRUE
+        val.attrs <- lapply(which(v.types %in% cat.types), function(i) {
+            attr(var.list, "labels", exact = TRUE)
+        })
+        for (i in seq_along(v.types))
+        {
+            if (!is.null(var.list[[i]]) &&
+                !isConvertibleToCategorical(v.types[i], var.list[[i]], val.attrs,
+                                            100))
+            {
+                combine.as.categorical.var <- FALSE
+                break
+            }
+        }
+    }
     else
-        combineNonCategoricalVariables(var.list, data.sets, v.types)
+        combine.as.categorical.var <- FALSE
+
+    result <- if (combine.as.categorical.var)
+        combineAsCategoricalVariable(var.list, data.sets,
+                                     use.names.and.labels.from, v.types,
+                                     when.multiple.labels.for.one.value,
+                                     match.parameters)
+    else
+        combineAsNonCategoricalVariable(var.list, data.sets, v.types)
 
     attr(result, "label") <- variableLabelFromDataSets(variable.names,
                                                        data.sets,
@@ -1744,10 +1747,10 @@ compositeVariable <- function(variable.names, data.sets,
     result
 }
 
-combineCategoricalVariables <- function(var.list, data.sets,
-                                        use.names.and.labels.from, v.types,
-                                        when.multiple.labels.for.one.value,
-                                        match.parameters)
+combineAsCategoricalVariable <- function(var.list, data.sets,
+                                         use.names.and.labels.from, v.types,
+                                         when.multiple.labels.for.one.value,
+                                         match.parameters)
 {
     is.string.values <- "Categorical with string values" %in% v.types
 
@@ -2022,7 +2025,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
 }
 
 #' @importFrom lubridate as_date as_datetime
-combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
+combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
 {
     n.data.sets <- length(data.sets)
 
@@ -2071,6 +2074,7 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
     }
 
     unique.v.types <- unique(removeNA(v.types))
+    cat.types <- c("Categorical", "Categorical with string values")
 
     if (setequal(unique.v.types, c("Date/Time")) ||
         setequal(unique.v.types, c("Date/Time", "Text")) ||
@@ -2114,6 +2118,28 @@ combineNonCategoricalVariables <- function(var.list, data.sets, v.types)
     }
     else if (setequal(unique.v.types, c("Text")))
         .combineVar(function(x) x)
+    else if (any(cat.types %in% unique.v.types))
+    {
+        # If there are any categorical variables, convert everything into text.
+        # This only occurs when categorical is combined with date, date/time or
+        # duration variables or there are too many unique values in numeric or
+        # text variables.
+        unlist(lapply(seq_len(n.data.sets), function(i) {
+            v <- var.list[[i]]
+            if (is.null(v))
+                rep(NA_character_, nrow(data.sets[[i]]))
+            else if (v.types[i] %in% cat.types)
+            {
+                result <- rep(NA_character_, nrow(data.sets[[i]]))
+                val.attr <- attr(var.list[[i]], "labels")
+                for (j in seq_along(val.attr))
+                    result[v == val.attr[i]] <- names(val.attr)[i]
+                result
+            }
+            else
+                as.character(v)
+        }))
+    }
     else
     {
         # Don't expect this to ever occur
