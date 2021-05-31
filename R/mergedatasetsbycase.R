@@ -1383,42 +1383,39 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         variable.value.attributes[[non.missing.ind[i]]][[row.vars.ind[i]]]
     })
 
-    date.types <- c("Date", "Date/Time")
-    cat.types <- c("Categorical", "Categorical with string values")
-
     if (var.type == "Numeric")
     {
-        if (any(date.types %in% row.vars.types))
+        if (any(isDateType(row.vars.types)))
             return(isConvertibleToDateTime(var.vals))
 
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (any(cat.types %in% row.vars.types))
+        if (any(isCatType(row.vars.types)))
             return(isConvertibleToCategorical("Numeric", var.vals,
-                                              row.vars.val.attr[row.vars.types %in% cat.types],
+                                              row.vars.val.attr[isCatType(row.vars.types)],
                                               20))
 
         return(TRUE)
     }
     else if (var.type == "Text")
     {
-        if (any(date.types %in% row.vars.types))
+        if (any(isDateType(row.vars.types)))
             return(isParsableAsDateTime(var.vals))
 
         if ("Duration" %in% row.vars.types)
             return(isParsableAsDiffTime(var.vals))
 
-        if (any(cat.types %in% row.vars.types))
+        if (any(isCatType(row.vars.types)))
             return(isConvertibleToCategorical("Text", var.vals,
-                                              row.vars.val.attr[row.vars.types %in% cat.types],
+                                              row.vars.val.attr[isCatType(row.vars.types)],
                                               20))
 
         return(TRUE)
     }
-    else if (var.type %in% date.types)
+    else if (isDateType(var.type))
     {
-        if (any(date.types %in% row.vars.types))
+        if (any(isDateType(row.vars.types)))
             return(TRUE)
         if (any(c("Categorical", "Categorical with string values", "Duration") %in% row.vars.types))
             return(FALSE)
@@ -1440,7 +1437,9 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
     }
     else if (var.type == "Duration")
     {
-        if (any(c("Numeric", date.types, cat.types) %in% row.vars.types))
+        if ("Numeric" %in% row.vars.types ||
+            any(isDateType(row.vars.types)) ||
+            any(isCatType(row.vars.types)))
             return(FALSE)
 
         for (i in seq_along(row.vars.types))
@@ -1451,14 +1450,14 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
         }
         return(TRUE)
     }
-    else if (var.type %in% cat.types)
+    else if (isCatType(var.type))
     {
-        if (any(c(date.types, "Duration") %in% row.vars.types))
+        if ("Duration" %in% row.vars.types || any(isDateType(row.vars.types)))
             return(FALSE)
         for (i in seq_along(row.vars.types))
         {
             val.attrs <- c(list(var.val.attr),
-                           row.vars.val.attr[row.vars.types %in% cat.types])
+                           row.vars.val.attr[isCatType(row.vars.types)])
             if(!isConvertibleToCategorical(row.vars.types[i], row.vars.vals[[i]],
                                            val.attrs, 20))
                 return(FALSE)
@@ -1524,7 +1523,7 @@ isConvertibleToCategorical <- function(variable.type, values, val.attrs,
         return(FALSE)
 
     n.category.values <- length(unique(unlist(lapply(val.attrs, as.character))))
-    return(length(unique(var.vals)) <= max(2 * n.category.values,
+    return(length(unique(values)) <= max(2 * n.category.values,
                                            max.unique.values))
 }
 
@@ -1711,11 +1710,10 @@ compositeVariable <- function(variable.names, data.sets,
     })
     v.types <- vapply(var.list, variableType, character(1))
 
-    cat.types <- c("Categorical", "Categorical with string values")
-    if (any(v.types %in% cat.types))
+    if (any(isCatType(v.types)))
     {
         combine.as.categorical.var <- TRUE
-        val.attrs <- lapply(which(v.types %in% cat.types), function(i) {
+        val.attrs <- lapply(which(isCatType(v.types)), function(i) {
             attr(var.list, "labels", exact = TRUE)
         })
         for (i in seq_along(v.types))
@@ -1770,8 +1768,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
 
     val.attr.list <- lapply(var.list, attr, "labels")
 
-    cat.types <- c("Categorical", "Categorical with string values")
-    cat.ind <- which(v.types %in% cat.types)
+    cat.ind <- which(isCatType(v.types))
     if (use.names.and.labels.from == "Last data set")
         cat.ind <- rev(cat.ind)
 
@@ -1844,54 +1841,44 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
                     }
                 }
             }
-            # text becomes categorical (string) values
-            else if (is.string.values && any(unique.v %in% merged.val.attr))
+            else
             {
-                result <- c(result, v)
-                for (val in unique.v)
-                {
-                    if (val %in% merged.val.attr)
-                        input.val.attr[[i]][merged.val.attr == val] <- val
-                    else
-                    {
-                        ind <- length(merged.val.attr) + 1
-                        merged.val.attr[ind] <- val
-                        names(merged.val.attr)[ind] <- val
-                        input.val.attr[[i]][ind] <- val
-                    }
-                }
-            }
-            else # text becomes categorical labels
-            {
-                for (lbl in unique.v)
-                {
-                    if (lbl %in% names(merged.val.attr))
-                    {
-                        ind <- lbl == names(merged.val.attr)
-                        input.val.attr[[i]][ind] <- unname(merged.val.attr[ind])
-                    }
-                    else if (is.string.values)
-                    {
-                        merged.val.attr[lbl] <- lbl
-                        input.val.attr[[i]][length(merged.val.attr)] <- lbl
-                    }
-                    else
-                    {
-                        ind <- length(merged.val.attr) + 1
-                        val <- ceiling(max(merged.val.attr)) + 1
-                        merged.val.attr[ind] <- val
-                        names(merged.val.attr)[ind] <- lbl
-                        input.val.attr[[i]][ind] <- lbl
-                    }
-                }
-
                 var.values <- if (is.string.values)
                     character(length(v))
                 else
                     numeric(length(v))
 
-                for (lbl in unique.v)
-                    var.values[lbl == v] <- merged.val.attr[lbl == names(merged.val.attr)]
+                for (text.val in unique.v)
+                {
+                    if (text.val %in% names(merged.val.attr)) # match value label in merged.val.attr
+                    {
+                        ind <- text.val == names(merged.val.attr)
+                        merged.val <- unname(merged.val.attr[ind])
+                        input.val.attr[[i]][ind] <- merged.val
+                        var.values[text.val == v] <- merged.val
+                    }
+                    else if (is.string.values && text.val %in% merged.val.attr) # match value in merged.val.attr
+                    {
+                        ind <- text.val == merged.val.attr
+                        input.val.attr[[i]][ind] <- text.val
+                        var.values[text.val == v] <- text.val
+                    }
+                    else if (is.string.values) # not found in merged.val.attr, add as string value
+                    {
+                        merged.val.attr[text.val] <- text.val
+                        input.val.attr[[i]][length(merged.val.attr)] <- text.val
+                        var.values[text.val == v] <- text.val
+                    }
+                    else # not found in merged.val.attr, add as numeric value
+                    {
+                        new.ind <- length(merged.val.attr) + 1
+                        new.val <- ceiling(max(merged.val.attr)) + 1
+                        merged.val.attr[new.ind] <- new.val
+                        names(merged.val.attr)[new.ind] <- text.val
+                        input.val.attr[[i]][new.ind] <- text.val
+                        var.values[text.val == v] <- new.val
+                    }
+                }
                 result <- c(result, var.values)
             }
         }
@@ -2074,7 +2061,6 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
 
     unique.v.types <- unique(removeNA(v.types))
-    cat.types <- c("Categorical", "Categorical with string values")
 
     if (setequal(unique.v.types, c("Date/Time")) ||
         setequal(unique.v.types, c("Date/Time", "Text")) ||
@@ -2118,7 +2104,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
     else if (setequal(unique.v.types, c("Text")))
         .combineVar(function(x) x)
-    else if (any(cat.types %in% unique.v.types))
+    else if (any(isCatType(unique.v.types)))
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
@@ -2128,7 +2114,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
             v <- var.list[[i]]
             if (is.null(v))
                 rep(NA_character_, nrow(data.sets[[i]]))
-            else if (v.types[i] %in% cat.types)
+            else if (isCatType(v.types[i]))
             {
                 result <- rep(NA_character_, nrow(data.sets[[i]]))
                 val.attr <- attr(var.list[[i]], "labels")

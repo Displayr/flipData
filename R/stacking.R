@@ -1552,6 +1552,16 @@ variableType <- function(variable)
         stop("Variable type not recognised")
 }
 
+isCatType <- function(var.types)
+{
+    var.types %in% c("Categorical", "Categorical with string values")
+}
+
+isDateType <- function(var.types)
+{
+    var.types %in% c("Date", "Date/Time")
+}
+
 # Whether all elements in a vector are identical
 allIdentical <- function(x)
 {
