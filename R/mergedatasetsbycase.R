@@ -1066,7 +1066,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
         {
             arr.ind <- which(match.percentages == best.match.percentage,
                              arr.ind = TRUE)
-            if (nrow(arr.ind) == 1)
+            if (allIdentical(arr.ind[, 1]))
             {
                 result <- candidate.names[arr.ind[1, 1]]
                 attr(result, "is.fuzzy.match") <- !is.exact.match
