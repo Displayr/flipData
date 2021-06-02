@@ -1876,8 +1876,9 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
             # text becomes categorical (numeric) values
             if (isParsableAsNumeric(unique.v))
             {
-                var.values <- suppressWarnings(as.numeric(v))
-                var.values[is.missing] <- NA
+                var.values <- rep(NA_integer_, length(v))
+                if (any(!is.missing))
+                    var.values[!is.missing] <- as.numeric(v[!is.missing])
                 result <- c(result, var.values)
 
                 for (val in as.numeric(unique.v))
