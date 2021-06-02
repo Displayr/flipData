@@ -1509,6 +1509,34 @@ metadataFromDataSet <- function(data.set, data.set.name)
          data.set.name = dataSetNameWithoutPath(data.set.name))
 }
 
+metadataFromDataSets <- function(data.sets)
+{
+    list(variable.names = lapply(data.sets, names),
+         variable.labels = lapply(data.sets, function(data.set) {
+             vapply(data.set, function(v) {
+                 lbl <- attr(v, "label", exact = TRUE)
+                 if (!is.null(lbl))
+                     lbl
+                 else
+                     ""
+             }, character(1))
+         }),
+         variable.value.attributes = lapply(data.sets, function(data.set) {
+             lapply(data.set, function(v) {
+                 val.attr <- attr(v, "labels", exact = TRUE)
+                 if (is.character(val.attr))
+                     NULL
+                 else
+                     val.attr
+             })
+         }),
+         variable.types = lapply(data.sets, function(data.set) {
+             vapply(data.set, variableType, character(1))
+         }),
+         data.set.names = names(data.sets),
+         n.data.sets = length(data.sets))
+}
+
 # Creates a list of metadata from a stacked data set
 metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
 {
@@ -1536,7 +1564,7 @@ variableType <- function(variable)
         if (is.numeric(attr(variable, "labels", exact = TRUE)))
             "Categorical"
         else
-            "Categorical with string values"
+            "Text"
     }
     else if (is.numeric(variable))
         "Numeric"
@@ -1554,7 +1582,7 @@ variableType <- function(variable)
 
 isCatType <- function(var.types)
 {
-    var.types %in% c("Categorical", "Categorical with string values")
+    var.types %in% c("Categorical")
 }
 
 isDateType <- function(var.types)

@@ -16,6 +16,7 @@ MergeDataSetsByCase(
   min.match.percentage = 90,
   variables.to.combine = NULL,
   variables.to.not.combine = NULL,
+  variables.to.keep = NULL,
   variables.to.omit = NULL,
   include.merged.data.set.in.output = FALSE,
   when.multiple.labels.for.one.value = "Create new values for the labels",
@@ -54,8 +55,8 @@ are still ignored but the separation between the numbers is noted.}
 
 \item{min.match.percentage}{To be decided, possibly a percentage.}
 
-\item{variables.to.combine}{A character vector of pairs of comma-separated
-variable names indicating which variables are to be combined together.
+\item{variables.to.combine}{A character vector of comma-separated
+variable names indicating which variables are to appear together.
 Ranges of variables can be specified by separating variable names by '-'.
 Variables can be specified from specific data sets by appending '(x)' to
 the variable name where x is the data set index.}
@@ -67,7 +68,8 @@ with the data set index in parentheses, e.g., 'Q2(3)'.}
 
 \item{variables.to.omit}{Character vector of variable names to omit from
 the merged data set. To specify variables from a specific data set,
-suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.}
+suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
+Ranges of variables can be specified by separating variable names by '-'.}
 
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
@@ -89,6 +91,11 @@ will not be included in the merged data set.}
 \item{min.value.label.match.percentage}{The minimum percentage match for
 value labels to be considered the same when combining value attributes
 from different variables.}
+
+\item{varaibles.to.keep}{Character vector of variable names to keep in
+the merged data set. To specify variables from a specific data set,
+suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
+Ranges of variables can be specified by separating variable names by '-'.}
 }
 \value{
 A list with the following elements:
