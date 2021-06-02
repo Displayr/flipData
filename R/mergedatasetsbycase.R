@@ -2207,7 +2207,7 @@ mergeSrc <- function(n.data.set.cases, data.set.names)
 
 cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
 {
-    if (is.null(merged.data.set.name))
+    if (is.null(merged.data.set.name) || trimws(merged.data.set.name) == "")
         "Merged data set.sav"
     else
     {
