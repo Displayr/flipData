@@ -31,7 +31,7 @@
 #'  names specifying variables that should never be combined together.
 #'  To specify variables from a specific data set, suffix variable names
 #'  with the data set index in parentheses, e.g., 'Q2(3)'.
-#' @param varaibles.to.keep Character vector of variable names to keep in
+#' @param variables.to.keep Character vector of variable names to keep in
 #'  the merged data set. To specify variables from a specific data set,
 #'  suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 #'  Ranges of variables can be specified by separating variable names by '-'.
@@ -214,8 +214,6 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
         remaining.val.attrs <- output$remaining.val.attrs
     }
 
-    # d.ind <- data.sets.whose.variables.are.kept # shorten name
-    # d.ind <- sort(d.ind, decreasing = use.names.and.labels.from == "Last data set")
     d.ind <- if (use.names.and.labels.from == "First data set")
         seq_len(n.data.sets)
     else
@@ -231,10 +229,10 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
             remaining.labels[[i]] <- character(0)
             remaining.val.attrs[[i]] <- list()
         }
-        else if (!is.null(variables.to.keep) &&
-                 any(!is.na(variables.to.keep[, i])))
+        else if (!is.null(v.names.to.keep) &&
+                 any(!is.na(v.names.to.keep[, i])))
         {
-            nms.to.find.matches.for <- intersect(removeNA(variables.to.keep[, i]),
+            nms.to.find.matches.for <- intersect(removeNA(v.names.to.keep[, i]),
                                                  remaining.names[[i]])
             ind <- match(nms.to.find.matches.for, remaining.names[[i]])
             remaining.names[[i]] <- remaining.names[[i]][-ind]

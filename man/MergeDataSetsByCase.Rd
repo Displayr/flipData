@@ -66,6 +66,11 @@ names specifying variables that should never be combined together.
 To specify variables from a specific data set, suffix variable names
 with the data set index in parentheses, e.g., 'Q2(3)'.}
 
+\item{variables.to.keep}{Character vector of variable names to keep in
+the merged data set. To specify variables from a specific data set,
+suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
+Ranges of variables can be specified by separating variable names by '-'.}
+
 \item{variables.to.omit}{Character vector of variable names to omit from
 the merged data set. To specify variables from a specific data set,
 suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
@@ -91,11 +96,6 @@ will not be included in the merged data set.}
 \item{min.value.label.match.percentage}{The minimum percentage match for
 value labels to be considered the same when combining value attributes
 from different variables.}
-
-\item{varaibles.to.keep}{Character vector of variable names to keep in
-the merged data set. To specify variables from a specific data set,
-suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
-Ranges of variables can be specified by separating variable names by '-'.}
 }
 \value{
 A list with the following elements:
