@@ -1876,7 +1876,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
             {
                 var.values <- rep(NA_integer_, length(v))
                 if (any(!is.missing))
-                    var.values[!is.missing] <- as.numeric(v[!is.missing])
+                    var.values[!is.missing] <- as.numeric(as.character(v[!is.missing]))
                 result <- c(result, var.values)
 
                 for (val in as.numeric(unique.v))
