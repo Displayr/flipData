@@ -2266,15 +2266,15 @@ removeNULL <- function(x)
     x[!vapply(x, is.null, logical(1))]
 }
 
-#' @importFrom flipFormat DataSetMergingWidget
+#' @importFrom flipFormat DataSetMergingByCaseWidget
 #' @export
 print.MergeDataSetByCase <- function(x, ...)
 {
-    DataSetMergingWidget(x$input.data.set.metadata,
-                         x$merged.data.set.metadata,
-                         x$matched.names,
-                         x$merged.names,
-                         x$omitted.variables,
-                         x$input.value.attributes,
-                         x$is.saved.to.cloud)
+    DataSetMergingByCaseWidget(x$input.data.set.metadata,
+                               x$merged.data.set.metadata,
+                               x$matched.names,
+                               x$merged.names,
+                               x$omitted.variables,
+                               x$input.value.attributes,
+                               x$is.saved.to.cloud)
 }
