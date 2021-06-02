@@ -48,6 +48,17 @@ test_that("mergeIndicesList", {
 # cola6.sav: Q2 (Q2. Gender) converted to numeric
 # cola7.sav: Q11_l (text variable) renamed to Q3_3
 
+# To update the merge.data.set.output.rda test data in flipFormat,
+# simply save merge.data.set.output from this test
+# into flipFormat/inst/testdata/merge.data.set.output.rda
+test_that("Example used for widget test in flipFormat", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola5.sav")),
+                                  data.sets.whose.variables.are.kept = 1,
+                                  variables.to.combine = "Q4_A_3,Q4_A_3_new")
+})
+
 test_that("merge cola data, exact match by variable names", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                               findInstDirFile("cola2.sav"),
