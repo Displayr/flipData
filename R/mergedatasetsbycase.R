@@ -136,10 +136,6 @@ MergeDataSetsByCase <- function(data.set.names,
                                  merged.data.set.name)
 }
 
-# TODO
-
-# Need to ensure any new variable names we generate are valid for sav files, e.g. not too long
-
 matchVariables <- function(input.data.set.metadata, match.parameters,
                            variables.to.combine, variables.to.not.combine,
                            variables.to.keep, variables.to.omit, data.sets,
@@ -561,11 +557,9 @@ parseVariablesToCombine <- function(variables.to.combine,
         {
             duplicate.name <- names(names.table)[names.table > 1][1]
             duplicate.match.source <- variables.to.combine[date.set.vars.names == duplicate.name]
-            stop("The variable '", duplicate.name, "' has been specified to ",
-                 "be combined in multiple inputs: ",
+            stop("The variable '", duplicate.name, "' has been specified to be combined in multiple inputs: ",
                  paste0(paste0("'", duplicate.match.source, "'"), collapse = ", "),
-                 ". Ensure that any of the variables to be combined are ",
-                 "specified in at most one input.")
+                 ". Ensure that any of the variables to be combined are specified in at most one input.")
         }
     }
 
@@ -674,15 +668,14 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
             range.lengths <- vapply(parsed.names, length, integer(1))
 
             if (all(range.lengths == 0))
-                stop("The input range '", input.text, "' was not found ",
-                     "in any of the input data sets. Ensure that the ",
-                     "range has been correctly specified.")
+                stop("The input range '", input.text,
+                     "' was not found in any of the input data sets. ",
+                     "Ensure that the range has been correctly specified.")
 
             if (!allIdentical(range.lengths))
-                stop("The input '", input.text, "' contains ",
-                     "variable ranges with differing numbers of variables. ",
-                     "Ensure that the ranges have been correctly specified ",
-                     "so that they all contain the same number of variables.")
+                stop("The input '", input.text,
+                     "' contains variable ranges with differing numbers of variables. ",
+                     "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
 
             return(do.call("cbind", lapply(parsed.names, function(nms) {
                 if (is.null(nms))
@@ -711,9 +704,8 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
                 stop("The variables ",
                      paste0(paste0("'", row.to.combine[ind], "'"),
                             collapse = ", "),
-                     " have been specified to be both combined and not ",
-                     "combined. Ensure that they are specified to be ",
-                     "either combined or not combined.")
+                     " have been specified to be both combined and not combined. ",
+                     "Ensure that they are specified to be either combined or not combined.")
         }
     }
 
@@ -730,14 +722,12 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
                 stop("The variable ",
                      paste0("'", v, "'"),
                      " has been specified to be both combined and omitted. ",
-                     "Ensure that it is specified to be either combined or ",
-                     "or omitted.")
+                     "Ensure that it is specified to be either combined or omitted.")
             else if (length(v) > 1)
                 stop("The variable(s) ",
                      paste0(paste0("'", v, "'"), collapse = ", "),
                      " have been specified to be both combined and omitted. ",
-                     "Ensure that they are specified to be either combined ",
-                     "or omitted.")
+                     "Ensure that they are specified to be either combined or omitted.")
         }
     }
 
@@ -754,14 +744,12 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
                 stop("The variable ",
                      paste0("'", v, "'"),
                      " has been specified to be both kept and omitted. ",
-                     "Ensure that it is specified to be either kept or ",
-                     "or omitted.")
+                     "Ensure that it is specified to be either kept or omitted.")
             else if (length(v) > 1)
                 stop("The variable(s) ",
                      paste0(paste0("'", v, "'"), collapse = ", "),
                      " have been specified to be both kept and omitted. ",
-                     "Ensure that they are specified to be either kept ",
-                     "or omitted.")
+                     "Ensure that they are specified to be either kept or omitted.")
         }
     }
 
@@ -770,9 +758,8 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
 
     n.data.sets <- input.data.set.metadata$n.data.sets
     if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
-        stop("The input for 'data.sets.whose.variables.are.kept' contains ",
-             "invalid data set indices. Ensure that it contains only indices ",
-             "from 1 to the number of input data sets.")
+        stop("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
+             "Ensure that it contains only indices from 1 to the number of input data sets.")
 }
 
 # Parses a string of comma-separated names of variables and returns a matrix
@@ -895,9 +882,8 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
                     source.text[j] <- t
                 }
                 if (!is.range.found)
-                    stop("The input range '", t, "' was not found ",
-                         "in any of the input data sets. Ensure that the ",
-                         "range has been correctly specified.")
+                    stop("The input range '", t, "' was not found in any of the input data sets. ",
+                         "Ensure that the range has been correctly specified.")
             }
         }
     }
@@ -912,10 +898,8 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
 
     n.vars <- vapply(parsed.names, length, integer(1))
     if (!allIdentical(n.vars[n.vars > 0]))
-        stop("The input '", input.text, "' contains ",
-             "variable ranges with differing numbers of variables. ",
-             "Ensure that the ranges have been correctly specified ",
-             "so that they all contain the same number of variables.")
+        stop("The input '", input.text, "' contains variable ranges with differing numbers of variables. ",
+             "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
 
     n.var <- max(vapply(parsed.names, length, integer(1)))
     result <- do.call("cbind", lapply(parsed.names, function(nms) {
@@ -1021,8 +1005,8 @@ variableNotFoundError <- function(var.name, data.set.name = NULL)
         paste0("the input data set '", data.set.name, "'.")
 
     stop("The input variable '", var.name, "' could not be found in ",
-         data.set.text, " Ensure that the variable ",
-         "has been correctly specified.")
+         data.set.text,
+         ". Ensure that the variable has been correctly specified.")
 }
 
 rangeVariablesOrderError <- function(start.var, end.var, data.set.name,
@@ -1086,8 +1070,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     if (!match.by.variable.names &&
         !match.by.variable.labels &&
         !match.by.value.labels)
-        stop("Matching needs to be done with at least one of the following: ",
-             "variable names, variable labels or value labels.")
+        stop("Matching needs to be done with at least one of the following: variable names, variable labels or value labels.")
 
     n.input.candidate.names <- length(candidate.names)
     is.exact.match <- FALSE
@@ -1746,13 +1729,20 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     n.vars <- nrow(matched.names)
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
 
-    merged.data.set <- data.frame(lapply(seq_len(n.vars), function(i) {
-        compositeVariable(matched.names[i, ], data.sets,
-                          use.names.and.labels.from,
-                          when.multiple.labels.for.one.value,
-                          match.parameters)
-    }))
-
+    merged.data.set <- vector(mode = "list", length = n.vars)
+    data.set.size <- 0
+    for (i in seq_len(n.vars))
+    {
+        v <- compositeVariable(matched.names[i, ], data.sets,
+                               use.names.and.labels.from,
+                               when.multiple.labels.for.one.value,
+                               match.parameters)
+        data.set.size <- data.set.size + object.size(v)
+        if (data.set.size > DATA.SET.SIZE.LIMIT)
+            stop("The merged data set is too large to create. ",
+                 "Consider omitting variables or only keeping merged variables containing input variables from a few data sets.")
+        merged.data.set[[i]] <- v
+    }
     names(merged.data.set) <- merged.names
 
     mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
@@ -1963,6 +1953,14 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
         }
     }
 
+    if (isIntegerValued(result))
+    {
+        result <- as.integer(result)
+        nms <- names(merged.val.attr)
+        merged.val.attr <- as.integer(merged.val.attr)
+        names(merged.val.attr) <- nms
+    }
+
     attr(result, "labels") <- merged.val.attr
     attr(result, "input.value.attributes") <- input.val.attr
     class(result) <- c(class(result), "haven_labelled")
@@ -2099,15 +2097,15 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
         setequal(unique.v.types, c("Date/Time", "Text", "Numeric")) ||
         setequal(unique.v.types, c("Date/Time", "Date", "Numeric")) ||
         setequal(unique.v.types, c("Date/Time", "Text", "Date", "Numeric")))
-        .combineVar(AsDateTime)
+        return(.combineVar(AsDateTime))
     else if (setequal(unique.v.types, c("Date")) ||
              setequal(unique.v.types, c("Date", "Text")) ||
              setequal(unique.v.types, c("Date", "Numeric")) ||
              setequal(unique.v.types, c("Date", "Text", "Numeric")))
-        .combineVar(AsDate)
+        return(.combineVar(AsDate))
     else if (setequal(unique.v.types, c("Duration")) ||
              setequal(unique.v.types, c("Duration", "Text")))
-        .combineVar(as.difftime)
+        return(.combineVar(as.difftime))
     else if (setequal(unique.v.types, c("Numeric")) ||
              setequal(unique.v.types, c("Numeric", "Text")))
     {
@@ -2117,10 +2115,16 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
         }, logical(1)))
 
         if (is.parsable)
-            .combineVar(as.numeric)
+        {
+            result <- .combineVar(as.numeric)
+            if (isIntegerValued(result))
+                return(as.integer(result))
+            else
+                return(result)
+        }
         else
         {
-            unlist(lapply(seq_len(n.data.sets), function(i) {
+            return(unlist(lapply(seq_len(n.data.sets), function(i) {
                 v <- var.list[[i]]
                 if (is.null(v))
                     rep(NA, nrow(data.sets[[i]]))
@@ -2128,18 +2132,18 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
                     as.character(v)
                 else
                     v
-            }))
+            })))
         }
     }
     else if (setequal(unique.v.types, c("Text")))
-        .combineVar(function(x) x)
+        return(.combineVar(function(x) x))
     else if (any(isCatType(unique.v.types)))
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
         # duration variables or there are too many unique values in numeric or
         # text variables.
-        unlist(lapply(seq_len(n.data.sets), function(i) {
+        return(unlist(lapply(seq_len(n.data.sets), function(i) {
             v <- var.list[[i]]
             if (is.null(v))
                 rep(NA_character_, nrow(data.sets[[i]]))
@@ -2153,7 +2157,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
             }
             else
                 as.character(v)
-        }))
+        })))
     }
     else
     {
