@@ -69,7 +69,9 @@ with the data set index in parentheses, e.g., 'Q2(3)'.}
 \item{variables.to.keep}{Character vector of variable names to keep in
 the merged data set. To specify variables from a specific data set,
 suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
-Ranges of variables can be specified by separating variable names by '-'.}
+Ranges of variables can be specified by separating variable names by '-'.
+This parameter is only useful when data.sets.whose.variables.are.kept is
+used (i.e., when variables are left out).}
 
 \item{variables.to.omit}{Character vector of variable names to omit from
 the merged data set. To specify variables from a specific data set,
@@ -89,9 +91,9 @@ are generated for the extra labels.}
 This sets the preference for either the first or last data set when
 choosing which names and labels to use in the merged data set.}
 
-\item{data.sets.whose.variables.are.kept}{An integer vector of indices of data
-sets whose variables are to be kept. Any variable not in these data sets
-will not be included in the merged data set.}
+\item{data.sets.whose.variables.are.kept}{An integer vector of indices of
+data sets where merged variables are only included if they contain input
+variables from these data sets.}
 
 \item{min.value.label.match.percentage}{The minimum percentage match for
 value labels to be considered the same when combining value attributes
@@ -102,7 +104,7 @@ A list with the following elements:
 \itemize{
   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
   is TRUE, this is a data frame of the merged data set.
-  \item \code{input.data.set.metadata} A list containing metadata on the
+  \item \code{input.data.sets.metadata} A list containing metadata on the
     the input data sets such as variable names, labels etc.
   \item \code{merged.data.set.metadata} A list containing metadata on the
     the merged data set such as variable names, labels etc.
@@ -124,4 +126,14 @@ A list with the following elements:
 Merges multiple data sets by case where the data sets contain
  similar variables but different cases, e.g., data sets from different time
  periods.
+}
+\examples{
+data.set.names <- c(system.file("examples", "Cola1.sav", package = "flipData"),
+                    system.file("examples", "Cola2.sav", package = "flipData"),
+                    system.file("examples", "Cola5.sav", package = "flipData"),
+                    system.file("examples", "Cola8.sav", package = "flipData"))
+
+print(MergeDataSetsByCase(data.set.names = data.set.names,
+                          data.sets.whose.variables.are.kept = 1,
+                          variables.to.combine = "Q4_A_3,Q4_A_3_new"))
 }

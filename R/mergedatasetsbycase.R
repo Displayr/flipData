@@ -35,6 +35,8 @@
 #'  the merged data set. To specify variables from a specific data set,
 #'  suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 #'  Ranges of variables can be specified by separating variable names by '-'.
+#'  This parameter is only useful when data.sets.whose.variables.are.kept is
+#'  used (i.e., when variables are left out).
 #' @param variables.to.omit Character vector of variable names to omit from
 #'  the merged data set. To specify variables from a specific data set,
 #'  suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
@@ -49,9 +51,9 @@
 #' @param use.names.and.labels.from Either "First data set" or "Last data set".
 #'  This sets the preference for either the first or last data set when
 #'  choosing which names and labels to use in the merged data set.
-#' @param data.sets.whose.variables.are.kept An integer vector of indices of data
-#'  sets whose variables are to be kept. Any variable not in these data sets
-#'  will not be included in the merged data set.
+#' @param data.sets.whose.variables.are.kept An integer vector of indices of
+#'  data sets where merged variables are only included if they contain input
+#'  variables from these data sets.
 #' @param min.value.label.match.percentage The minimum percentage match for
 #'  value labels to be considered the same when combining value attributes
 #'  from different variables.
@@ -60,7 +62,7 @@
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
 #'   is TRUE, this is a data frame of the merged data set.
-#'   \item \code{input.data.set.metadata} A list containing metadata on the
+#'   \item \code{input.data.sets.metadata} A list containing metadata on the
 #'     the input data sets such as variable names, labels etc.
 #'   \item \code{merged.data.set.metadata} A list containing metadata on the
 #'     the merged data set such as variable names, labels etc.
@@ -77,7 +79,15 @@
 #'   \item \code{is.saved.to.cloud} Whether the merged data set was saved to
 #'     the Displayr cloud drive.
 #' }
-#' @importFrom verbs Sum
+#' @examples
+#' data.set.names <- c(system.file("examples", "Cola1.sav", package = "flipData"),
+#'                     system.file("examples", "Cola2.sav", package = "flipData"),
+#'                     system.file("examples", "Cola5.sav", package = "flipData"),
+#'                     system.file("examples", "Cola8.sav", package = "flipData"))
+#'
+#' print(MergeDataSetsByCase(data.set.names = data.set.names,
+#'                           data.sets.whose.variables.are.kept = 1,
+#'                           variables.to.combine = "Q4_A_3,Q4_A_3_new"))
 #' @export
 MergeDataSetsByCase <- function(data.set.names,
                                 merged.data.set.name = NULL,
@@ -130,36 +140,51 @@ MergeDataSetsByCase <- function(data.set.names,
 
     writeDataSet(merged.data.set, merged.data.set.name)
 
-    outputForMergeDataSetsByCase(merged.data.set, input.data.sets.metadata,
-                                 matched.names, merged.names,
-                                 include.merged.data.set.in.output,
-                                 merged.data.set.name)
+    result <- list()
+    if (include.merged.data.set.in.output)
+        result$merged.data.set <- merged.data.set
+
+    result$input.data.sets.metadata <- input.data.sets.metadata
+    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
+                                                           merged.data.set.name)
+    result$matched.names <- matched.names
+    result$merged.names <- merged.names
+    result$omitted.variables <- omittedVariables(input.data.sets.metadata,
+                                                 matched.names)
+    result$input.value.attributes <- lapply(merged.data.set, attr,
+                                            "input.value.attributes")
+    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    class(result) <- "MergeDataSetByCase"
+    result
 }
 
-matchVariables <- function(input.data.set.metadata, match.parameters,
+# Performs matching of variables and returns the matched.names matrix which
+# represents the matching to be done. The rows of the matrix correspond to
+# merged variables and the columns correspond to input data sets.
+matchVariables <- function(input.data.sets.metadata, match.parameters,
                            variables.to.combine, variables.to.not.combine,
                            variables.to.keep, variables.to.omit, data.sets,
                            data.sets.whose.variables.are.kept,
                            use.names.and.labels.from)
 {
     v.names.to.combine <- parseVariablesToCombine(variables.to.combine,
-                                                  input.data.set.metadata)
+                                                  input.data.sets.metadata)
     v.names.to.not.combine <- parseVariablesToNotCombine(variables.to.not.combine,
-                                                         input.data.set.metadata)
+                                                         input.data.sets.metadata)
     v.names.to.keep <- parseVariablesToKeep(variables.to.keep,
-                                            input.data.set.metadata)
+                                            input.data.sets.metadata)
     v.names.to.omit <- parseVariablesToOmit(variables.to.omit,
-                                            input.data.set.metadata)
+                                            input.data.sets.metadata)
     checkMatchVariablesInputs(v.names.to.combine, v.names.to.not.combine,
                               v.names.to.keep, v.names.to.omit,
                               data.sets.whose.variables.are.kept,
-                              input.data.set.metadata)
+                              input.data.sets.metadata)
 
-    v.names <- input.data.set.metadata$variable.names
-    v.labels <- input.data.set.metadata$variable.labels
-    v.val.attrs <- input.data.set.metadata$variable.value.attributes
-    v.types <- input.data.set.metadata$variable.types
-    n.data.sets <- input.data.set.metadata$n.data.sets
+    v.names <- input.data.sets.metadata$variable.names
+    v.labels <- input.data.sets.metadata$variable.labels
+    v.val.attrs <- input.data.sets.metadata$variable.value.attributes
+    v.types <- input.data.sets.metadata$variable.types
+    n.data.sets <- input.data.sets.metadata$n.data.sets
 
     remaining.names <- lapply(seq_len(n.data.sets), function(i) {
         result <- v.names[[i]]
@@ -176,7 +201,7 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
                                    SIMPLIFY = FALSE)
 
     if (match.parameters$auto.select.what.to.match.by)
-        match.parameters <- autoSelectWhatToMatchBy(input.data.set.metadata,
+        match.parameters <- autoSelectWhatToMatchBy(input.data.sets.metadata,
                                           match.parameters)
 
     matched.names <- rbind(matrix(nrow = 0, ncol = n.data.sets),
@@ -273,13 +298,16 @@ matchVariables <- function(input.data.set.metadata, match.parameters,
     attr(matched.names, "matched.by") <- matched.by
 
     matched.names <- orderMatchedNames(matched.names,
-                                       input.data.set.metadata,
+                                       input.data.sets.metadata,
                                        use.names.and.labels.from)
 
     attr(matched.names, "match.parameters") <- match.parameters
     matched.names
 }
 
+# Find matches to the names in the rows specified by row.indices
+# and columns specified by data.set.indices in matched.names,
+# which is updated with the matching names when returned.
 findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                                v.names, v.labels, v.val.attrs, v.types,
                                remaining.names, remaining.labels,
@@ -333,37 +361,40 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                 val.attrs <- rev(val.attrs)
             }
 
-            candidates <- candidateMetadata(remaining.names,
-                                            remaining.labels,
-                                            remaining.val.attrs,
-                                            j, matched.names[i, ],
-                                            v.names.to.not.combine)
-
-            if (length(candidates$names) == 0)
+            is.combinable <- vapply(v.names[[j]],
+                                    isVariableCombinableIntoRow,
+                                    logical(1), j, matched.names[i, ],
+                                    v.names.to.not.combine)
+            if (sum(is.combinable) == 0)
                 next
 
+            candidate.names <- v.names[[j]][is.combinable]
+            candidate.labels <- v.labels[[j]][is.combinable]
+            candidate.val.attrs <- v.val.attrs[[j]][is.combinable]
+
             matching.name <- findMatchingVariable(nms, lbls, val.attrs,
-                                                  candidates,
+                                                  candidate.names,
+                                                  candidate.labels,
+                                                  candidate.val.attrs,
                                                   match.parameters)
+            if (is.na(matching.name))
+                next
 
-            if (!is.na(matching.name))
-            {
-                is.compatible <- isVariableCompatible(matching.name, j,
-                                                      matched.names[i, ],
-                                                      v.names, v.types,
-                                                      v.val.attrs,
-                                                      data.sets)
-                if (!is.compatible)
-                    next
+            is.compatible <- isVariableCompatible(matching.name, j,
+                                                  matched.names[i, ],
+                                                  v.names, v.types,
+                                                  v.val.attrs,
+                                                  data.sets)
+            if (!is.compatible)
+                next
 
-                matching.names[i, j] <- matching.name
-                matching.names.percentage[i, j] <- attr(matching.name,
-                                                        "match.percentage")
-                matching.names.is.fuzzy[i, j] <- attr(matching.name,
-                                                      "is.fuzzy.match")
-                matching.names.matched.by[i, j] <- attr(matching.name,
-                                                        "matched.by")
-            }
+            matching.names[i, j] <- matching.name
+            matching.names.percentage[i, j] <- attr(matching.name,
+                                                    "match.percentage")
+            matching.names.is.fuzzy[i, j] <- attr(matching.name,
+                                                  "is.fuzzy.match")
+            matching.names.matched.by[i, j] <- attr(matching.name,
+                                                    "matched.by")
         }
     }
 
@@ -396,12 +427,13 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
          remaining.val.attrs = remaining.val.attrs)
 }
 
-autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
+# Determine what to match by: variable names, variable labels and/or value labels
+autoSelectWhatToMatchBy <- function(input.data.sets.metadata, match.parameters)
 {
-    v.names <- input.data.set.metadata$variable.names
-    v.labels <- input.data.set.metadata$variable.labels
-    v.val.attrs <- input.data.set.metadata$variable.value.attributes
-    n.data.sets <- input.data.set.metadata$n.data.sets
+    v.names <- input.data.sets.metadata$variable.names
+    v.labels <- input.data.sets.metadata$variable.labels
+    v.val.attrs <- input.data.sets.metadata$variable.value.attributes
+    n.data.sets <- input.data.sets.metadata$n.data.sets
 
     if (match.parameters$ignore.case)
     {
@@ -431,6 +463,9 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
     # map to two or more labels in another data set.
     match.parameters$match.by.variable.labels <- maxOneToManyLabelProportion(v.labels) <= 0.25
 
+    # Don't match by variable names if we are matching by variable labels and
+    # variable name matches agree with variable label matches less than half
+    # the time, since labels matches are usually better quality.
     if (match.parameters$match.by.variable.labels)
     {
         unique.lbls <- unique(unlist(v.labels))
@@ -468,10 +503,12 @@ autoSelectWhatToMatchBy <- function(input.data.set.metadata, match.parameters)
 
     # Don't match by value labels if more than 50% of value label sets in a data
     # set maps to two or more sets of value labels in another data set.
-    match.parameters$match.by.value.labels <- maxOneToManyValueLabelProportion(v.val.attrs) <= 0.25
+    match.parameters$match.by.value.labels <- maxOneToManyValueAttrProportion(v.val.attrs) <= 0.25
     match.parameters
 }
 
+# Maximum proportion of labels in a data set that map to multiple labels in
+# another data set (maximum over all pairs of data sets)
 maxOneToManyLabelProportion <- function(v.labels)
 {
     n.data.sets <- length(v.labels)
@@ -496,7 +533,9 @@ maxOneToManyLabelProportion <- function(v.labels)
     max(prop)
 }
 
-maxOneToManyValueLabelProportion <- function(v.val.attrs)
+# Maximum proportion of value attributes in a data set that map to multiple
+# value attributes in another data set (maximum over all pairs of data sets)
+maxOneToManyValueAttrProportion <- function(v.val.attrs)
 {
     n.data.sets <- length(v.val.attrs)
     prop <- c()
@@ -521,9 +560,7 @@ maxOneToManyValueLabelProportion <- function(v.val.attrs)
                     identical(v.val.attrs.i[[k]], val.attr.j)
                 }, logical(1)))
                 if (n.matches > 1)
-                {
                     n <- n + 1
-                }
             }
             prop <- c(prop, n / length(v.val.attrs.i))
         }
@@ -535,14 +572,14 @@ maxOneToManyValueLabelProportion <- function(v.val.attrs)
 # each row contains a set of variables to be combined, with the columns
 # corresponding to the input data sets.
 parseVariablesToCombine <- function(variables.to.combine,
-                                    input.data.set.metadata)
+                                    input.data.sets.metadata)
 {
-    n.data.sets <- input.data.set.metadata$n.data.sets
+    n.data.sets <- input.data.sets.metadata$n.data.sets
     result <- matrix(nrow = 0, ncol = n.data.sets)
     is.data.set.specified <- matrix(nrow = 0, ncol = n.data.sets)
     for (txt in variables.to.combine)
     {
-        rows <- parseInputVariableText(txt, input.data.set.metadata)
+        rows <- parseInputVariableText(txt, input.data.sets.metadata)
         result <- rbind(result, rows, deparse.level = 0)
         is.data.set.specified <- rbind(is.data.set.specified,
                                        attr(rows, "is.data.set.specified"))
@@ -571,39 +608,45 @@ parseVariablesToCombine <- function(variables.to.combine,
 # each row contains a set of variables that should not be combined, with the
 # columns corresponding to the input data sets.
 parseVariablesToNotCombine <- function(variables.to.not.combine,
-                                       input.data.set.metadata)
+                                       input.data.sets.metadata)
 {
     do.call("rbind", lapply(variables.to.not.combine, parseInputVariableText,
-                            input.data.set.metadata))
+                            input.data.sets.metadata))
 }
 
-parseVariablesToKeep <- function(variables.to.keep, input.data.set.metadata)
+# Parse the character vector variables.to.keep and return a matrix where
+# each row contains a set of variables that should not be kept, with the
+# columns corresponding to the input data sets.
+parseVariablesToKeep <- function(variables.to.keep, input.data.sets.metadata)
 {
     split.text <- unlist(lapply(variables.to.keep, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
     do.call("rbind", lapply(split.text, parseInputVariableText,
-                            input.data.set.metadata))
+                            input.data.sets.metadata))
 }
 
 # Parse the character vector variables.to.omit and return a matrix where
 # each row contains a set of variables that should be omitted, with the
 # columns corresponding to the input data sets.
 parseVariablesToOmit <- function(variables.to.omit,
-                                           input.data.set.metadata)
+                                 input.data.sets.metadata)
 {
     split.text <- unlist(lapply(variables.to.omit, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
     do.call("rbind", lapply(split.text, parseVariablesToOmitText,
-                            input.data.set.metadata))
+                            input.data.sets.metadata))
 }
 
-parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
+# Parse a string containing user-input variables to omit and return a matrix
+# a matrix where each row contains a set of variables that should be omitted,
+# with the columns corresponding to the input data sets.
+parseVariablesToOmitText <- function(input.text, input.data.sets.metadata)
 {
-    n.data.sets <- input.data.set.metadata$n.data.sets
-    var.names <- input.data.set.metadata$variable.names
-    data.set.names <- input.data.set.metadata$data.set.names
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    var.names <- input.data.sets.metadata$variable.names
+    data.set.names <- input.data.sets.metadata$data.set.names
 
     dash.ind <- match("-", strsplit(input.text, "")[[1]])
     if (is.na(dash.ind)) # single variable (not range)
@@ -687,10 +730,12 @@ parseVariablesToOmitText <- function(input.text, input.data.set.metadata)
     }
 }
 
+# Check that variables to combine, variables to not combine, variables to keep
+# and variables to omit are all consistent with each other
 checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine,
                                       v.names.to.keep, v.names.to.omit,
                                       data.sets.whose.variables.are.kept,
-                                      input.data.set.metadata)
+                                      input.data.sets.metadata)
 {
     # Check v.names.to.combine against v.names.to.not.combine
     for (i in seqRow(v.names.to.combine))
@@ -756,7 +801,7 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
     if (length(data.sets.whose.variables.are.kept) == 0)
         stop("At least one data set needs to be specified in the input for the data sets whose variables are kept")
 
-    n.data.sets <- input.data.set.metadata$n.data.sets
+    n.data.sets <- input.data.sets.metadata$n.data.sets
     if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
         stop("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
              "Ensure that it contains only indices from 1 to the number of input data sets.")
@@ -766,11 +811,11 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
 # of names where columns correspond to input data. Ranges of variables can be
 # specified with a dash. Variables are specified to be from a data set when
 # their names have the suffix consisting of the data set index in parentheses.
-parseInputVariableText <- function(input.text, input.data.set.metadata)
+parseInputVariableText <- function(input.text, input.data.sets.metadata)
 {
-    n.data.sets <- input.data.set.metadata$n.data.sets
-    var.names <- input.data.set.metadata$variable.names
-    data.set.names <- input.data.set.metadata$data.set.names
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    var.names <- input.data.sets.metadata$variable.names
+    data.set.names <- input.data.sets.metadata$data.set.names
     split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
 
     parsed.names <- vector(mode = "list", length = n.data.sets)
@@ -914,7 +959,8 @@ parseInputVariableText <- function(input.text, input.data.set.metadata)
     result
 }
 
-# Parse variable names with '(x)' appended where 'x' is a data set index
+# Parse data set indices from a variable name with data set indices appended,
+# e.g. "Q2(3,4)" becomes c(3,4).
 parseDataSetIndices <- function(input.text, n.data.sets)
 {
     if (grepl("\\(.+\\)$", input.text))
@@ -945,6 +991,8 @@ parseDataSetIndices <- function(input.text, n.data.sets)
         integer(0)
 }
 
+# Remove appended data set indices from a variable name,
+# e.g., "Q2(3)" becomes "Q2"
 removeDataSetIndices <- function(input.text)
 {
     if (grepl("\\(.+\\)$", input.text))
@@ -957,7 +1005,7 @@ removeDataSetIndices <- function(input.text)
         input.text
 }
 
-# Data set index for a range can either be specified for start or end or both
+# Data set indices for a range can either be specified for start or end or both
 # as long as they are consistent
 parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data.sets)
 {
@@ -971,6 +1019,7 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
     data.set.ind.start
 }
 
+# Returns all variables within the specified start and end variables
 variablesFromRange <- function(variable.names, range.start, range.end,
                                data.set.name, input.text,
                                error.if.not.found = TRUE)
@@ -993,7 +1042,10 @@ variablesFromRange <- function(variable.names, range.start, range.end,
     }
 
     if (start.ind > end.ind)
-        rangeVariablesOrderError(range.start, range.end, data.set.name, input.text)
+        stop("The start variable '", range.start,
+             "' appears after the end variable '", range.end,
+             "' in the input data set '", data.set.name,
+             "' for the input range '", input.text, "'.")
     variable.names[start.ind:end.ind]
 }
 
@@ -1007,15 +1059,6 @@ variableNotFoundError <- function(var.name, data.set.name = NULL)
     stop("The input variable '", var.name, "' could not be found in ",
          data.set.text,
          ". Ensure that the variable has been correctly specified.")
-}
-
-rangeVariablesOrderError <- function(start.var, end.var, data.set.name,
-                                     range.text)
-{
-    stop("The start variable '", start.var,
-         "' appears after the end variable '", end.var,
-         "' in the input data set '", data.set.name,
-         "' for the input range '", range.text, "'.")
 }
 
 addToParsedNames <- function(parsed.names, input.text.without.index,
@@ -1037,29 +1080,13 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
              "where 'x' is replaced with the data set index, e.g., use 2 for the 2nd input data set.")
 }
 
-candidateMetadata <- function(remaining.names,
-                              remaining.labels,
-                              remaining.val.attrs,
-                              data.set.ind, row.variables,
-                              v.names.to.not.combine)
-{
-    is.combinable <- vapply(remaining.names[[data.set.ind]],
-                            isVariableCombinableIntoRow,
-                            logical(1), data.set.ind, row.variables,
-                            v.names.to.not.combine)
-    list(names = remaining.names[[data.set.ind]][is.combinable],
-         labels = remaining.labels[[data.set.ind]][is.combinable],
-         val.attrs = remaining.val.attrs[[data.set.ind]][is.combinable])
-}
-
-
-findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
+# Find candidate variable with names, labels or value attributes that match
+# nms, lbls or val.attrs. Returns the name of the matching variable,
+# otherwise NA_character_.
+findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
+                                 candidate.labels, candidate.val.attrs,
                                  match.parameters)
 {
-    candidate.names <- candidates$names
-    candidate.labels <- candidates$labels
-    candidate.val.attrs <- candidates$val.attrs
-
     match.by.variable.names <- match.parameters$match.by.variable.names
     match.by.variable.labels <- match.parameters$match.by.variable.labels
     match.by.value.labels <- match.parameters$match.by.value.labels
@@ -1237,6 +1264,8 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidates,
     NA_character_
 }
 
+# Returns a matrix of percentage matches (similarities) between strings in
+# strings.1 and strings.2.
 #' @importFrom stringdist stringdistmatrix
 #' @importFrom stringi stri_detect_fixed
 matchPercentages <- function(strings.1, strings.2, ignore.case,
@@ -1280,15 +1309,29 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
     adjustedMatchPercentage(distances, pmax(nchar.matrix.1, nchar.matrix.2))
 }
 
-adjustedMatchPercentage <- function(distances, denominators)
+# Compute an adjusted match percentage that gives higher values when two
+# strings have many characters in common.
+# The unadjusted match percentage is simply 100 * (1 - (distances / max.nchars).
+# The adjusted match percentage only differs from the unadjusted match
+# percentage when max.nchars - distances > 20.
+# For example, for distance = 2 and max.nchar = 10, the match percentage is 80%
+# which is same with and without adjustment.
+# But for distance = 20 and max.nchar = 100, the match percentage is also 80%
+# but the adjusted match percentage is 99.84%. This makes sense because in the
+# latter case, there are a lot more characters in common and the chance of a
+# true match is a lot higher.
+adjustedMatchPercentage <- function(distances, max.nchars)
 {
     scale.parameter <- 20
-    result <- 100 * (1 - (distances / denominators) ^ pmax((denominators - distances) / scale.parameter, 1))
-    ind <- result == 100
-    result[ind] <- result[ind] - 1e-12 * distances[ind]
-    result
+    result <- 100 * (1 - (distances / max.nchars) ^ pmax((max.nchars - distances) / scale.parameter, 1))
+    # Since the formula above may give 100% for non-zero distances, the line
+    # below ensures that non-zero distances never result in 100%, so that
+    # zero distances will always be chosen over non-zero distances.
+    result - 1e-12 * (distances > 0)
 }
 
+# Returns a matrix of percentage matches (similarities) between value attributes
+# in val.attrs.1 and val.attrs.2.
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.case,
                                                ignore.non.alphanumeric,
@@ -1322,6 +1365,8 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                      min.match.percentage)
 }
 
+# Returns a vector of percentage matches (similarities) between the value label
+# lbl and lbls.to.compare.against.
 #' @importFrom stringdist stringdist
 matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
                                            match.parameters)
@@ -1330,12 +1375,10 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
     lbl <- normalizeValueLabels(lbl, match.parameters)
     lbls.to.compare.against <- normalizeValueLabels(lbls.to.compare.against,
                                                     match.parameters)
-
     if (lbl == "")
         return(rep(0, length(lbls.to.compare.against)))
 
     distances <- stringdist(lbl, lbls.to.compare.against)
-
     adjustedMatchPercentage(distances, nchar.lbls)
 }
 
@@ -1367,6 +1410,10 @@ removeNonAlphaNumericCharacters <- function(txt)
     result
 }
 
+# Checks that the numbers that appear in string.1 and string.2 are identical
+# This is used to ensure that variable names that fuzzy match refer to the
+# same numbers. For example, Q_11_2 and Q_1_12 match if the "_" is ignored
+# but the numbers in the variables do not match.
 isNumbersPreserved <- function(string.1, string.2)
 {
     nums.1 <- strsplit(string.1, "[^0-9]")[[1]]
@@ -1397,20 +1444,22 @@ isNumbersPreserved <- function(string.1, string.2)
 # are compatible (this is done later in unmatchVariablesOfDifferentTypes).
 isVariableCombinableIntoRow <- function(name.to.combine,
                                         data.set.ind,
-                                        row.variables,
+                                        matched.names.row,
                                         v.names.to.not.combine)
 {
     if (is.null(v.names.to.not.combine))
         return(TRUE)
 
-    row.variables[data.set.ind] <- name.to.combine
+    matched.names.row[data.set.ind] <- name.to.combine
 
     all(apply(v.names.to.not.combine, 1, function(nms) {
-        sum(nms == row.variables, na.rm = TRUE) < 2
+        sum(nms == matched.names.row, na.rm = TRUE) < 2
     }))
 }
 
-isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
+# Checks that a variable's type is compatible with those of variables in a row
+# (representing variables to be merged)
+isVariableCompatible <- function(variable.name, data.set.ind, matched.names.row,
                                  variable.names, variable.types,
                                  variable.value.attributes, data.sets)
 {
@@ -1419,9 +1468,9 @@ isVariableCompatible <- function(variable.name, data.set.ind, row.variables,
     var.vals <- data.sets[[data.set.ind]][[var.ind]]
     var.val.attr <- variable.value.attributes[[data.set.ind]][[var.ind]]
 
-    non.missing.ind <- which(!is.na(row.variables))
+    non.missing.ind <- which(!is.na(matched.names.row))
     row.vars.ind <- vapply(non.missing.ind, function(i) {
-        match(row.variables[i], variable.names[[i]])
+        match(matched.names.row[i], variable.names[[i]])
     }, integer(1))
     row.vars.types <- vapply(seq_along(row.vars.ind), function(i) {
         variable.types[[non.missing.ind[i]]][row.vars.ind[i]]
@@ -1577,6 +1626,7 @@ isConvertibleToCategorical <- function(variable.type, values, val.attrs,
                                            max.unique.values))
 }
 
+# Determine merged variable names from the matrix of matched names
 mergedVariableNames <- function(matched.names, use.names.and.labels.from)
 {
     merged.names <- namesFromEarliestDataSet(matched.names,
@@ -1601,6 +1651,8 @@ mergedVariableNames <- function(matched.names, use.names.and.labels.from)
     merged.names
 }
 
+# Get the names from the earliest data set for each row in matched.names
+# (use the latest data set if use.names.and.labels.from == "Last data set")
 namesFromEarliestDataSet <- function(matched.names, use.names.and.labels.from)
 {
     apply(matched.names, 1, function(nms) {
@@ -1611,11 +1663,12 @@ namesFromEarliestDataSet <- function(matched.names, use.names.and.labels.from)
     })
 }
 
-orderMatchedNames <- function(matched.names, input.data.set.metadata,
+# Order matched names based on the original order of the input variables
+orderMatchedNames <- function(matched.names, input.data.sets.metadata,
                               use.names.and.labels.from)
 {
-    n.data.sets <- input.data.set.metadata$n.data.sets
-    v.names <- input.data.set.metadata$variable.names
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    v.names <- input.data.sets.metadata$variable.names
 
     # Convert list of variable names to list of row indices relative to the
     # matched names matrix, removing any names that do not appear in
@@ -1646,7 +1699,7 @@ orderMatchedNames <- function(matched.names, input.data.set.metadata,
 # Takes a list of character vectors each containing indices in a certain order
 # and merges them into a single integer vector, respecting the order in
 # each vector as much as possible, with earlier vectors taking precedence
-# in case of ties.
+# in case of ties (or later vectors if use.names.and.labels.from == "Last data set").
 mergeIndicesList <- function(indices.list, use.names.and.labels.from,
                              indices.to.keep.togther = NULL)
 {
@@ -1721,6 +1774,8 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
     merged.indices
 }
 
+# Construct the merged data set as a data frame
+#' @importFrom utils object.size
 mergedDataSet <- function(data.sets, matched.names, merged.names,
                           use.names.and.labels.from, data.set.names,
                           when.multiple.labels.for.one.value,
@@ -1740,9 +1795,10 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
         data.set.size <- data.set.size + object.size(v)
         if (data.set.size > DATA.SET.SIZE.LIMIT)
             stop("The merged data set is too large to create. ",
-                 "Consider omitting variables or only keeping merged variables containing input variables from a few data sets.")
+                 "Consider omitting variables or only keeping merged variables that contain input variables from a few data sets.")
         merged.data.set[[i]] <- v
     }
+    merged.data.set <- data.frame(merged.data.set)
     names(merged.data.set) <- merged.names
 
     mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
@@ -1753,15 +1809,15 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 
 # Combine variables from different data sets (end-to-end) to create a
 # composite variable
-compositeVariable <- function(variable.names, data.sets,
+compositeVariable <- function(matched.names.row, data.sets,
                               use.names.and.labels.from,
                               when.multiple.labels.for.one.value,
                               match.parameters)
 {
     n.data.sets <- length(data.sets)
     var.list <- lapply(seq_len(n.data.sets), function(i) {
-         if(!is.na(variable.names[i]))
-             data.sets[[i]][[variable.names[i]]]
+         if(!is.na(matched.names.row[i]))
+             data.sets[[i]][[matched.names.row[i]]]
         else
             NULL
     })
@@ -1795,13 +1851,14 @@ compositeVariable <- function(variable.names, data.sets,
     else
         combineAsNonCategoricalVariable(var.list, data.sets, v.types)
 
-    attr(result, "label") <- variableLabelFromDataSets(variable.names,
+    attr(result, "label") <- variableLabelFromDataSets(matched.names.row,
                                                        data.sets,
                                                        use.names.and.labels.from)
 
     result
 }
 
+# Combine variables in var.list as a categorical variable
 combineAsCategoricalVariable <- function(var.list, data.sets,
                                          use.names.and.labels.from, v.types,
                                          when.multiple.labels.for.one.value,
@@ -1968,6 +2025,8 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
     result
 }
 
+# Extract the value from val.attr given a label, also dealing with the special
+# case where label == ""
 labelValue <- function(val.attr, label)
 {
     if (label != "")
@@ -2038,6 +2097,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     merged.val.attr
 }
 
+# Combine variables in var.list into a (non-categorical) variable
 #' @importFrom lubridate as_date as_datetime
 combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
 {
@@ -2167,6 +2227,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
 }
 
+# Remap values in variable given a value map
 remapValuesInVariable <- function(variable, map)
 {
     result <- variable
@@ -2175,7 +2236,8 @@ remapValuesInVariable <- function(variable, map)
     result
 }
 
-variableLabelFromDataSets <- function(variable.names, data.sets,
+# Get a variable label from matched.names.row
+variableLabelFromDataSets <- function(matched.names.row, data.sets,
                                       use.names.and.labels.from)
 {
     ind <- if (use.names.and.labels.from == "First data set")
@@ -2187,9 +2249,9 @@ variableLabelFromDataSets <- function(variable.names, data.sets,
     {
         data.set <- data.sets[[i]]
 
-        if (!is.na(variable.names[i]))
+        if (!is.na(matched.names.row[i]))
         {
-            v <- data.set[[variable.names[i]]]
+            v <- data.set[[matched.names.row[i]]]
             lbl <- attr(v, "label", exact = TRUE)
             if (!is.null(lbl))
                 return(lbl)
@@ -2198,6 +2260,7 @@ variableLabelFromDataSets <- function(variable.names, data.sets,
     return("")
 }
 
+# Create mergesrc variable
 mergeSrc <- function(n.data.set.cases, data.set.names)
 {
     n.data.sets <- length(n.data.set.cases)
@@ -2223,32 +2286,10 @@ cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
     }
 }
 
-outputForMergeDataSetsByCase <- function(merged.data.set,
-                                         input.data.set.metadata,
-                                         matched.names, merged.names,
-                                         include.merged.data.set.in.output,
-                                         merged.data.set.name)
+omittedVariables <- function(input.data.sets.metadata, matched.names)
 {
-    result <- list()
-    if (include.merged.data.set.in.output)
-        result$merged.data.set <- merged.data.set
-
-    result$input.data.set.metadata <- input.data.set.metadata
-    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
-                                                           merged.data.set.name)
-    result$matched.names <- matched.names
-    result$merged.names <- merged.names
-    result$omitted.variables <- omittedVariables(input.data.set.metadata, matched.names)
-    result$input.value.attributes <- lapply(merged.data.set, attr, "input.value.attributes")
-    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
-    class(result) <- "MergeDataSetByCase"
-    result
-}
-
-omittedVariables <- function(input.data.set.metadata, matched.names)
-{
-    lapply(seq_len(input.data.set.metadata$n.data.sets), function(i) {
-        nms <- input.data.set.metadata$variable.names[[i]]
+    lapply(seq_len(input.data.sets.metadata$n.data.sets), function(i) {
+        nms <- input.data.sets.metadata$variable.names[[i]]
         ind <- !(nms %in% matched.names[, i])
         nms[ind]
     })
@@ -2272,7 +2313,7 @@ removeNULL <- function(x)
 #' @export
 print.MergeDataSetByCase <- function(x, ...)
 {
-    DataSetMergingByCaseWidget(x$input.data.set.metadata,
+    DataSetMergingByCaseWidget(x$input.data.sets.metadata,
                                x$merged.data.set.metadata,
                                x$matched.names,
                                x$merged.names,
