@@ -37,12 +37,10 @@ test_that("Example used for widget test in flipFormat", {
                                                               variables.to.combine = "Q4_A_3,Q4_A_3_new"), NA)
 })
 
-test_that("exact match by variable names", {
+test_that("default matching", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola3.sav")),
-                                  match.by.variable.names = TRUE,
-                                  match.by.value.labels = FALSE,
                                   include.merged.data.set.in.output = TRUE)
 
     merged.data.set <- result$merged.data.set
@@ -70,10 +68,12 @@ test_that("exact match by variable names", {
                    Q1_F = "Q1.  Fragments - Coke", mergesrc = "Source of cases"))
 
     expect_true(all(is.na(merged.data.set$Q2[1:327]))) # 1st data set does not have Q2
-    expect_equal(unique(merged.data.set$Q2[328:981]), c(2,1)) # Retain original values
-    expect_equal(attr(merged.data.set$Q2, "labels"), c(M = 1, F = 2)) # Use labels from earlier data set
+    # New values were created since multiple labels have same value
+    expect_equal(unique(merged.data.set$Q2[328:981]), c(2,1,4,3))
+    expect_equal(attr(merged.data.set$Q2, "labels"),
+                 structure(1:4, .Names = c("M", "F", "Male", "Female")))
 
-    # values in Q3_3 of the 2nd data set are modified (keeping the same labels)
+    # Values in Q3_3 of the 2nd data set are modified (keeping the same labels)
     # but upon merging, the values in the last data set are used
     expect_true(all(merged.data.set$Q3_3[328:654] == merged.data.set$Q3_3[655:981]))
     expect_equal(attr(merged.data.set$Q3_3, "labels"),
@@ -81,7 +81,6 @@ test_that("exact match by variable names", {
                    `35 to 39` = 37, `40 to 44` = 42, `45 to 49` = 47, `50 to 54` = 52,
                    `55 to 64` = 60, `65 or more` = 70))
 })
-
 
 test_that("create new values when a single categorical value has multiple labels", {
     merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),

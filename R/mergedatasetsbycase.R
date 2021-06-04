@@ -211,7 +211,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
                                       "is.data.set.specified")
         output <- findMatchesForRows(matched.names, seqRow(matched.names),
                                      seq_len(n.data.sets),
-                                     v.names, v.labels, v.val.attrs, v.types,
+                                     input.data.sets.metadata,
                                      remaining.ind,
                                      use.names.and.labels.from,
                                      v.names.to.not.combine,
@@ -249,9 +249,10 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
         else
             next
 
-        new.rows <- matrix(NA_character_, nrow = length(initial.names),
+        new.rows <- matrix(NA_character_,
+                           nrow = length(nms.to.find.matches.for),
                            ncol = n.data.sets)
-        new.rows[, i] <- initial.names
+        new.rows[, i] <- nms.to.find.matches.for
         row.indices <- seqRow(new.rows) + nrow(matched.names)
         matched.names <- rbind(matched.names, new.rows)
         is.fuzzy.match <- rbind(is.fuzzy.match, matrix(FALSE,
@@ -393,7 +394,8 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             ind <- which(matching.names[, i] == nm)
             max.ind <- ind[which.max(matching.names.percentage[ind, i])]
             matched.names[max.ind, i] <- nm
-            matched.ind <- c(matched.ind, match(nm, remaining.names[[i]]))
+            matched.ind <- c(matched.ind,
+                             match(nm, v.names[[i]][remaining.ind[[i]]]))
             is.fuzzy.match[max.ind, i] <- matching.names.is.fuzzy[max.ind, i]
             matched.by[max.ind, i] <- matching.names.matched.by[max.ind, i]
         }
