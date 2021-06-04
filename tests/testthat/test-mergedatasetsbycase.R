@@ -11,30 +11,6 @@ findInstDirFile <- function(file)
               file)
 }
 
-test_that("mergeIndicesList", {
-    merged.indices <- mergeIndicesList(list(c(1L, 2L, 4L, 6L, 7L, 8L),
-                                            c(3L, 5L, 6L, 8L),
-                                            c(2L, 3L, 4L, 5L)),
-                                            prioritize.early.elements = TRUE)
-    expect_equal(merged.indices, 1:8)
-
-    names.list <- list(c(1L, 2L, 4L),
-                       c(1L, 3L, 4L),
-                       c(2L, 4L, 5L),
-                       c(1L, 2L, 3L))
-
-    perm <- permutations(4,4)
-    for (i in seq_len(nrow(perm)))
-        expect_equal(mergeIndicesList(names.list[perm[i, ]],
-                                      prioritize.early.elements = TRUE), 1:5)
-
-    merged.indices <- mergeIndicesList(list(c(1L, 4L, 5L, 6L, 7L, 8L),
-                                            c(2L, 3L, 5L, 9L),
-                                            c(3L, 4L, 5L, 10L, 11L)),
-                                       prioritize.early.elements = TRUE)
-    expect_equal(merged.indices, 1:11)
-})
-
 # cola1.sav: Q2 (Q2. Gender) removed, Q3_3 (Q3. Age in years) moved down to be
 #            after Q4_C_2. Variables after Q4_C_4 removed.
 # cola2.sav: Q2 (Q2. Gender) category labels changed to M, F, and
@@ -53,18 +29,18 @@ test_that("mergeIndicesList", {
 # simply save merge.data.set.output from this test
 # into flipFormat/inst/testdata/merge.data.set.output.rda
 test_that("Example used for widget test in flipFormat", {
-    merge.data.set.output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
-                                                                    findInstDirFile("cola2.sav"),
-                                                                    findInstDirFile("cola5.sav"),
-                                                                    findInstDirFile("cola8.sav")),
-                                                 data.sets.whose.variables.are.kept = 1,
-                                                 variables.to.combine = "Q4_A_3,Q4_A_3_new")
+    expect_error(merge.data.set.output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                                                 findInstDirFile("cola2.sav"),
+                                                                                 findInstDirFile("cola5.sav"),
+                                                                                 findInstDirFile("cola8.sav")),
+                                                              data.sets.whose.variables.are.kept = 1,
+                                                              variables.to.combine = "Q4_A_3,Q4_A_3_new"), NA)
 })
 
-test_that("merge cola data, exact match by variable names", {
+test_that("exact match by variable names", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
-                                                              findInstDirFile("cola2.sav"),
-                                                              findInstDirFile("cola3.sav")),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
                                   match.by.variable.names = TRUE,
                                   match.by.value.labels = FALSE,
                                   include.merged.data.set.in.output = TRUE)
@@ -352,4 +328,37 @@ test_that("Data sets whose variables are kept", {
                                   include.merged.data.set.in.output = TRUE,
                                   data.sets.whose.variables.are.kept = 1)
     expect_false("Q2" %in% names(result$merged.data.set))
+})
+
+test_that("mergeIndicesList", {
+    merged.indices <- mergeIndicesList(list(c(1L, 2L, 4L, 6L, 7L, 8L),
+                                            c(3L, 5L, 6L, 8L),
+                                            c(2L, 3L, 4L, 5L)),
+                                       prefer.first.element = TRUE)
+    expect_equal(merged.indices, 1:8)
+
+    names.list <- list(c(1L, 2L, 4L),
+                       c(1L, 3L, 4L),
+                       c(2L, 4L, 5L),
+                       c(1L, 2L, 3L))
+
+    perm <- permutations(4,4)
+    for (i in seq_len(nrow(perm)))
+        expect_equal(mergeIndicesList(names.list[perm[i, ]],
+                                      prefer.first.element = TRUE), 1:5)
+
+    merged.indices <- mergeIndicesList(list(c(1L, 4L, 5L, 6L, 7L, 8L),
+                                            c(2L, 3L, 5L, 9L),
+                                            c(3L, 4L, 5L, 10L, 11L)),
+                                       prefer.first.element = TRUE)
+    expect_equal(merged.indices, 1:11)
+
+    # indices.to.keep.togther
+    merged.indices <- mergeIndicesList(list(c(1L, 2L, 4L, 6L, 7L, 8L),
+                                            c(3L, 5L, 6L, 8L),
+                                            c(2L, 3L, 4L, 5L)),
+                                       prefer.first.element = TRUE,
+                                       indices.to.keep.togther = list(c(1L, 8L),
+                                                                      c(2L, 7L)))
+    expect_equal(merged.indices, c(1L, 8L, 2L, 7L, 3L:6L))
 })

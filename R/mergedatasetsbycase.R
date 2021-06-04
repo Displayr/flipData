@@ -181,28 +181,20 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
                               input.data.sets.metadata)
 
     v.names <- input.data.sets.metadata$variable.names
-    v.labels <- input.data.sets.metadata$variable.labels
-    v.val.attrs <- input.data.sets.metadata$variable.value.attributes
-    v.types <- input.data.sets.metadata$variable.types
     n.data.sets <- input.data.sets.metadata$n.data.sets
 
-    remaining.names <- lapply(seq_len(n.data.sets), function(i) {
-        result <- v.names[[i]]
+    remaining.ind <- lapply(seq_len(n.data.sets), function(i) {
+        nms <- v.names[[i]]
         if (!is.null(v.names.to.combine))
-            result <- setdiff(result, v.names.to.combine[, i])
+            nms <- setdiff(nms, v.names.to.combine[, i])
         if (!is.null(v.names.to.omit))
-            result <- setdiff(result, v.names.to.omit[, i])
-        result
+            nms <- setdiff(nms, v.names.to.omit[, i])
+        match(nms, v.names[[i]])
     })
-    remaining.ind <- mapply(match, remaining.names, v.names, SIMPLIFY = FALSE)
-    remaining.labels <- mapply(function(x, y) x[y], v.labels, remaining.ind,
-                               SIMPLIFY = FALSE)
-    remaining.val.attrs <-  mapply(function(x, y) x[y], v.val.attrs, remaining.ind,
-                                   SIMPLIFY = FALSE)
 
     if (match.parameters$auto.select.what.to.match.by)
         match.parameters <- autoSelectWhatToMatchBy(input.data.sets.metadata,
-                                          match.parameters)
+                                                    match.parameters)
 
     matched.names <- rbind(matrix(nrow = 0, ncol = n.data.sets),
                            v.names.to.combine)
@@ -220,8 +212,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
         output <- findMatchesForRows(matched.names, seqRow(matched.names),
                                      seq_len(n.data.sets),
                                      v.names, v.labels, v.val.attrs, v.types,
-                                     remaining.names, remaining.labels,
-                                     remaining.val.attrs,
+                                     remaining.ind,
                                      use.names.and.labels.from,
                                      v.names.to.not.combine,
                                      match.parameters, data.sets,
@@ -230,9 +221,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
         matched.names <- output$matched.names
         is.fuzzy.match <- output$is.fuzzy.match
         matched.by <- output$matched.by
-        remaining.names <- output$remaining.names
-        remaining.labels <- output$remaining.labels
-        remaining.val.attrs <- output$remaining.val.attrs
+        remaining.ind <- output$remaining.ind
     }
 
     d.ind <- if (use.names.and.labels.from == "First data set")
@@ -245,32 +234,26 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
     {
         if (i %in% data.sets.whose.variables.are.kept)
         {
-            nms.to.find.matches.for <- remaining.names[[i]]
-            remaining.names[[i]] <- character(0)
-            remaining.labels[[i]] <- character(0)
-            remaining.val.attrs[[i]] <- list()
+            nms.to.find.matches.for <- v.names[[i]][remaining.ind[[i]]]
+            remaining.ind[[i]] <- integer(0)
         }
         else if (!is.null(v.names.to.keep) &&
                  any(!is.na(v.names.to.keep[, i])))
         {
+            remaining.names <- v.names[[i]][remaining.ind[[i]]]
             nms.to.find.matches.for <- intersect(removeNA(v.names.to.keep[, i]),
-                                                 remaining.names[[i]])
-            ind <- match(nms.to.find.matches.for, remaining.names[[i]])
-            remaining.names[[i]] <- remaining.names[[i]][-ind]
-            remaining.labels[[i]] <- remaining.labels[[i]][-ind]
-            remaining.val.attrs[[i]] <- remaining.val.attrs[[i]][-ind]
+                                                 remaining.names)
+            ind <- match(nms.to.find.matches.for, remaining.names)
+            remaining.ind[[i]] <- remaining.ind[[i]][-ind]
         }
         else
             next
 
-        other.data.set.indices <- d.ind[-i]
-
-        new.rows <- matrix(NA_character_, nrow = length(nms.to.find.matches.for),
+        new.rows <- matrix(NA_character_, nrow = length(initial.names),
                            ncol = n.data.sets)
-        new.rows[, i] <- nms.to.find.matches.for
+        new.rows[, i] <- initial.names
         row.indices <- seqRow(new.rows) + nrow(matched.names)
         matched.names <- rbind(matched.names, new.rows)
-
         is.fuzzy.match <- rbind(is.fuzzy.match, matrix(FALSE,
                                                        nrow = nrow(new.rows),
                                                        ncol = n.data.sets))
@@ -278,11 +261,12 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
                                                nrow = nrow(new.rows),
                                                ncol = n.data.sets))
 
+        other.data.set.indices <- d.ind[-i]
+
         output <- findMatchesForRows(matched.names, row.indices,
                                      other.data.set.indices,
-                                     v.names, v.labels, v.val.attrs, v.types,
-                                     remaining.names, remaining.labels,
-                                     remaining.val.attrs,
+                                     input.data.sets.metadata,
+                                     remaining.ind,
                                      use.names.and.labels.from,
                                      v.names.to.not.combine,
                                      match.parameters, data.sets,
@@ -290,9 +274,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
         matched.names <- output$matched.names
         is.fuzzy.match <- output$is.fuzzy.match
         matched.by <- output$matched.by
-        remaining.names <- output$remaining.names
-        remaining.labels <- output$remaining.labels
-        remaining.val.attrs <- output$remaining.val.attrs
+        remaining.ind <- output$remaining.ind
     }
     attr(matched.names, "is.fuzzy.match") <- is.fuzzy.match
     attr(matched.names, "matched.by") <- matched.by
@@ -309,15 +291,19 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
 # and columns specified by data.set.indices in matched.names,
 # which is updated with the matching names when returned.
 findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
-                               v.names, v.labels, v.val.attrs, v.types,
-                               remaining.names, remaining.labels,
-                               remaining.val.attrs,
+                               input.data.sets.metadata,
+                               remaining.ind,
                                use.names.and.labels.from,
                                v.names.to.not.combine,
                                match.parameters, data.sets,
                                is.fuzzy.match, matched.by,
                                not.used.for.matching = NULL)
 {
+    v.names <- input.data.sets.metadata$variable.names
+    v.labels <- input.data.sets.metadata$variable.labels
+    v.val.attrs <- input.data.sets.metadata$variable.value.attributes
+    v.types <- input.data.sets.metadata$variable.types
+
     n.data.sets <- length(data.sets)
     n.rows <- nrow(matched.names)
     matching.names <- matrix(NA_character_, nrow = n.rows, ncol = n.data.sets)
@@ -334,7 +320,7 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
         missing.ind <- data.set.indices[is.na(matched.names[i, data.set.indices])]
         for (j in missing.ind)
         {
-            if (length(remaining.names[[j]]) == 0)
+            if (length(remaining.ind[[j]]) == 0)
                 next
 
             ind.for.matching <- which(!is.na(matched.names[i, ]) &
@@ -361,16 +347,17 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                 val.attrs <- rev(val.attrs)
             }
 
-            is.combinable <- vapply(v.names[[j]],
+            remaining.names <- v.names[[j]][remaining.ind[[j]]]
+            is.combinable <- vapply(remaining.names,
                                     isVariableCombinableIntoRow,
                                     logical(1), j, matched.names[i, ],
                                     v.names.to.not.combine)
             if (sum(is.combinable) == 0)
                 next
 
-            candidate.names <- v.names[[j]][is.combinable]
-            candidate.labels <- v.labels[[j]][is.combinable]
-            candidate.val.attrs <- v.val.attrs[[j]][is.combinable]
+            candidate.names <- remaining.names[is.combinable]
+            candidate.labels <- v.labels[[j]][remaining.ind[[j]][is.combinable]]
+            candidate.val.attrs <- v.val.attrs[[j]][remaining.ind[[j]][is.combinable]]
 
             matching.name <- findMatchingVariable(nms, lbls, val.attrs,
                                                   candidate.names,
@@ -382,8 +369,7 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
 
             is.compatible <- isVariableCompatible(matching.name, j,
                                                   matched.names[i, ],
-                                                  v.names, v.types,
-                                                  v.val.attrs,
+                                                  input.data.sets.metadata,
                                                   data.sets)
             if (!is.compatible)
                 next
@@ -412,19 +398,13 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             matched.by[max.ind, i] <- matching.names.matched.by[max.ind, i]
         }
         if (!is.null(matched.ind))
-        {
-            remaining.names[[i]] <- remaining.names[[i]][-matched.ind]
-            remaining.labels[[i]] <- remaining.labels[[i]][-matched.ind]
-            remaining.val.attrs[[i]] <- remaining.val.attrs[[i]][-matched.ind]
-        }
+            remaining.ind[[i]] <- remaining.ind[[i]][-matched.ind]
     }
 
     list(matched.names = matched.names,
          is.fuzzy.match = is.fuzzy.match,
          matched.by = matched.by,
-         remaining.names = remaining.names,
-         remaining.labels = remaining.labels,
-         remaining.val.attrs = remaining.val.attrs)
+         remaining.ind = remaining.ind)
 }
 
 # Determine what to match by: variable names, variable labels and/or value labels
@@ -1094,11 +1074,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
     ignore.non.alphanumeric <- match.parameters$ignore.non.alphanumeric
     min.match.percentage <- match.parameters$min.match.percentage
 
-    if (!match.by.variable.names &&
-        !match.by.variable.labels &&
-        !match.by.value.labels)
-        stop("Matching needs to be done with at least one of the following: variable names, variable labels or value labels.")
-
     n.input.candidate.names <- length(candidate.names)
     is.exact.match <- FALSE
 
@@ -1460,26 +1435,26 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 # Checks that a variable's type is compatible with those of variables in a row
 # (representing variables to be merged)
 isVariableCompatible <- function(variable.name, data.set.ind, matched.names.row,
-                                 variable.names, variable.types,
-                                 variable.value.attributes, data.sets)
+                                 input.data.sets.metadata, data.sets)
 {
-    var.ind <- match(variable.name, variable.names[[data.set.ind]])
-    var.type <- variable.types[[data.set.ind]][var.ind]
+    md <- input.data.sets.metadata
+    var.ind <- match(variable.name, md$variable.names[[data.set.ind]])
+    var.type <- md$variable.types[[data.set.ind]][var.ind]
     var.vals <- data.sets[[data.set.ind]][[var.ind]]
-    var.val.attr <- variable.value.attributes[[data.set.ind]][[var.ind]]
+    var.val.attr <- md$variable.value.attributes[[data.set.ind]][[var.ind]]
 
     non.missing.ind <- which(!is.na(matched.names.row))
     row.vars.ind <- vapply(non.missing.ind, function(i) {
-        match(matched.names.row[i], variable.names[[i]])
+        match(matched.names.row[i], md$variable.names[[i]])
     }, integer(1))
     row.vars.types <- vapply(seq_along(row.vars.ind), function(i) {
-        variable.types[[non.missing.ind[i]]][row.vars.ind[i]]
+        md$variable.types[[non.missing.ind[i]]][row.vars.ind[i]]
     }, character(1))
     row.vars.vals <- lapply(seq_along(row.vars.ind), function(i) {
         data.sets[[non.missing.ind[i]]][[row.vars.ind[i]]]
     })
     row.vars.val.attr <- lapply(seq_along(row.vars.ind), function(i) {
-        variable.value.attributes[[non.missing.ind[i]]][[row.vars.ind[i]]]
+        md$variable.value.attributes[[non.missing.ind[i]]][[row.vars.ind[i]]]
     })
 
     if (var.type == "Numeric")
@@ -1686,7 +1661,8 @@ orderMatchedNames <- function(matched.names, input.data.sets.metadata,
     indices.to.keep.togther <- lapply(duplicated.names,
                                       function(nm) which(nm == nms))
 
-    ordering <- mergeIndicesList(v.indices, use.names.and.labels.from,
+    ordering <- mergeIndicesList(v.indices,
+                                 use.names.and.labels.from == "First data set",
                                  indices.to.keep.togther)
 
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
@@ -1700,7 +1676,7 @@ orderMatchedNames <- function(matched.names, input.data.sets.metadata,
 # and merges them into a single integer vector, respecting the order in
 # each vector as much as possible, with earlier vectors taking precedence
 # in case of ties (or later vectors if use.names.and.labels.from == "Last data set").
-mergeIndicesList <- function(indices.list, use.names.and.labels.from,
+mergeIndicesList <- function(indices.list, prefer.first.element,
                              indices.to.keep.togther = NULL)
 {
     # A set of indices are kept together by replacing all in a set with a
@@ -1719,7 +1695,7 @@ mergeIndicesList <- function(indices.list, use.names.and.labels.from,
     else
         representative.indices <- integer(0)
 
-    if (use.names.and.labels.from == "Last data set")
+    if (!prefer.first.element)
         indices.list <- rev(indices.list)
 
     merged.indices <- integer()
