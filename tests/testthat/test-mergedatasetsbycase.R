@@ -37,7 +37,7 @@ test_that("Example used for widget test in flipFormat", {
                                                               variables.to.combine = "Q4_A_3,Q4_A_3_new"), NA)
 })
 
-test_that("default matching", {
+test_that("Default matching", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola3.sav")),
@@ -73,40 +73,34 @@ test_that("default matching", {
     expect_equal(attr(merged.data.set$Q2, "labels"),
                  structure(1:4, .Names = c("M", "F", "Male", "Female")))
 
-    # Values in Q3_3 of the 2nd data set are modified (keeping the same labels)
-    # but upon merging, the values in the last data set are used
-    expect_true(all(merged.data.set$Q3_3[328:654] == merged.data.set$Q3_3[655:981]))
+    # Values in Q3_3 of the 2nd data set are modified (keeping the same value labels).
+    # In the merged data set, the values and value labels of the first data set are used
+    expect_true(all(merged.data.set$Q3_3[328:654] == merged.data.set$Q3_3[1:327]))
     expect_equal(attr(merged.data.set$Q3_3, "labels"),
                  c(`Less than 18` = 18, `18 to 24` = 22, `25 to 29` = 27, `30 to 34` = 33,
                    `35 to 39` = 37, `40 to 44` = 42, `45 to 49` = 47, `50 to 54` = 52,
                    `55 to 64` = 60, `65 or more` = 70))
 })
 
-test_that("create new values when a single categorical value has multiple labels", {
-    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
-                                                              findInstDirFile("cola2.sav"),
-                                                              findInstDirFile("cola3.sav")),
-                                           match.by.variable.names = TRUE,
-                                           match.by.variable.labels = FALSE,
-                                           match.by.value.labels = FALSE,
-                                           include.merged.data.set.in.output = TRUE,
-                                           use.first.value.label = FALSE)$merged.data.set
-
+test_that("Use first label when a single categorical value has multiple labels", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  include.merged.data.set.in.output = TRUE,
+                                  when.multiple.labels.for.one.value = "Use one of the labels")
+    merged.data.set <- result$merged.data.set
     expect_true(all(is.na(merged.data.set$Q2[1:327]))) # 1st data set does not have Q2
-    expect_equal(unique(merged.data.set$Q2[328:654]), c(2,1)) # original values for gender
-    expect_equal(unique(merged.data.set$Q2[655:981]), c(4,3)) # new values for gender
-    expect_equal(attr(merged.data.set$Q2, "labels"), c(M = 1, F = 2, Male = 3, Female = 4))
+    expect_equal(unique(merged.data.set$Q2[328:981]), c(2,1)) # no new values created
+    expect_equal(attr(merged.data.set$Q2, "labels"), c(M = 1, F = 2)) # labels from data set 2 used
 })
 
-test_that("variables to combine", {
-    merged.data.set <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
-                                                              findInstDirFile("cola2.sav"),
-                                                              findInstDirFile("cola4.sav")),
-                                           match.by.variable.names = TRUE,
-                                           match.by.variable.labels = FALSE,
-                                           match.by.value.labels = FALSE,
-                                           include.merged.data.set.in.output = TRUE,
-                                           variables.to.combine = "Q3_3(1),Q3_3_new_name")$merged.data.set
+test_that("Manually combine variables", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola4.sav")),
+                                  include.merged.data.set.in.output = TRUE,
+                                  variables.to.combine = "Q3_3(1),Q3_3_new_name")
+    merged.data.set <- result$merged.data.set
     expect_true("Q3_3" %in% names(merged.data.set))
     expect_false("Q3_3_new_name" %in% names(merged.data.set))
     expect_true(all(!is.na(merged.data.set$Q3_3)))

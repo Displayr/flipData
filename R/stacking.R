@@ -1175,10 +1175,6 @@ isIntegerValued <- function(x)
         FALSE
 }
 
-# Set to 2GB as I found that memory issues start to occur around here.
-# May have to lower this if we find that users still get memory errors.
-DATA.SET.SIZE.LIMIT <- 2 * 1e9
-
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
 {
     ind <- removeNA(group.ind)
