@@ -207,8 +207,10 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
     # Find matches to manually specified variables
     if (nrow(matched.names) > 0)
     {
-        not.used.for.matching <- attr(v.names.to.combine,
-                                      "is.data.set.specified")
+        # If the data set index was specified for a variable in a manual match,
+        # we don't use it
+        not.used.for.name.matching <- attr(v.names.to.combine,
+                                           "is.data.set.specified")
         output <- findMatchesForRows(matched.names, seqRow(matched.names),
                                      seq_len(n.data.sets),
                                      input.data.sets.metadata,
@@ -217,7 +219,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
                                      v.names.to.not.combine,
                                      match.parameters, data.sets,
                                      is.fuzzy.match, matched.by,
-                                     not.used.for.matching)
+                                     not.used.for.name.matching)
         matched.names <- output$matched.names
         is.fuzzy.match <- output$is.fuzzy.match
         matched.by <- output$matched.by
@@ -298,7 +300,7 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                                v.names.to.not.combine,
                                match.parameters, data.sets,
                                is.fuzzy.match, matched.by,
-                               not.used.for.matching = NULL)
+                               not.used.for.name.matching = NULL)
 {
     v.names <- input.data.sets.metadata$variable.names
     v.labels <- input.data.sets.metadata$variable.labels
@@ -313,8 +315,8 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
     matching.names.is.fuzzy <- matrix(FALSE, nrow = n.rows, ncol = n.data.sets)
     matching.names.matched.by <- matrix(NA_character_, nrow = n.rows,
                                         ncol = n.data.sets)
-    if (is.null(not.used.for.matching))
-        not.used.for.matching <- matrix(FALSE, nrow = n.rows, ncol = n.data.sets)
+    if (is.null(not.used.for.name.matching))
+        not.used.for.name.matching <- matrix(FALSE, nrow = n.rows, ncol = n.data.sets)
 
     for (i in row.indices)
     {
@@ -324,22 +326,19 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             if (length(remaining.ind[[j]]) == 0)
                 next
 
-            ind.for.matching <- which(!is.na(matched.names[i, ]) &
-                                      !not.used.for.matching[i, ])
-            nms <- matched.names[i, ind.for.matching]
-            nms.ind <- vapply(seq_along(nms), function(k) {
-                data.set.ind <- ind.for.matching[k]
-                match(nms[k], v.names[[data.set.ind]])
-            }, integer(1))
-            nms <- unique(nms)
-            lbls <- unique(removeNA(vapply(seq_along(nms), function(k) {
-                data.set.ind <- ind.for.matching[k]
-                v.labels[[data.set.ind]][nms.ind[k]]
-            }, character(1))))
-            val.attrs <- unique(removeNULL(lapply(seq_along(nms), function(k) {
-                data.set.ind <- ind.for.matching[k]
-                v.val.attrs[[data.set.ind]][[nms.ind[k]]]
-            })))
+            nms <- unique(removeNA(matched.names[i, !not.used.for.name.matching[i, ]]))
+            non.missing.ind <- which(!is.na(matched.names[i, ]))
+            lbls <- character(length(non.missing.ind))
+            val.attrs <- vector(mode = "list", length = length(non.missing.ind))
+            for (k in seq_along(non.missing.ind))
+            {
+                ind <- non.missing.ind[k]
+                name.ind <- match(matched.names[i, ind], v.names[[ind]])
+                lbls[k] <- v.labels[[ind]][name.ind]
+                val.attrs[[k]] <- v.val.attrs[[ind]][[name.ind]]
+            }
+            lbls <- unique(removeNA(lbls))
+            val.attrs <- unique(removeNULL(val.attrs))
 
             if (use.names.and.labels.from == "Last data set")
             {
@@ -368,10 +367,10 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             if (is.na(matching.name))
                 next
 
-            is.compatible <- isVariableCompatible(matching.name, j,
-                                                  matched.names[i, ],
-                                                  input.data.sets.metadata,
-                                                  data.sets)
+            is.compatible <- isVariableTypeCompatible(matching.name, j,
+                                                      matched.names[i, ],
+                                                      input.data.sets.metadata,
+                                                      data.sets)
             if (!is.compatible)
                 next
 
@@ -994,11 +993,26 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
     data.set.ind.start <- parseDataSetIndices(input.text.start, n.data.sets)
     data.set.ind.end <- parseDataSetIndices(input.text.end, n.data.sets)
 
-    if (!setequal(data.set.ind.start, data.set.ind.end))
-        stop("The following specified variable range contains two different data set indices: '",
-             input.text.start, "-", input.text.end,
-             "'. The indices need refer to the same data sets.")
-    data.set.ind.start
+    if (length(data.set.ind.start) > 0)
+    {
+        if (length(data.set.ind.end) > 0)
+        {
+            if (!setequal(data.set.ind.start, data.set.ind.end))
+                stop("The following specified variable range contains two different data set indices: '",
+                     input.text.start, "-", input.text.end,
+                     "'. The indices need refer to the same data sets.")
+            return(data.set.ind.start)
+        }
+        else
+            return(data.set.ind.start)
+    }
+    else
+    {
+        if (length(data.set.ind.end) > 0)
+            return(data.set.ind.end)
+        else
+            return(integer(0))
+    }
 }
 
 # Returns all variables within the specified start and end variables
@@ -1034,13 +1048,13 @@ variablesFromRange <- function(variable.names, range.start, range.end,
 variableNotFoundError <- function(var.name, data.set.name = NULL)
 {
     data.set.text <- if(is.null(data.set.name))
-        "any of the input data sets."
+        "any of the input data sets. "
     else
-        paste0("the input data set '", data.set.name, "'.")
+        paste0("the input data set '", data.set.name, "'. ")
 
     stop("The input variable '", var.name, "' could not be found in ",
          data.set.text,
-         ". Ensure that the variable has been correctly specified.")
+         "Ensure that the variable has been correctly specified.")
 }
 
 addToParsedNames <- function(parsed.names, input.text.without.index,
@@ -1436,8 +1450,8 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 
 # Checks that a variable's type is compatible with those of variables in a row
 # (representing variables to be merged)
-isVariableCompatible <- function(variable.name, data.set.ind, matched.names.row,
-                                 input.data.sets.metadata, data.sets)
+isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.row,
+                                     input.data.sets.metadata, data.sets)
 {
     md <- input.data.sets.metadata
     var.ind <- match(variable.name, md$variable.names[[data.set.ind]])

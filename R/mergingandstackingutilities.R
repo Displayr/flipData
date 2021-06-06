@@ -169,6 +169,5 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
     }
 }
 
-# Set to 3GB as I found that memory issues start to occur around here.
-# May have to lower this if we find that users still get memory errors.
-DATA.SET.SIZE.LIMIT <- 3 * 1e9
+# Set to 2GB as I found that memory issues start to occur beyond here
+DATA.SET.SIZE.LIMIT <- 2 * 1e9
