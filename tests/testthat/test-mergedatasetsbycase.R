@@ -24,7 +24,16 @@ findInstDirFile <- function(file)
 # cola6.sav: Q2 (Q2. Gender) converted to numeric
 # cola7.sav: Q11_l (text variable) renamed to Q3_3
 # cola8.sav: Q1_F_c renamed to Q1F_c
-
+# cola9.sav: Only keep Q1_*, Q3_3, Q4_A_3, Q4_B_2, Q4_C_2, with "Q" in variable
+#            names replaced with "Question".
+# cola10.sav: Only keep Q1_*, Q3_3, Q4_A_3, Q4_B_2, Q4_C_2.
+# cola11.sav: Only keep Q1_*, Q3_3, Q4_A_3, Q4_B_2, Q4_C_2, labels for Q1_*
+#             are lower-case, Q3_3 renamed to Q33 and underscores removed from Q4*.
+# cola12.sav: Only keep Q1_*, Q3_3, Q4_A_3, Q4_B_2, Q4_C_2. "Coca Cola"
+#             replaced with "Coke" in Q4_A_3 label. Value labels
+#             "2 to 3 days a week" and "4 to 5 days a week" replaced with
+#             "2 - 3 days a week" and "4 - 5 days a week".
+#
 # To update the merge.data.set.output.rda test data in flipFormat,
 # simply save merge.data.set.output from this test
 # into flipFormat/inst/testdata/merge.data.set.output.rda
@@ -82,6 +91,27 @@ test_that("Default matching", {
                    `55 to 64` = 60, `65 or more` = 70))
 })
 
+test_that("Automatically determine match", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")))
+    match.pars <- attr(result$matched.names, "match.parameters")
+    # Only match by variable names due to duplication in variable attributes
+    # and value labels
+    expect_true(match.pars$match.by.variable.names)
+    expect_false(match.pars$match.by.variable.labels)
+    expect_false(match.pars$match.by.value.labels)
+
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola9.sav"),
+                                                     findInstDirFile("cola10.sav")))
+    match.pars <- attr(result$matched.names, "match.parameters")
+    # Only match by variable labels since variable labels are not duplicated,
+    # variable names do not match and value attributes are duplicated.
+    expect_false(match.pars$match.by.variable.names)
+    expect_true(match.pars$match.by.variable.labels)
+    expect_false(match.pars$match.by.value.labels)
+})
+
 test_that("Matching by variable labels", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola7.sav"),
@@ -107,6 +137,81 @@ test_that("Matching by value labels", {
                                   variables.to.omit = "Q1_E_c1-Q1_B_c1")
     # Q1_F_c matched despite variable names being different
     expect_true(all(!is.na(result$merged.data.set$Q1_F_c)))
+})
+
+test_that("Ignore case when matching", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola11.sav")))
+    # Lowercase and non-lowercase variable labels are matched
+    expect_true(all(!is.na(result$merged.data.set$Q1_F_c)))
+    expect_true(all(!is.na(result$merged.data.set$Q1_E_c1)))
+})
+
+test_that("Ignore non-alphanumeric characters when matching", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola11.sav")),
+                                  auto.select.what.to.match.by = FALSE,
+                                  match.by.variable.names = TRUE,
+                                  match.by.variable.labels = FALSE,
+                                  match.by.value.labels = FALSE,
+                                  include.merged.data.set.in.output = TRUE)
+    expect_true("Q3_3" %in% names(result$merged.data.set))
+    expect_true("Q33" %in% names(result$merged.data.set)) # not merged into Q3_3 as numbers not preserved
+    expect_false("Q4A3" %in% names(result$merged.data.set)) # does not exist since merged into Q4_A_3
+    expect_true(all(!is.na(result$merged.data.set$Q4_A_3)))
+})
+
+test_that("Minimum match percentage", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola12.sav")),
+                                  auto.select.what.to.match.by = FALSE,
+                                  match.by.variable.names = FALSE,
+                                  match.by.variable.labels = TRUE,
+                                  match.by.value.labels = FALSE,
+                                  min.match.percentage = 90,
+                                  include.merged.data.set.in.output = TRUE)
+    # Q4_A_3 not merged together since "Coke" differs from "Coca Cola" beyond
+    # the min match percentage
+    expect_true("Q4_A_3_1" %in% names(result$merged.data.set))
+
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola12.sav")),
+                                  auto.select.what.to.match.by = FALSE,
+                                  match.by.variable.names = FALSE,
+                                  match.by.variable.labels = TRUE,
+                                  match.by.value.labels = FALSE,
+                                  min.match.percentage = 70, # lowered from 90
+                                  include.merged.data.set.in.output = TRUE)
+    # Q4_A_3 merged together
+    expect_false("Q4_A_3_1" %in% names(result$merged.data.set))
+    expect_true(all(!is.na(result$merged.data.set$Q4_A_3)))
+})
+
+test_that("Minimum value label match percentage", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola12.sav")),
+                                  include.merged.data.set.in.output = TRUE)
+    # The differing value labels are not matched together
+    expect_true("2 to 3 days a week" %in%
+                names(attr(result$merged.data.set$Q4_A_3, "labels")))
+    expect_true("2 - 3 days a week" %in%
+                names(attr(result$merged.data.set$Q4_A_3, "labels")))
+
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+                                                     findInstDirFile("cola12.sav")),
+                                  min.value.label.match.percentage = 80, # lowered from 90
+                                  include.merged.data.set.in.output = TRUE)
+    # The differing value labels are matched together after lowering
+    # min.value.label.match.percentage to 80
+    expect_false("2 - 3 days a week" %in%
+                 names(attr(result$merged.data.set$Q4_A_3, "labels")))
+    expect_equal(attr(result$merged.data.set$Q4_A_3, "labels"),
+                 structure(1:9,
+                           .Names = c("Never", "Once or twice a year",
+                                      "Once every 3 months", "Once a month",
+                                      "Once every 2 weeks", "Once a week",
+                                      "2 to 3 days a week", "4 to 5 days a week",
+                                      "Every or nearly every day")))
 })
 
 test_that("Use first label when a single categorical value has multiple labels", {
@@ -224,7 +329,7 @@ test_that("Manually combine variables", {
                         "correctly specified."), fixed = TRUE)
 })
 
-test_that("variables to not combine", {
+test_that("Variables to not combine", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola3.sav")),
@@ -232,12 +337,29 @@ test_that("variables to not combine", {
     expect_true(all(c("Q3", "Q3_1", "Q3_2") %in% result$merged.data.set.metadata$variable.names))
 })
 
-test_that("omit variables", {
+test_that("Keep variables", {
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
-                                                              findInstDirFile("cola2.sav"),
-                                                              findInstDirFile("cola3.sav")),
-                                           include.merged.data.set.in.output = TRUE,
-                                           variables.to.omit = c("Q2(2)", "Q1_F(3)"))
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  auto.select.what.to.match.by = FALSE,
+                                  include.merged.data.set.in.output = TRUE,
+                                  data.sets.whose.variables.are.kept = 3,
+                                  variables.to.keep = "Q1_F_c - Q1_D_c, Q1_B_c1")
+    # Kept despite not being in cola3.sav since specified to be kept
+    expect_true("Q1_F_c" %in% names(result$merged.data.set))
+    expect_true("Q1_E_c1" %in% names(result$merged.data.set))
+    expect_true("Q1_D_c" %in% names(result$merged.data.set))
+    expect_true("Q1_B_c1" %in% names(result$merged.data.set))
+    # Omitted as not in cola3.sav and not specified to be kept
+    expect_false("Q1_C_c1" %in% names(result$merged.data.set))
+})
+
+test_that("Omit variables", {
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  include.merged.data.set.in.output = TRUE,
+                                  variables.to.omit = c("Q2(2)", "Q1_F(3)"))
     merged.data.set <- result$merged.data.set
     expect_true(all(is.na(merged.data.set$Q2[1:654])))
     expect_true(all(!is.na(merged.data.set$Q2[655:981])))
@@ -303,6 +425,114 @@ test_that("Data sets whose variables are kept", {
                                   include.merged.data.set.in.output = TRUE,
                                   data.sets.whose.variables.are.kept = 1)
     expect_false("Q2" %in% names(result$merged.data.set))
+})
+
+test_that("matchPercentages", {
+    # 100% min.match.percentage, we set all non-matching strings to 0
+    match.percentages <- matchPercentages(c("Coca-cola", "Pepsi"),
+                                          c("Coca Kola", "Pepsi"),
+                                          TRUE, TRUE, 100)
+    expect_equal(match.percentages,
+                 structure(c(0, 0, 0, 100), .Dim = c(2L, 2L)))
+
+    # 90% min.match.percentage
+    match.percentages <- matchPercentages(c("Coca-cola", "Pepsi"),
+                                          c("Coca Kola", "Pepsi"),
+                                          TRUE, TRUE, 90)
+    expect_equal(match.percentages,
+                 structure(c(87.499999999999, -Inf, -Inf, 100),
+                           .Dim = c(2L, 2L)))
+
+    # Don't ignore case
+    match.percentages <- matchPercentages("Coca-cola", "Coca-Cola",
+                                          FALSE, TRUE, 90)
+    expect_equal(match.percentages, matrix(87.5))
+
+    # Don't ignore non-alphanumeric characters
+    match.percentages <- matchPercentages("Coca-cola", "Coca cola",
+                                          TRUE, FALSE, 90)
+    expect_equal(match.percentages, matrix(88.8888888888879))
+})
+
+test_that("adjustedMatchPercentage", {
+
+})
+
+test_that("matchPercentagesForValueAttributes", {
+
+})
+
+test_that("removeNonAlphaNumericCharacters", {
+    expect_equal("Q1_23A", removeNonAlphaNumericCharacters("Q1__23__A#"))
+})
+
+test_that("isNumbersPreserved", {
+    expect_false(isNumbersPreserved("Q23_4", "Q234"))
+    expect_true(isNumbersPreserved("Q23_4", "Q__23__4"))
+})
+
+test_that("isVariableCombinableIntoRow", {
+    v.names.to.not.combine <- matrix(c(NA_character_, "Q1B", "Q1C"), ncol = 3)
+    expect_false(isVariableCombinableIntoRow("Q1B", 2,
+                                             c("Q1A", NA_character_, "Q1C"),
+                                             v.names.to.not.combine))
+
+    v.names.to.not.combine <- matrix(c(NA_character_, "Q1B", "Q1D"), ncol = 3)
+    expect_true(isVariableCombinableIntoRow("Q1B", 2,
+                                            c("Q1A", NA_character_, "Q1C"),
+                                            v.names.to.not.combine))
+})
+
+test_that("isMissingValue", {
+    expect_equal(isMissingValue(c(NA, "", "na", "n/a", "-", "not missing")),
+                 c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE))
+})
+
+test_that("isParsableAsNumeric", {
+    expect_true(isParsableAsNumeric(c(NA, "", "na", "n/a", "-", "123")))
+    expect_false(isParsableAsNumeric(c(NA, "", "na", "n/a", "-", "not numeric",
+                                       "123")))
+})
+
+test_that("isParsableAsDateTime", {
+    expect_true(isParsableAsDateTime(c(NA, "", "na", "n/a", "-", "7 June 2021")))
+    expect_false(isParsableAsDateTime(c(NA, "", "na", "n/a", "-", "not a date",
+                                       "7 June 2021")))
+})
+
+test_that("isParsableAsDiffTime", {
+    expect_true(isParsableAsDiffTime(c(NA, "", "na", "n/a", "-", "7 days")))
+    expect_false(isParsableAsDiffTime(c(NA, "", "na", "n/a", "-", "not a date",
+                                        "7 June 2021")))
+})
+
+test_that("isConvertibleToDateTime", {
+    expect_true(isConvertibleToDateTime(as.numeric(AsDateTime("7 Jun 2021"))))
+    expect_false(isConvertibleToDateTime(2021))
+})
+
+test_that("mergedVariableNames", {
+    matched.names <- matrix(c("Q1", NA_character_, "Q3", "Q1B", "Q2", "Q3B"),
+                            ncol = 2)
+    merged.names <- mergedVariableNames(matched.names,
+                                        use.names.and.labels.from = "First data set")
+    expect_equal(merged.names,
+                 structure(c("Q1", "Q2", "Q3"), renamed.variables = list()))
+
+    merged.names <- mergedVariableNames(matched.names,
+                                        use.names.and.labels.from = "Last data set")
+    expect_equal(merged.names,
+                 structure(c("Q1B", "Q2", "Q3B"), renamed.variables = list()))
+
+    # Q1 appears in 2 rows so the second one gets renamed
+    matched.names <- matrix(c("Q1", NA_character_, NA_character_, "Q3",
+                              NA_character_, "Q1", "Q2", "Q3B"), ncol = 2)
+    merged.names <- mergedVariableNames(matched.names,
+                                        use.names.and.labels.from = "First data set")
+    expect_equal(merged.names,
+                 structure(c("Q1", "Q1_1", "Q2", "Q3"),
+                           renamed.variables = list(list(original.name = "Q1",
+                                                         new.name = "Q1_1"))))
 })
 
 test_that("mergeIndicesList", {

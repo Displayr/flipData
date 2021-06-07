@@ -21,7 +21,8 @@
 #'  matching text except when numeric characters appear both before and after
 #'  non-alphanumeric characters e.g., "24 - 29", in which case the characters
 #'  are still ignored but the separation between the numbers is noted.
-#' @param min.match.percentage To be decided, possibly a percentage.
+#' @param min.match.percentage A percentage (number from 0 to 100) which
+#'  determines how close matches need to be in order for matches to be accepted.
 #' @param variables.to.combine A character vector of comma-separated
 #'  variable names indicating which variables are to appear together.
 #'  Ranges of variables can be specified by separating variable names by '-'.
@@ -132,7 +133,6 @@ MergeDataSetsByCase <- function(data.set.names,
                                         use.names.and.labels.from)
     merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
                                      use.names.and.labels.from,
-                                     input.data.sets.metadata$data.set.names,
                                      when.multiple.labels.for.one.value,
                                      match.parameters)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
@@ -418,6 +418,7 @@ autoSelectWhatToMatchBy <- function(input.data.sets.metadata, match.parameters)
 
     if (match.parameters$ignore.case)
     {
+        # Convert to lowercase
         v.names <- lapply(v.names, tolower)
         v.labels <- lapply(v.labels, tolower)
         v.val.attrs <- lapply(v.val.attrs, function(val.attrs) {
@@ -430,6 +431,7 @@ autoSelectWhatToMatchBy <- function(input.data.sets.metadata, match.parameters)
 
     if (match.parameters$ignore.non.alphanumeric)
     {
+        # Remove non-alphanumeric characters
         v.names <- lapply(v.names, removeNonAlphaNumericCharacters)
         v.labels <- lapply(v.labels, removeNonAlphaNumericCharacters)
         v.val.attrs <- lapply(v.val.attrs, function(val.attrs) {
@@ -640,8 +642,7 @@ parseVariablesToOmitText <- function(input.text, input.data.sets.metadata)
             for (i in data.set.ind)
             {
                 if (!(input.text.without.index %in% var.names[[i]]))
-                    variableNotFoundError(input.text.without.index,
-                                          data.set.names[i])
+                    variableNotFoundError(input.text.without.index, i)
 
                 result[i] <- input.text.without.index
             }
@@ -679,15 +680,14 @@ parseVariablesToOmitText <- function(input.text, input.data.sets.metadata)
                 result[, i] <- variablesFromRange(var.names[[i]],
                                                   range.start.without.index,
                                                   range.end.without.index,
-                                                  data.set.names[i],
-                                                  input.text)
+                                                  i, input.text)
             return(result)
         }
         else # data set index not supplied for range
         {
             parsed.names <- lapply(seq_len(n.data.sets), function(i) {
                 variablesFromRange(var.names[[i]], range.start, range.end,
-                                   data.set.names[i], input.text, FALSE)
+                                   i, input.text, FALSE)
             })
             range.lengths <- vapply(parsed.names, length, integer(1))
 
@@ -796,7 +796,6 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     var.names <- input.data.sets.metadata$variable.names
-    data.set.names <- input.data.sets.metadata$data.set.names
     split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
 
     parsed.names <- vector(mode = "list", length = n.data.sets)
@@ -816,13 +815,11 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
                 for (j in data.set.ind)
                 {
                     if (!(t.without.index %in% var.names[[j]]))
-                        variableNotFoundError(t.without.index,
-                                              data.set.names[j])
+                        variableNotFoundError(t.without.index, j)
 
                     parsed.names <- addToParsedNames(parsed.names,
                                                      t.without.index,
-                                                     j, data.set.names,
-                                                     source.text, t)
+                                                     j, source.text, t)
                     source.text[j] <- t
                 }
                 is.data.set.specified[data.set.ind] <- TRUE
@@ -846,8 +843,7 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
                         next
 
                     parsed.names <- addToParsedNames(parsed.names, t,
-                                                     j, data.set.names,
-                                                     source.text, t)
+                                                     j, source.text, t)
                     source.text[j] <- t
                 }
             }
@@ -870,11 +866,9 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
                     range.var.names <- variablesFromRange(var.names[[j]],
                                                           range.start.without.index,
                                                           range.end.without.index,
-                                                          data.set.names[j],
-                                                          t)
+                                                          j, t)
                     parsed.names <- addToParsedNames(parsed.names, range.var.names,
-                                                     j, data.set.names,
-                                                     source.text, t)
+                                                     j, source.text, t)
                     source.text[j] <- t
                 }
                 is.data.set.specified[data.set.ind] <- TRUE
@@ -887,8 +881,7 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
                     range.var.names <- variablesFromRange(var.names[[j]],
                                                           range.start,
                                                           range.end,
-                                                          data.set.names[j],
-                                                          t, FALSE)
+                                                          j, t, FALSE)
                     if (is.null(range.var.names))
                         next
 
@@ -903,7 +896,6 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
 
                     parsed.names <- addToParsedNames(parsed.names,
                                                      range.var.names, j,
-                                                     data.set.names,
                                                      source.text, t)
                     source.text[j] <- t
                 }
@@ -1017,7 +1009,7 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
 
 # Returns all variables within the specified start and end variables
 variablesFromRange <- function(variable.names, range.start, range.end,
-                               data.set.name, input.text,
+                               data.set.index, input.text,
                                error.if.not.found = TRUE)
 {
     start.ind <- ifelse(range.start != "", match(range.start, variable.names), 1)
@@ -1027,9 +1019,9 @@ variablesFromRange <- function(variable.names, range.start, range.end,
     if (error.if.not.found)
     {
         if (is.na(start.ind))
-            variableNotFoundError(range.start, data.set.name)
+            variableNotFoundError(range.start, data.set.index)
         if (is.na(end.ind))
-            variableNotFoundError(range.end, data.set.name)
+            variableNotFoundError(range.end, data.set.index)
     }
     else
     {
@@ -1040,26 +1032,25 @@ variablesFromRange <- function(variable.names, range.start, range.end,
     if (start.ind > end.ind)
         stop("The start variable '", range.start,
              "' appears after the end variable '", range.end,
-             "' in the input data set '", data.set.name,
-             "' for the input range '", input.text, "'.")
+             "' in the input data set ", data.set.index,
+             " for the input range '", input.text, "'.")
     variable.names[start.ind:end.ind]
 }
 
-variableNotFoundError <- function(var.name, data.set.name = NULL)
+variableNotFoundError <- function(var.name, data.set.index = NULL)
 {
-    data.set.text <- if(is.null(data.set.name))
+    data.set.text <- if (is.null(data.set.index))
         "any of the input data sets. "
     else
-        paste0("the input data set '", data.set.name, "'. ")
+        paste0("the input data set ", data.set.index, ". ")
 
-    stop("The input variable '", var.name, "' could not be found in ",
-         data.set.text,
+    stop("The input variable '", var.name,
+         "' could not be found in ", data.set.text,
          "Ensure that the variable has been correctly specified.")
 }
 
 addToParsedNames <- function(parsed.names, input.text.without.index,
-                             data.set.ind, data.set.names, source.text,
-                             input.text)
+                             data.set.ind, source.text, input.text)
 {
     if (is.na(source.text[data.set.ind]) ||
         (grepl("\\(.+\\)$", input.text) && !grepl("\\(.+\\)$", source.text[data.set.ind])))
@@ -1388,6 +1379,8 @@ normalizeValueLabels <- function(lbls, match.parameters)
 # characters with an underscore.
 removeNonAlphaNumericCharacters <- function(txt)
 {
+    # We require this elaborate pattern to avoid selecting the case where
+    # non-alphanum characters are between digit characters
     pattern <- paste0("(^[^a-zA-Z0-9]+)|", # non-alphanum characters at start
                       "([^a-zA-Z0-9]+$)|", # non-alphanum characters at end
                       "((?<=[[:alpha:]])[^a-zA-Z0-9]+(?=[[:alpha:]]))|", # non-alphanum characters between alphabet characters
@@ -1396,6 +1389,7 @@ removeNonAlphaNumericCharacters <- function(txt)
     result <- gsub(pattern, "", txt, perl = TRUE)
 
     # Replace remaining non-alphanum characters with an underscore
+    # (those between digit characters)
     result <- gsub("[^a-zA-Z0-9]+", "_", result, perl = TRUE)
 
     result
@@ -1481,11 +1475,10 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (any(isCatType(row.vars.types)))
+        if (any(row.vars.types == "Categorical"))
             return(isConvertibleToCategorical("Numeric", var.vals,
-                                              row.vars.val.attr[isCatType(row.vars.types)],
+                                              row.vars.val.attr[row.vars.types == "Categorical"],
                                               20))
-
         return(TRUE)
     }
     else if (var.type == "Text")
@@ -1494,13 +1487,12 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
             return(isParsableAsDateTime(var.vals))
 
         if ("Duration" %in% row.vars.types)
-            return(isParsableAsDiffTime(var.vals))
+            return(FALSE)
 
         if (any(isCatType(row.vars.types)))
             return(isConvertibleToCategorical("Text", var.vals,
-                                              row.vars.val.attr[isCatType(row.vars.types)],
+                                              row.vars.val.attr[row.vars.types == "Categorical"],
                                               20))
-
         return(TRUE)
     }
     else if (isDateType(var.type))
@@ -1526,28 +1518,15 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         return(TRUE)
     }
     else if (var.type == "Duration")
-    {
-        if ("Numeric" %in% row.vars.types ||
-            any(isDateType(row.vars.types)) ||
-            any(isCatType(row.vars.types)))
-            return(FALSE)
-
-        for (i in seq_along(row.vars.types))
-        {
-            if (row.vars.types[i] == "Text" &&
-                !isParsableAsDiffTime(row.vars.vals[[i]]))
-                return(FALSE)
-        }
-        return(TRUE)
-    }
-    else if (isCatType(var.type))
+        return(all(row.vars.types == "Duration"))
+    else if (var.type == "Categorical")
     {
         if ("Duration" %in% row.vars.types || any(isDateType(row.vars.types)))
             return(FALSE)
         for (i in seq_along(row.vars.types))
         {
             val.attrs <- c(list(var.val.attr),
-                           row.vars.val.attr[isCatType(row.vars.types)])
+                           row.vars.val.attr[row.vars.types == "Categorical"])
             if(!isConvertibleToCategorical(row.vars.types[i], row.vars.vals[[i]],
                                            val.attrs, 20))
                 return(FALSE)
@@ -1563,19 +1542,14 @@ isMissingValue <- function(text)
     tolower(trimws(text)) %in% c(NA, "", "na", "n/a", "-")
 }
 
+# Are strings parsable as numeric
 isParsableAsNumeric <- function(text)
 {
     missing.ind <- isMissingValue(text)
     all(!is.na(suppressWarnings(as.numeric(text[!missing.ind]))))
 }
 
-#' @importFrom flipTime AsDate
-isParsableAsDate <- function(text)
-{
-    missing.ind <- isMissingValue(text)
-    all(!is.na(AsDate(text[!missing.ind])))
-}
-
+# Are strings parsable as date/time
 #' @importFrom flipTime AsDateTime
 isParsableAsDateTime <- function(text)
 {
@@ -1583,24 +1557,12 @@ isParsableAsDateTime <- function(text)
     all(!is.na(AsDateTime(text[!missing.ind])))
 }
 
-isParsableAsDiffTime <- function(text)
-{
-    missing.ind <- isMissingValue(text)
-    all(!is.na(as.difftime(text[!missing.ind])))
-}
-
+# Are numeric values seconds that can be converted to date time
 isConvertibleToDateTime <- function(num)
 {
     missing.ind <- is.na(num)
-    # seconds from 1970/1/1 between years 2000 and 2050
-    num[!missing.ind] >= 946684800 && num[!missing.ind] <= 2524608000
-}
-
-isConvertibleToDate <- function(num)
-{
-    missing.ind <- is.na(num)
-    # days from 1970/1/1 between years 2000 and 2050
-    num[!missing.ind] >= 10957 && num[!missing.ind] <= 29220
+    # seconds from 1970/1/1 between years 1990 and 2050
+    num[!missing.ind] >= 631152000 && num[!missing.ind] <= 2524608000
 }
 
 isConvertibleToCategorical <- function(variable.type, values, val.attrs,
@@ -1769,7 +1731,7 @@ mergeIndicesList <- function(indices.list, prefer.first.element,
 # Construct the merged data set as a data frame
 #' @importFrom utils object.size
 mergedDataSet <- function(data.sets, matched.names, merged.names,
-                          use.names.and.labels.from, data.set.names,
+                          use.names.and.labels.from,
                           when.multiple.labels.for.one.value,
                           match.parameters)
 {
@@ -1794,8 +1756,8 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     names(merged.data.set) <- merged.names
 
     mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
-    merged.data.set[[mergesrc.name]] <- mergeSrc(n.data.set.cases, data.set.names)
-
+    merged.data.set[[mergesrc.name]] <- mergeSrc(n.data.set.cases,
+                                                 names(data.sets))
     merged.data.set
 }
 
@@ -1815,10 +1777,10 @@ compositeVariable <- function(matched.names.row, data.sets,
     })
     v.types <- vapply(var.list, variableType, character(1))
 
-    if (any(isCatType(v.types)))
+    if (any(v.types == "Categorical"))
     {
         combine.as.categorical.var <- TRUE
-        val.attrs <- lapply(which(isCatType(v.types)), function(i) {
+        val.attrs <- lapply(which(v.types == "Categorical"), function(i) {
             attr(var.list, "labels", exact = TRUE)
         })
         for (i in seq_along(v.types))
@@ -1858,7 +1820,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
 {
     val.attr.list <- lapply(var.list, attr, "labels")
 
-    cat.ind <- which(isCatType(v.types))
+    cat.ind <- which(v.types == "Categorical")
     if (use.names.and.labels.from == "Last data set")
         cat.ind <- rev(cat.ind)
 
@@ -2189,7 +2151,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
     else if (setequal(unique.v.types, c("Text")))
         return(.combineVar(function(x) x))
-    else if (any(isCatType(unique.v.types)))
+    else if (any(unique.v.types == "Categorical"))
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
@@ -2199,7 +2161,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
             v <- var.list[[i]]
             if (is.null(v))
                 rep(NA_character_, nrow(data.sets[[i]]))
-            else if (isCatType(v.types[i]))
+            else if (v.types[i] == "Categorical")
             {
                 result <- rep(NA_character_, nrow(data.sets[[i]]))
                 val.attr <- attr(var.list[[i]], "labels")
@@ -2278,6 +2240,7 @@ cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
     }
 }
 
+# Return a list of variables in each data set omitted from the merged data set
 omittedVariables <- function(input.data.sets.metadata, matched.names)
 {
     lapply(seq_len(input.data.sets.metadata$n.data.sets), function(i) {

@@ -109,11 +109,6 @@ variableType <- function(variable)
         stop("Variable type not recognised")
 }
 
-isCatType <- function(var.types)
-{
-    var.types %in% c("Categorical")
-}
-
 isDateType <- function(var.types)
 {
     var.types %in% c("Date", "Date/Time")
