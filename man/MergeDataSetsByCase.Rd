@@ -53,7 +53,8 @@ matching text except when numeric characters appear both before and after
 non-alphanumeric characters e.g., "24 - 29", in which case the characters
 are still ignored but the separation between the numbers is noted.}
 
-\item{min.match.percentage}{To be decided, possibly a percentage.}
+\item{min.match.percentage}{A percentage (number from 0 to 100) which
+determines how close matches need to be in order for matches to be accepted.}
 
 \item{variables.to.combine}{A character vector of comma-separated
 variable names indicating which variables are to appear together.
