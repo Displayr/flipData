@@ -1,8 +1,5 @@
 context("MergeDataSetsByCase")
 
-# need tests of numeric variables!
-# add test for prioritize.early.data.sets
-
 library(gtools)
 
 findInstDirFile <- function(file)
@@ -291,7 +288,7 @@ test_that("Manually combine variables", {
                                                               findInstDirFile("cola4.sav")),
                                      variables.to.combine = "Q3_3"),
                  paste0("The input 'Q3_3' only specifies variables from one data set. ",
-                        "This input needs to specify variables from two or more data sets."))
+                        "It needs to specify variables from two or more data sets."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola4.sav")),
@@ -427,6 +424,193 @@ test_that("Data sets whose variables are kept", {
     expect_false("Q2" %in% names(result$merged.data.set))
 })
 
+test_that("maxOneToManyLabelProportion", {
+    v.labels <- list(c("Coca-cola", "Diet Coke", "Pepsi"),
+                     c("Coca-cola", "Diet Coke", "Coke Zero",
+                       "Coca-cola", "Diet Coke", "Coke Zero",
+                       "Pepsi"))
+    # 2 out of 3 labels in the first vector have more than one match in the
+    # second vector
+    expect_equal(maxOneToManyLabelProportion(v.labels), 0.666666666666667)
+})
+
+test_that("maxOneToManyValueAttrProportion", {
+    coke.val.attr <- 1:3
+    names(coke.val.attr) <- c("Coca-cola", "Diet Coke", "Coke Zero")
+    pepsi.val.attr <- 1:2
+    names(coke.val.attr) <- c("Pepsi", "Pepsi Max")
+
+    v.val.attrs <- list(list(coke.val.attr, pepsi.val.attr),
+                        list(coke.val.attr, coke.val.attr, pepsi.val.attr))
+    # 1 out of 2 val.attributes in the first element have more than one match
+    # in the second element
+    expect_equal(maxOneToManyValueAttrProportion(v.val.attrs), 0.5)
+})
+
+test_that("parseInputVariableText", {
+    input.text <- "Q1A, Q1B"
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.name.matrix <- parseInputVariableText(input.text,
+                                            input.data.sets.metadata, TRUE)
+    expect_equal(v.name.matrix,
+                 structure(c("Q1A", NA, "Q1B"), .Dim = c(1L, 3L),
+                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE),
+                                                             .Dim = c(1L, 3L))))
+
+    # Data set indices specified
+    input.text <- "Q3(2),Q3(3)"
+    v.name.matrix <- parseInputVariableText(input.text,
+                                            input.data.sets.metadata, TRUE)
+    expect_equal(v.name.matrix,
+                 structure(c(NA, "Q3", "Q3"),
+                           .Dim = c(1L, 3L),
+                           is.data.set.specified = structure(c(FALSE, TRUE, TRUE),
+                                                             .Dim = c(1L, 3L))))
+
+    # Variable range
+    input.text <- "Q2-Q4"
+    v.name.matrix <- parseInputVariableText(input.text,
+                                            input.data.sets.metadata, TRUE)
+    expect_equal(v.name.matrix,
+                 structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
+                           .Dim = c(3L, 3L),
+                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE,
+                                                               FALSE, FALSE, FALSE,
+                                                               FALSE, FALSE, FALSE),
+                                                             .Dim = c(3L, 3L))))
+
+    # Variable range with data set index
+    input.text <- "Q2(1)-Q4(1),Q2(2)-Q4(2)"
+    v.name.matrix <- parseInputVariableText(input.text,
+                                            input.data.sets.metadata, TRUE)
+    expect_equal(v.name.matrix,
+                 structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
+                           .Dim = c(3L, 3L),
+                           is.data.set.specified = structure(c(TRUE, TRUE, TRUE,
+                                                               TRUE, TRUE, TRUE,
+                                                               FALSE, FALSE, FALSE),
+                                                             .Dim = c(3L, 3L))))
+
+    # Variable does not exist error
+    input.text <- "Q99"
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The input variable 'Q99' could not be found in any ",
+                        "of the input data sets. Ensure that the variable ",
+                        "has been correctly specified."))
+
+    # Data set index could not be parsed error
+    input.text <- c("Q2(not an index)")
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The data set indices in the input 'Q2(not an index)' ",
+                        "could not be parsed. They need to be numbers ",
+                        "corresponding to the data sets, e.g., 'Q2(3)'."),
+                 fixed = TRUE)
+
+    # Data set index out of range error
+    input.text <- "Q2(99)"
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The data set index in the input 'Q2(99)' is out of ",
+                        "range. Data set indices must be between 1 and the ",
+                        "number of input data sets (3)."), fixed = TRUE)
+
+    # Range not found error
+    input.text <- "Q2-Q99"
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The input range 'Q2-Q99' was not found in any of ",
+                        "the input data sets. Ensure that the range has been ",
+                        "correctly specified."))
+
+    # Variables from only one data set error
+    input.text <- "Q2(1)"
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The input 'Q2(1)' only specifies variables from one ",
+                        "data set. It needs to specify variables from two or ",
+                        "more data sets."), fixed = TRUE)
+
+    # Ranges with differing lengths error
+    input.text <- "Q2(1)-Q3(1),Q2(2)-Q4(2)"
+    expect_error(parseInputVariableText(input.text,
+                                        input.data.sets.metadata, TRUE),
+                 paste0("The input 'Q2(1)-Q3(1),Q2(2)-Q4(2)' contains ",
+                        "variable ranges with differing numbers of variables. ",
+                        "Ensure that the ranges have been correctly specified ",
+                        "so that they all contain the same number of variables."),
+                 fixed = TRUE)
+})
+
+test_that("parseVariablesToCombine", {
+    variables.to.combine <- c("Q1A, Q1B", "Q2-Q4")
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.names.to.combine <- parseVariablesToCombine(variables.to.combine,
+                                                  input.data.sets.metadata)
+    expect_equal(v.names.to.combine,
+                 structure(c("Q1A", "Q2", "Q3", "Q4", NA, "Q2", "Q3", "Q4", "Q1B",
+                             NA, NA, NA),
+                           .Dim = 4:3,
+                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE, FALSE,
+                                                               FALSE, FALSE, FALSE, FALSE,
+                                                               FALSE, FALSE, FALSE, FALSE), .Dim = 4:3)))
+
+    variables.to.combine <- c("Q2", "Q2(1),Q3(2)")
+    expect_error(parseVariablesToCombine(variables.to.combine,
+                                         input.data.sets.metadata),
+                 paste0("The variable 'Q2' has been specified to be combined ",
+                        "in multiple inputs: 'Q2', 'Q2(1),Q3(2)'. Ensure ",
+                        "that any of the variables to be combined are ",
+                        "specified in at most one input."), fixed = TRUE)
+})
+
+test_that("parseVariablesToNotCombine", {
+    variables.to.not.combine <- c("Q1A, Q1B", "Q2-Q4")
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.names.to.not.combine <- parseVariablesToNotCombine(variables.to.not.combine,
+                                                         input.data.sets.metadata)
+    expect_equal(v.names.to.not.combine,
+                 structure(c("Q1A", "Q2", "Q3", "Q4", NA, "Q2", "Q3", "Q4", "Q1B",
+                             NA, NA, NA),
+                           .Dim = 4:3))
+})
+
+test_that("parseVariablesToKeep", {
+    variables.to.keep <- c("Q1A, Q1B", "Q2-Q4")
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.names.to.keep <- parseVariablesToKeep(variables.to.keep,
+                                            input.data.sets.metadata)
+    expect_equal(v.names.to.keep,
+                 structure(c("Q1A", NA, "Q2", "Q3", "Q4", NA, NA, "Q2", "Q3",
+                             "Q4", NA, "Q1B", NA, NA, NA), .Dim = c(5L, 3L)))
+})
+
+test_that("parseVariablesToOmit", {
+    variables.to.omit <- c("Q1A, Q1B", "Q2-Q4")
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.names.to.omit <- parseVariablesToOmit(variables.to.omit,
+                                            input.data.sets.metadata)
+    expect_equal(v.names.to.omit,
+                 structure(c("Q1A", NA, "Q2", "Q3", "Q4", NA, NA, "Q2", "Q3",
+                             "Q4", NA, "Q1B", NA, NA, NA), .Dim = c(5L, 3L)))
+})
+
 test_that("matchPercentages", {
     # 100% min.match.percentage, we set all non-matching strings to 0
     match.percentages <- matchPercentages(c("Coca-cola", "Pepsi"),
@@ -454,12 +638,40 @@ test_that("matchPercentages", {
     expect_equal(match.percentages, matrix(88.8888888888879))
 })
 
-test_that("adjustedMatchPercentage", {
+test_that("matchPercentagesForValueAttributes", {
+    val.attr.1 <- list(structure(1:3, .Names = c("Coca Cola", "Diet Coke", "Coke Zero")),
+                       structure(1:3, .Names = c("Coke", "Diet Coke", "Coke Zero")),
+                       structure(1:2, .Names = c("Pepsi", "Pepsi Max")))
+    val.attr.2 <- list(structure(1:3, .Names = c("Coca-cola", "Diet Coke", "Coke Zero")))
+    match.percentages <- matchPercentagesForValueAttributes(val.attr.1,
+                                                            val.attr.2,
+                                                            TRUE, TRUE, 80)
+    expect_equal(match.percentages,
+                 structure(c(100, 76.9230769230759, -Inf), .Dim = c(3L, 1L)))
 
+    # Don't ignore case
+    match.percentages <- matchPercentagesForValueAttributes(val.attr.1[1],
+                                                            val.attr.2,
+                                                            FALSE, TRUE, 80)
+    expect_equal(match.percentages,
+                 structure(98.2967307143484, .Dim = c(1L, 1L)))
+
+    # Don't ignore non-alphanumeric characters
+    match.percentages <- matchPercentagesForValueAttributes(val.attr.1[1],
+                                                            val.attr.2,
+                                                            TRUE, FALSE, 80)
+    expect_equal(match.percentages,
+                 structure(99.1033090162442, .Dim = c(1L, 1L)))
 })
 
-test_that("matchPercentagesForValueAttributes", {
-
+test_that("adjustedMatchPercentage", {
+    # All these have the same match percentage of 80%
+    adjusted <- adjustedMatchPercentage(distances = c(2, 4, 10, 20),
+                                        max.nchars = c(10, 20, 50, 100))
+    # Adjusted match percentages get closer to 100% when max.nchars is large
+    expect_equal(adjusted,
+                 c(79.999999999999, 79.999999999999,
+                   95.999999999999, 99.839999999999))
 })
 
 test_that("removeNonAlphaNumericCharacters", {
@@ -498,12 +710,6 @@ test_that("isParsableAsDateTime", {
     expect_true(isParsableAsDateTime(c(NA, "", "na", "n/a", "-", "7 June 2021")))
     expect_false(isParsableAsDateTime(c(NA, "", "na", "n/a", "-", "not a date",
                                        "7 June 2021")))
-})
-
-test_that("isParsableAsDiffTime", {
-    expect_true(isParsableAsDiffTime(c(NA, "", "na", "n/a", "-", "7 days")))
-    expect_false(isParsableAsDiffTime(c(NA, "", "na", "n/a", "-", "not a date",
-                                        "7 June 2021")))
 })
 
 test_that("isConvertibleToDateTime", {

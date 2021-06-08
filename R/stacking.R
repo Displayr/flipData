@@ -1164,17 +1164,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     data.frame(stacked.data.set)
 }
 
-isIntegerValued <- function(x)
-{
-    if (is.numeric(x))
-    {
-        x.without.na <- removeNA(x)
-        all(floor(x.without.na) == x.without.na)
-    }
-    else
-        FALSE
-}
-
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
 {
     ind <- removeNA(group.ind)

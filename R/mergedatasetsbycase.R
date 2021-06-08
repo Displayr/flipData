@@ -507,10 +507,11 @@ maxOneToManyLabelProportion <- function(v.labels)
 
             lbls.i <- v.labels[[i]]
             lbls.j <- v.labels[[j]]
-            for (k in seq_along(lbls.i))
-                if (length(which(lbls.i[k] == lbls.j)) > 1)
+            unique.lbls.i <- unique(lbls.i)
+            for (k in seq_along(unique.lbls.i))
+                if (length(which(unique.lbls.i[k] == lbls.j)) > 1)
                     n <- n + 1
-            prop <- c(prop, n / length(lbls.i))
+            prop <- c(prop, n / length(unique.lbls.i))
         }
     }
     max(prop)
@@ -562,7 +563,7 @@ parseVariablesToCombine <- function(variables.to.combine,
     is.data.set.specified <- matrix(nrow = 0, ncol = n.data.sets)
     for (txt in variables.to.combine)
     {
-        rows <- parseInputVariableText(txt, input.data.sets.metadata)
+        rows <- parseInputVariableText(txt, input.data.sets.metadata, TRUE)
         result <- rbind(result, rows, deparse.level = 0)
         is.data.set.specified <- rbind(is.data.set.specified,
                                        attr(rows, "is.data.set.specified"))
@@ -594,7 +595,7 @@ parseVariablesToNotCombine <- function(variables.to.not.combine,
                                        input.data.sets.metadata)
 {
     do.call("rbind", lapply(variables.to.not.combine, parseInputVariableText,
-                            input.data.sets.metadata))
+                            input.data.sets.metadata, TRUE))
 }
 
 # Parse the character vector variables.to.keep and return a matrix where
@@ -606,7 +607,7 @@ parseVariablesToKeep <- function(variables.to.keep, input.data.sets.metadata)
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
     do.call("rbind", lapply(split.text, parseInputVariableText,
-                            input.data.sets.metadata))
+                            input.data.sets.metadata, FALSE))
 }
 
 # Parse the character vector variables.to.omit and return a matrix where
@@ -618,181 +619,16 @@ parseVariablesToOmit <- function(variables.to.omit,
     split.text <- unlist(lapply(variables.to.omit, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
-    do.call("rbind", lapply(split.text, parseVariablesToOmitText,
-                            input.data.sets.metadata))
-}
-
-# Parse a string containing user-input variables to omit and return a matrix
-# a matrix where each row contains a set of variables that should be omitted,
-# with the columns corresponding to the input data sets.
-parseVariablesToOmitText <- function(input.text, input.data.sets.metadata)
-{
-    n.data.sets <- input.data.sets.metadata$n.data.sets
-    var.names <- input.data.sets.metadata$variable.names
-    data.set.names <- input.data.sets.metadata$data.set.names
-
-    dash.ind <- match("-", strsplit(input.text, "")[[1]])
-    if (is.na(dash.ind)) # single variable (not range)
-    {
-        data.set.ind <- parseDataSetIndices(input.text, n.data.sets)
-        if (length(data.set.ind) > 0) # data set indices supplied
-        {
-            input.text.without.index <- removeDataSetIndices(input.text)
-            result <- matrix(nrow = 1, ncol = n.data.sets)
-            for (i in data.set.ind)
-            {
-                if (!(input.text.without.index %in% var.names[[i]]))
-                    variableNotFoundError(input.text.without.index, i)
-
-                result[i] <- input.text.without.index
-            }
-            return(result)
-        }
-        else # data set index not supplied
-        {
-            ind.with.match <- which(vapply(var.names, function(nms) {
-                input.text %in% nms
-            }, logical(1)))
-
-            if (length(ind.with.match) == 0)
-                variableNotFoundError(input.text)
-
-            result <- matrix(nrow = 1, ncol = n.data.sets)
-            result[ind.with.match] <- input.text
-            return(result)
-        }
-    }
-    else # range of variables
-    {
-        range.start <- trimws(substr(input.text, 1, dash.ind - 1))
-        range.end <- trimws(substr(input.text, dash.ind + 1, nchar(input.text)))
-
-        data.set.ind <- parseDataSetIndicesForRange(range.start,
-                                                    range.end,
-                                                    n.data.sets)
-        if (length(data.set.ind) > 0) # data set indices supplied for range
-        {
-            range.start.without.index <- removeDataSetIndices(range.start)
-            range.end.without.index <- removeDataSetIndices(range.end)
-            result <- matrix(NA_character_, nrow = end.ind - start.ind + 1,
-                             ncol = n.data.sets)
-            for (i in data.set.ind)
-                result[, i] <- variablesFromRange(var.names[[i]],
-                                                  range.start.without.index,
-                                                  range.end.without.index,
-                                                  i, input.text)
-            return(result)
-        }
-        else # data set index not supplied for range
-        {
-            parsed.names <- lapply(seq_len(n.data.sets), function(i) {
-                variablesFromRange(var.names[[i]], range.start, range.end,
-                                   i, input.text, FALSE)
-            })
-            range.lengths <- vapply(parsed.names, length, integer(1))
-
-            if (all(range.lengths == 0))
-                stop("The input range '", input.text,
-                     "' was not found in any of the input data sets. ",
-                     "Ensure that the range has been correctly specified.")
-
-            if (!allIdentical(range.lengths))
-                stop("The input '", input.text,
-                     "' contains variable ranges with differing numbers of variables. ",
-                     "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
-
-            return(do.call("cbind", lapply(parsed.names, function(nms) {
-                if (is.null(nms))
-                    rep(NA_character_, max(range.lengths))
-                else
-                    nms
-            })))
-        }
-    }
-}
-
-# Check that variables to combine, variables to not combine, variables to keep
-# and variables to omit are all consistent with each other
-checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine,
-                                      v.names.to.keep, v.names.to.omit,
-                                      data.sets.whose.variables.are.kept,
-                                      input.data.sets.metadata)
-{
-    # Check v.names.to.combine against v.names.to.not.combine
-    for (i in seqRow(v.names.to.combine))
-    {
-        row.to.combine <- v.names.to.combine[i, ]
-        for (j in seqRow(v.names.to.not.combine))
-        {
-            row.to.not.combine <- v.names.to.not.combine[j, ]
-            ind <- which(row.to.combine == row.to.not.combine)
-            if (length(ind) > 1)
-                stop("The variables ",
-                     paste0(paste0("'", row.to.combine[ind], "'"),
-                            collapse = ", "),
-                     " have been specified to be both combined and not combined. ",
-                     "Ensure that they are specified to be either combined or not combined.")
-        }
-    }
-
-    # Check v.names.to.combine against v.names.to.omit
-    if (!is.null(v.names.to.combine) && !is.null(v.names.to.omit))
-    {
-        for (i in seq_len(ncol(v.names.to.combine)))
-        {
-            ind <- which(v.names.to.combine[, i] %in%
-                         removeNA(v.names.to.omit[, i]))
-            v <- unique(v.names.to.combine[ind, i])
-
-            if (length(v) == 1)
-                stop("The variable ",
-                     paste0("'", v, "'"),
-                     " has been specified to be both combined and omitted. ",
-                     "Ensure that it is specified to be either combined or omitted.")
-            else if (length(v) > 1)
-                stop("The variable(s) ",
-                     paste0(paste0("'", v, "'"), collapse = ", "),
-                     " have been specified to be both combined and omitted. ",
-                     "Ensure that they are specified to be either combined or omitted.")
-        }
-    }
-
-    # Check v.names.to.keep against v.names.to.omit
-    if (!is.null(v.names.to.keep) && !is.null(v.names.to.omit))
-    {
-        for (i in seq_len(ncol(v.names.to.keep)))
-        {
-            ind <- which(v.names.to.keep[, i] %in%
-                             removeNA(v.names.to.omit[, i]))
-            v <- unique(v.names.to.keep[ind, i])
-
-            if (length(v) == 1)
-                stop("The variable ",
-                     paste0("'", v, "'"),
-                     " has been specified to be both kept and omitted. ",
-                     "Ensure that it is specified to be either kept or omitted.")
-            else if (length(v) > 1)
-                stop("The variable(s) ",
-                     paste0(paste0("'", v, "'"), collapse = ", "),
-                     " have been specified to be both kept and omitted. ",
-                     "Ensure that they are specified to be either kept or omitted.")
-        }
-    }
-
-    if (length(data.sets.whose.variables.are.kept) == 0)
-        stop("At least one data set needs to be specified in the input for the data sets whose variables are kept")
-
-    n.data.sets <- input.data.sets.metadata$n.data.sets
-    if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
-        stop("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
-             "Ensure that it contains only indices from 1 to the number of input data sets.")
+    do.call("rbind", lapply(split.text, parseInputVariableText,
+                            input.data.sets.metadata, FALSE))
 }
 
 # Parses a string of comma-separated names of variables and returns a matrix
 # of names where columns correspond to input data. Ranges of variables can be
 # specified with a dash. Variables are specified to be from a data set when
 # their names have the suffix consisting of the data set index in parentheses.
-parseInputVariableText <- function(input.text, input.data.sets.metadata)
+parseInputVariableText <- function(input.text, input.data.sets.metadata,
+                                   require.variables.in.multiple.data.sets)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     var.names <- input.data.sets.metadata$variable.names
@@ -906,13 +742,21 @@ parseInputVariableText <- function(input.text, input.data.sets.metadata)
         }
     }
 
-    if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
-        stop("The input '", input.text, "' does not specify any variables. ",
-             "This input needs to specify variables from two or more data sets.")
+    if (require.variables.in.multiple.data.sets)
+    {
+        if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
+            stop("The input '", input.text, "' does not specify any variables. ",
+                 "It needs to specify variables from two or more data sets.")
 
-    if (sum(!vapply(parsed.names, is.null, logical(1))) == 1)
-      stop("The input '", input.text, "' only specifies variables from one data set. ",
-           "This input needs to specify variables from two or more data sets.")
+        if (sum(!vapply(parsed.names, is.null, logical(1))) == 1)
+            stop("The input '", input.text, "' only specifies variables from one data set. ",
+                 "It needs to specify variables from two or more data sets.")
+    }
+    else
+    {
+        if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
+            stop("The input '", input.text, "' does not specify any variables.")
+    }
 
     n.vars <- vapply(parsed.names, length, integer(1))
     if (!allIdentical(n.vars[n.vars > 0]))
@@ -941,9 +785,9 @@ parseDataSetIndices <- function(input.text, n.data.sets)
         split.char <- strsplit(input.text, "")[[1]]
         start.ind <- match("(", split.char) + 1
         end.ind <- match(")", split.char) - 1
-        data.set.ind <- as.integer(trimws(strsplit(substr(input.text,
-                                                          start.ind,
-                                                          end.ind), ",")[[1]]))
+        data.set.ind.text <- trimws(strsplit(substr(input.text, start.ind,
+                                                    end.ind), ",")[[1]])
+        data.set.ind <- suppressWarnings(as.integer(data.set.ind.text))
         if (any(is.na(data.set.ind)))
             stop("The data set indices in the input '", input.text,
                  "' could not be parsed. ",
@@ -953,10 +797,14 @@ parseDataSetIndices <- function(input.text, n.data.sets)
         {
             if (length(data.set.ind) == 1)
                 stop("The data set index in the input '", input.text,
-                     "' is out of range.")
+                     "' is out of range. ",
+                     "Data set indices must be between 1 and the number of input data sets (",
+                     n.data.sets, ").")
             else
-                stop("The data set indices in the input '", input.text,
-                     "' are out of range.")
+                stop("One or more of the data set indices in the input '",
+                     input.text, "' are out of range. ",
+                     "Data set indices must be between 1 and the number of input data sets (",
+                     n.data.sets, ").")
         }
         data.set.ind
     }
@@ -1065,6 +913,83 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
              " and cannot be matched. ",
              "To specify a variable from a specific data set, append '(x)' to the variable name when specifying it, ",
              "where 'x' is replaced with the data set index, e.g., use 2 for the 2nd input data set.")
+}
+
+# Check that variables to combine, variables to not combine, variables to keep
+# and variables to omit are all consistent with each other
+checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine,
+                                      v.names.to.keep, v.names.to.omit,
+                                      data.sets.whose.variables.are.kept,
+                                      input.data.sets.metadata)
+{
+    # Check v.names.to.combine against v.names.to.not.combine
+    for (i in seqRow(v.names.to.combine))
+    {
+        row.to.combine <- v.names.to.combine[i, ]
+        for (j in seqRow(v.names.to.not.combine))
+        {
+            row.to.not.combine <- v.names.to.not.combine[j, ]
+            ind <- which(row.to.combine == row.to.not.combine)
+            if (length(ind) > 1)
+                stop("The variables ",
+                     paste0(paste0("'", row.to.combine[ind], "'"),
+                            collapse = ", "),
+                     " have been specified to be both combined and not combined. ",
+                     "Ensure that they are specified to be either combined or not combined.")
+        }
+    }
+
+    # Check v.names.to.combine against v.names.to.omit
+    if (!is.null(v.names.to.combine) && !is.null(v.names.to.omit))
+    {
+        for (i in seq_len(ncol(v.names.to.combine)))
+        {
+            ind <- which(v.names.to.combine[, i] %in%
+                             removeNA(v.names.to.omit[, i]))
+            v <- unique(v.names.to.combine[ind, i])
+
+            if (length(v) == 1)
+                stop("The variable ",
+                     paste0("'", v, "'"),
+                     " has been specified to be both combined and omitted. ",
+                     "Ensure that it is specified to be either combined or omitted.")
+            else if (length(v) > 1)
+                stop("The variable(s) ",
+                     paste0(paste0("'", v, "'"), collapse = ", "),
+                     " have been specified to be both combined and omitted. ",
+                     "Ensure that they are specified to be either combined or omitted.")
+        }
+    }
+
+    # Check v.names.to.keep against v.names.to.omit
+    if (!is.null(v.names.to.keep) && !is.null(v.names.to.omit))
+    {
+        for (i in seq_len(ncol(v.names.to.keep)))
+        {
+            ind <- which(v.names.to.keep[, i] %in%
+                             removeNA(v.names.to.omit[, i]))
+            v <- unique(v.names.to.keep[ind, i])
+
+            if (length(v) == 1)
+                stop("The variable ",
+                     paste0("'", v, "'"),
+                     " has been specified to be both kept and omitted. ",
+                     "Ensure that it is specified to be either kept or omitted.")
+            else if (length(v) > 1)
+                stop("The variable(s) ",
+                     paste0(paste0("'", v, "'"), collapse = ", "),
+                     " have been specified to be both kept and omitted. ",
+                     "Ensure that they are specified to be either kept or omitted.")
+        }
+    }
+
+    if (length(data.sets.whose.variables.are.kept) == 0)
+        stop("At least one data set needs to be specified in the input for the data sets whose variables are kept")
+
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
+        stop("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
+             "Ensure that it contains only indices from 1 to the number of input data sets.")
 }
 
 # Find candidate variable with names, labels or value attributes that match
@@ -1249,7 +1174,6 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
 # Returns a matrix of percentage matches (similarities) between strings in
 # strings.1 and strings.2.
 #' @importFrom stringdist stringdistmatrix
-#' @importFrom stringi stri_detect_fixed
 matchPercentages <- function(strings.1, strings.2, ignore.case,
                              ignore.non.alphanumeric,
                              min.match.percentage)
@@ -1265,6 +1189,7 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         strings.2 <- removeNonAlphaNumericCharacters(strings.2)
     }
 
+    # It is faster to check for equality compared to computing distances
     if (min.match.percentage == 100)
     {
         match.matrix <- outer(strings.1, strings.2, "==")
@@ -1278,8 +1203,16 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         d <- rep(Inf, length(n.char.1))
         if (s == "")
             return(d)
+
+        # Find a subset of strings.1 where it is actually useful to compute
+        # distances since it is expensive. We don't compute distances for empty
+        # strings or when the difference in the number of characters would
+        # result in the min.match.percentage being exceeded
         ind <- which(n.char.1 > 0)
-        ind <- ind[adjustedMatchPercentage(abs(nchar(s) - n.char.1[ind]), pmax(nchar(s), n.char.1[ind])) >= min.match.percentage]
+        n.char.diff <- abs(nchar(s) - n.char.1[ind])
+        max.n.char <- pmax(nchar(s), n.char.1[ind])
+        ind <- ind[adjustedMatchPercentage(n.char.diff, max.n.char) >= min.match.percentage]
+
         d[ind] <- stringdist(s, strings.1[ind])
         d
     }))
@@ -1306,14 +1239,16 @@ adjustedMatchPercentage <- function(distances, max.nchars)
 {
     scale.parameter <- 20
     result <- 100 * (1 - (distances / max.nchars) ^ pmax((max.nchars - distances) / scale.parameter, 1))
-    # Since the formula above may give 100% for non-zero distances, the line
-    # below ensures that non-zero distances never result in 100%, so that
-    # zero distances will always be chosen over non-zero distances.
+    # Since the formula above may give 100% for non-zero distances (when
+    # max.nchars is much larger than distances), the line below ensures that
+    # non-zero distances never result in 100%, so that zero distances will
+    # always be chosen over non-zero distances.
     result - 1e-12 * (distances > 0)
 }
 
-# Returns a matrix of percentage matches (similarities) between value attributes
-# in val.attrs.1 and val.attrs.2.
+# Returns a matrix of percentage matches (similarities) between lists of value
+# attributes val.attrs.1 and val.attrs.2. This function works by concatenating
+# the value labels into one string and comparing these strings.
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.case,
                                                ignore.non.alphanumeric,
@@ -1475,7 +1410,7 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (any(row.vars.types == "Categorical"))
+        if ("Categorical" %in% row.vars.types)
             return(isConvertibleToCategorical("Numeric", var.vals,
                                               row.vars.val.attr[row.vars.types == "Categorical"],
                                               20))
@@ -1489,7 +1424,7 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         if ("Duration" %in% row.vars.types)
             return(FALSE)
 
-        if (any(isCatType(row.vars.types)))
+        if ("Categorical" %in% row.vars.types)
             return(isConvertibleToCategorical("Text", var.vals,
                                               row.vars.val.attr[row.vars.types == "Categorical"],
                                               20))
@@ -1554,7 +1489,7 @@ isParsableAsNumeric <- function(text)
 isParsableAsDateTime <- function(text)
 {
     missing.ind <- isMissingValue(text)
-    all(!is.na(AsDateTime(text[!missing.ind])))
+    all(!is.na(AsDateTime(text[!missing.ind], on.parse.failure = "silent")))
 }
 
 # Are numeric values seconds that can be converted to date time
@@ -1568,7 +1503,7 @@ isConvertibleToDateTime <- function(num)
 isConvertibleToCategorical <- function(variable.type, values, val.attrs,
                                        max.unique.values)
 {
-    if (variable.type %in% c("Categorical"))
+    if (variable.type == "Categorical")
         return(TRUE)
 
     if (variable.type %in% c("Date", "Date/Time", "Duration"))
@@ -1777,7 +1712,26 @@ compositeVariable <- function(matched.names.row, data.sets,
     })
     v.types <- vapply(var.list, variableType, character(1))
 
-    if (any(v.types == "Categorical"))
+
+
+    result <- if (isCombinedAsCategoricalVariable(var.list, v.types))
+        combineAsCategoricalVariable(var.list, data.sets,
+                                     use.names.and.labels.from, v.types,
+                                     when.multiple.labels.for.one.value,
+                                     match.parameters)
+    else
+        combineAsNonCategoricalVariable(var.list, data.sets, v.types)
+
+    attr(result, "label") <- variableLabelFromDataSets(matched.names.row,
+                                                       data.sets,
+                                                       use.names.and.labels.from)
+
+    result
+}
+
+isCombinedAsCategoricalVariable <- function(var.list, v.types)
+{
+    if ("Categorical" %in% removeNA(v.types))
     {
         combine.as.categorical.var <- TRUE
         val.attrs <- lapply(which(v.types == "Categorical"), function(i) {
@@ -1793,23 +1747,10 @@ compositeVariable <- function(matched.names.row, data.sets,
                 break
             }
         }
+        combine.as.categorical.var
     }
     else
-        combine.as.categorical.var <- FALSE
-
-    result <- if (combine.as.categorical.var)
-        combineAsCategoricalVariable(var.list, data.sets,
-                                     use.names.and.labels.from, v.types,
-                                     when.multiple.labels.for.one.value,
-                                     match.parameters)
-    else
-        combineAsNonCategoricalVariable(var.list, data.sets, v.types)
-
-    attr(result, "label") <- variableLabelFromDataSets(matched.names.row,
-                                                       data.sets,
-                                                       use.names.and.labels.from)
-
-    result
+        FALSE
 }
 
 # Combine variables in var.list as a categorical variable
@@ -2151,7 +2092,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
     else if (setequal(unique.v.types, c("Text")))
         return(.combineVar(function(x) x))
-    else if (any(unique.v.types == "Categorical"))
+    else if ("Categorical" %in% unique.v.types)
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
@@ -2166,7 +2107,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
                 result <- rep(NA_character_, nrow(data.sets[[i]]))
                 val.attr <- attr(var.list[[i]], "labels")
                 for (j in seq_along(val.attr))
-                    result[v == val.attr[i]] <- names(val.attr)[i]
+                    result[v == val.attr[j]] <- names(val.attr)[j]
                 result
             }
             else

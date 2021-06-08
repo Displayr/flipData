@@ -164,5 +164,16 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
     }
 }
 
+isIntegerValued <- function(x)
+{
+    if (is.numeric(x))
+    {
+        x.without.na <- removeNA(x)
+        all(floor(x.without.na) == x.without.na)
+    }
+    else
+        FALSE
+}
+
 # Set to 2GB as I found that memory issues start to occur beyond here
 DATA.SET.SIZE.LIMIT <- 2 * 1e9
