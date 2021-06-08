@@ -491,7 +491,8 @@ autoSelectWhatToMatchBy <- function(input.data.sets.metadata, match.parameters)
 }
 
 # Maximum proportion of labels in a data set that map to multiple labels in
-# another data set (maximum over all pairs of data sets)
+# another data set (maximum over all pairs of data sets).
+# See unit tests in test-mergedatasetsbycase.R
 maxOneToManyLabelProportion <- function(v.labels)
 {
     n.data.sets <- length(v.labels)
@@ -519,6 +520,7 @@ maxOneToManyLabelProportion <- function(v.labels)
 
 # Maximum proportion of value attributes in a data set that map to multiple
 # value attributes in another data set (maximum over all pairs of data sets)
+# See unit tests in test-mergedatasetsbycase.R
 maxOneToManyValueAttrProportion <- function(v.val.attrs)
 {
     n.data.sets <- length(v.val.attrs)
@@ -555,6 +557,7 @@ maxOneToManyValueAttrProportion <- function(v.val.attrs)
 # Parse the character vector variables.to.combine and return a matrix where
 # each row contains a set of variables to be combined, with the columns
 # corresponding to the input data sets.
+# See unit tests in test-mergedatasetsbycase.R
 parseVariablesToCombine <- function(variables.to.combine,
                                     input.data.sets.metadata)
 {
@@ -591,6 +594,7 @@ parseVariablesToCombine <- function(variables.to.combine,
 # Parse the character vector variables.to.not.combine and return a matrix where
 # each row contains a set of variables that should not be combined, with the
 # columns corresponding to the input data sets.
+# See unit tests in test-mergedatasetsbycase.R
 parseVariablesToNotCombine <- function(variables.to.not.combine,
                                        input.data.sets.metadata)
 {
@@ -601,6 +605,7 @@ parseVariablesToNotCombine <- function(variables.to.not.combine,
 # Parse the character vector variables.to.keep and return a matrix where
 # each row contains a set of variables that should not be kept, with the
 # columns corresponding to the input data sets.
+# See unit tests in test-mergedatasetsbycase.R
 parseVariablesToKeep <- function(variables.to.keep, input.data.sets.metadata)
 {
     split.text <- unlist(lapply(variables.to.keep, splitByComma,
@@ -613,6 +618,7 @@ parseVariablesToKeep <- function(variables.to.keep, input.data.sets.metadata)
 # Parse the character vector variables.to.omit and return a matrix where
 # each row contains a set of variables that should be omitted, with the
 # columns corresponding to the input data sets.
+# See unit tests in test-mergedatasetsbycase.R
 parseVariablesToOmit <- function(variables.to.omit,
                                  input.data.sets.metadata)
 {
@@ -627,6 +633,7 @@ parseVariablesToOmit <- function(variables.to.omit,
 # of names where columns correspond to input data. Ranges of variables can be
 # specified with a dash. Variables are specified to be from a data set when
 # their names have the suffix consisting of the data set index in parentheses.
+# See unit tests in test-mergedatasetsbycase.R
 parseInputVariableText <- function(input.text, input.data.sets.metadata,
                                    require.variables.in.multiple.data.sets)
 {
@@ -1173,6 +1180,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
 
 # Returns a matrix of percentage matches (similarities) between strings in
 # strings.1 and strings.2.
+# See unit tests in test-mergedatasetsbycase.R
 #' @importFrom stringdist stringdistmatrix
 matchPercentages <- function(strings.1, strings.2, ignore.case,
                              ignore.non.alphanumeric,
@@ -1235,6 +1243,7 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
 # but the adjusted match percentage is 99.84%. This makes sense because in the
 # latter case, there are a lot more characters in common and the chance of a
 # true match is a lot higher.
+# See unit tests in test-mergedatasetsbycase.R
 adjustedMatchPercentage <- function(distances, max.nchars)
 {
     scale.parameter <- 20
@@ -1249,6 +1258,7 @@ adjustedMatchPercentage <- function(distances, max.nchars)
 # Returns a matrix of percentage matches (similarities) between lists of value
 # attributes val.attrs.1 and val.attrs.2. This function works by concatenating
 # the value labels into one string and comparing these strings.
+# See unit tests in test-mergedatasetsbycase.R
 matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
                                                ignore.case,
                                                ignore.non.alphanumeric,
@@ -1312,6 +1322,7 @@ normalizeValueLabels <- function(lbls, match.parameters)
 # removal of the characters results in numeric characters connecting,
 # e.g., "20 - 29" becoming "2029". In such a situation we replace the
 # characters with an underscore.
+# See unit tests in test-mergedatasetsbycase.R
 removeNonAlphaNumericCharacters <- function(txt)
 {
     # We require this elaborate pattern to avoid selecting the case where
@@ -1334,6 +1345,7 @@ removeNonAlphaNumericCharacters <- function(txt)
 # This is used to ensure that variable names that fuzzy match refer to the
 # same numbers. For example, Q_11_2 and Q_1_12 match if the "_" is ignored
 # but the numbers in the variables do not match.
+# See unit tests in test-mergedatasetsbycase.R
 isNumbersPreserved <- function(string.1, string.2)
 {
     nums.1 <- strsplit(string.1, "[^0-9]")[[1]]
@@ -1362,6 +1374,7 @@ isNumbersPreserved <- function(string.1, string.2)
 # Checks that a variable doesn't violate variables.to.not.combine when it is
 # combined into a row of other variables. Doesn't check that variable types
 # are compatible (this is done later in unmatchVariablesOfDifferentTypes).
+# See unit tests in test-mergedatasetsbycase.R
 isVariableCombinableIntoRow <- function(name.to.combine,
                                         data.set.ind,
                                         matched.names.row,
@@ -1472,20 +1485,23 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         stop("Variable type not recognised")
 }
 
+# See unit tests in test-mergedatasetsbycase.R
 isMissingValue <- function(text)
 {
     tolower(trimws(text)) %in% c(NA, "", "na", "n/a", "-")
 }
 
-# Are strings parsable as numeric
+# Tests if strings are parsable as numeric.
+# See unit tests in test-mergedatasetsbycase.R
 isParsableAsNumeric <- function(text)
 {
     missing.ind <- isMissingValue(text)
     all(!is.na(suppressWarnings(as.numeric(text[!missing.ind]))))
 }
 
-# Are strings parsable as date/time
-#' @importFrom flipTime AsDateTime
+# Tests if strings parsable as date/time.
+# See unit tests in test-mergedatasetsbycase.R
+#' @importFrom flipTime AsDate AsDateTime
 isParsableAsDateTime <- function(text)
 {
     missing.ind <- isMissingValue(text)
@@ -1493,6 +1509,7 @@ isParsableAsDateTime <- function(text)
 }
 
 # Are numeric values seconds that can be converted to date time
+# See unit tests in test-mergedatasetsbycase.R
 isConvertibleToDateTime <- function(num)
 {
     missing.ind <- is.na(num)
@@ -1515,6 +1532,7 @@ isConvertibleToCategorical <- function(variable.type, values, val.attrs,
 }
 
 # Determine merged variable names from the matrix of matched names
+# See unit tests in test-mergedatasetsbycase.R
 mergedVariableNames <- function(matched.names, use.names.and.labels.from)
 {
     merged.names <- namesFromEarliestDataSet(matched.names,
@@ -1589,6 +1607,7 @@ orderMatchedNames <- function(matched.names, input.data.sets.metadata,
 # and merges them into a single integer vector, respecting the order in
 # each vector as much as possible, with earlier vectors taking precedence
 # in case of ties (or later vectors if use.names.and.labels.from == "Last data set").
+# See unit tests in test-mergedatasetsbycase.R
 mergeIndicesList <- function(indices.list, prefer.first.element,
                              indices.to.keep.togther = NULL)
 {
