@@ -28,8 +28,10 @@ findInstDirFile <- function(file)
 #             are lower-case, Q3_3 renamed to Q33 and underscores removed from Q4*.
 # cola12.sav: Only keep Q1_*, Q3_3, Q4_A_3, Q4_B_2, Q4_C_2. "Coca Cola"
 #             replaced with "Coke" in Q4_A_3 label. Value labels
-#             "2 to 3 days a week" and "4 to 5 days a week" replaced with
 #             "2 - 3 days a week" and "4 - 5 days a week".
+# cola13.sav: Includes Date variable LastResp_date.
+# cola14.sav: Includes text variable LastResp_date_text containing strings that can be parsed
+#             as dates.
 #
 # To update the merge.data.set.output.rda test data in flipFormat,
 # simply save merge.data.set.output from this test
@@ -384,6 +386,14 @@ test_that("Variable type conversion", {
     expect_equal(unname(result$merged.data.set.metadata$variable.types["Q2"]),
                  "Categorical")
     expect_true(all(result$merged.data.set$Q2[1:327] == result$merged.data.set$Q2[328:654]))
+
+    # LastResp_date_text converted to Date
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola13.sav"),
+                                                     findInstDirFile("cola14.sav")),
+                                  variables.to.combine = "LastResp_date,LastResp_date_text",
+                                  include.merged.data.set.in.output = TRUE)
+    expect_true(class(result$merged.data.set$LastResp_date) == "Date")
+    expect_true(all(!is.na(result$merged.data.set$LastResp_date)))
 })
 
 test_that("Non-combinable variables", {
