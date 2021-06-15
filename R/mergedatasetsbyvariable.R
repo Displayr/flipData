@@ -674,3 +674,12 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
     names(merged.data.set.variables) <- merged.variable.names
     data.frame(merged.data.set.variables)
 }
+
+#' @importFrom flipFormat DataSetMergingByVariableWidget
+#' @export
+print.MergeDataSetByVariable <- function(x, ...)
+{
+    DataSetMergingByVariableWidget(x$input.data.sets.metadata,
+                                   x$merged.data.set.metadata,
+                                   x$is.saved.to.cloud)
+}
