@@ -89,7 +89,7 @@ matchCases <- function(input.data.sets.metadata, id.variables,
                        preferred.data.set, data.sets,
                        only.keep.cases.matched.to.all.data.sets)
 {
-    if (!is.null(id.variables))
+    if (!is.null(id.variables) && trimws(id.variables) != "")
         matchCasesWithIDVariables(input.data.sets.metadata, id.variables,
                                   preferred.data.set, data.sets,
                                   only.keep.cases.matched.to.all.data.sets)
@@ -109,13 +109,13 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     if (preferred.data.set == "Last data set")
         data.set.ind <- rev(data.set.ind)
 
-    id.var.types <- vapply(seq_len(data.set.ind), function(i) {
+    id.var.types <- vapply(seq_len(n.data.sets), function(i) {
         variableType(data.sets[[i]][[id.var.names[i]]])
     }, character(1))
 
     merged.id.var.type <- mergedIDVariableType(id.var.types)
 
-    ids.list <- lapply(seq_len(data.set.ind), function(i) {
+    ids.list <- lapply(seq_len(n.data.sets), function(i) {
         ids <- data.sets[[i]][[id.var.names[i]]]
 
         if (id.var.types[i] != merged.id.var.type)
@@ -151,7 +151,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
         merged.ids <- c(merged.ids, ids[is.na(match.ind)])
     }
 
-    result <- matrix(NA_integer_, nrow = max(n.cases), ncol = n.data.sets)
+    result <- matrix(NA_integer_, nrow = length(merged.ids), ncol = n.data.sets)
     for (i in seq_len(n.data.sets))
     {
         ids <- data.sets[[i]][[id.var.names[i]]]
