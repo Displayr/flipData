@@ -7,7 +7,7 @@
 #'  data sets.
 #' @param merged.data.set.name A string of the name of the merged data set in
 #'  the Displayr cloud drive (if run from Displayr) or the local file path of
-#'  the merged data set. If NULL, the data set is not written.
+#'  the merged data set.
 #' @param auto.select.what.to.match.by If TRUE, the metadata to match by is
 #'  chosen automatically, whereas if FALSE, the metadata to match by is
 #'  specified by setting the flags \code{match.by.variable.names},
