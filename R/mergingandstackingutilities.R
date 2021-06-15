@@ -139,25 +139,31 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
     {
         split.char <- strsplit(input.text, "")[[1]]
         result <- c()
-        start.ind <- 1
+        start.ind <- NA_integer_
         in.parentheses <- FALSE
         for (i in seq_along(split.char))
         {
-            if (i == length(split.char))
+            if (is.na(start.ind))
             {
+                if (split.char[i] != ",")
+                    start.ind <- i
+                else
+                    next
+            }
+
+            if (!in.parentheses && split.char[i] == ",")
+            {
+                result <- c(result, paste0(split.char[start.ind:(i - 1)],
+                                           collapse = ""))
+                start.ind <- NA_integer_
+            }
+            else if (i == length(split.char))
                 result <- c(result, paste0(split.char[start.ind:i],
                                            collapse = ""))
-            }
             else if (!in.parentheses && split.char[i] == "(")
                 in.parentheses <- TRUE
             else if (in.parentheses && split.char[i] == ")")
                 in.parentheses <- FALSE
-            else if (!in.parentheses && split.char[i] == "," && i > 1)
-            {
-                result <- c(result, paste0(split.char[start.ind:(i - 1)],
-                                           collapse = ""))
-                start.ind <- i + 1
-            }
         }
         result <- trimws(result)
         result <- result[result != ""]
@@ -174,6 +180,21 @@ isIntegerValued <- function(x)
     }
     else
         FALSE
+}
+
+# TODO: remove this from mergedatasetsbycase.R
+cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
+{
+    if (is.null(merged.data.set.name) || trimws(merged.data.set.name) == "")
+        "Merged data set.sav"
+    else
+    {
+        result <- trimws(merged.data.set.name)
+        if (!grepl(".sav$", merged.data.set.name))
+            result <- paste0(result, ".sav")
+        checkFileNameCharacters(result)
+        result
+    }
 }
 
 # Set to 2GB as I found that memory issues start to occur beyond here

@@ -5,6 +5,9 @@
 #' @param data.set.names A character vector of names of data sets from the
 #'  Displayr cloud drive to merge (if run from Displayr) or file paths of local
 #'  data sets.
+#' @param merged.data.set.name A string of the name of the merged data set in
+#'  the Displayr cloud drive (if run from Displayr) or the local file path of
+#'  the merged data set.
 #' @param id.variables A string containing comma-separated names of the optional
 #'  ID variables. To specify ID variables from a specific data set, suffix the
 #'  name with the data set index in parentheses, e.g., 'ID_VAR(3)'.
@@ -45,7 +48,9 @@
 #'     the Displayr cloud drive.
 #' }
 #' @export
-MergeDataSetsByVariable <- function(data.set.names, id.variables = NULL,
+MergeDataSetsByVariable <- function(data.set.names,
+                                    merged.data.set.name = NULL,
+                                    id.variables = NULL,
                                     include.or.exclude.variables = rep("Include all except those manually specified", length(data.set.names)),
                                     variables.to.include = NULL,
                                     variables.to.omit = NULL,
@@ -66,7 +71,7 @@ MergeDataSetsByVariable <- function(data.set.names, id.variables = NULL,
                                                             matched.cases,
                                                             preferred.data.set)
     merged.data.set <- mergedDataSetByVariable(data.sets, matched.cases,
-                                               merged.variable.names,
+                                               merged.data.set.var.names,
                                                input.data.sets.metadata,
                                                preferred.data.set)
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
@@ -300,7 +305,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
             merged.data.set.var.names <- c(merged.data.set.var.names,
                                            uniqueName(nm, merged.data.set.var.names))
 
-    attr(merged.data.set.var.names, "input.variable.names")
+    attr(merged.data.set.var.names, "input.variable.names") <- input.variable.names
     merged.data.set.var.names
 }
 
@@ -310,6 +315,8 @@ parseInputVariableTextForDataSets <- function(input.text,
     split.text <- unlist(lapply(input.text, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
+    if (length(split.text) == 0)
+        return(NULL)
     var.name.matrix <- do.call("rbind", lapply(split.text,
                                                parseInputVariableText,
                                                input.data.sets.metadata,
@@ -667,11 +674,11 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
                 stop("The merged data set is too large to create. ",
                      "Consider omitting variables or only keeping merged variables that contain input variables from a few data sets.")
 
-            merged.data.set.variablesv[[j]] <- merged.var
+            merged.data.set.variables[[j]] <- merged.var
             j <- j + 1
         }
     }
-    names(merged.data.set.variables) <- merged.variable.names
+    names(merged.data.set.variables) <- merged.data.set.variable.names
     data.frame(merged.data.set.variables)
 }
 
