@@ -1493,21 +1493,6 @@ cleanStackedDataSetName <- function(stacked.data.set.name, input.data.set.name)
         return(stacked.data.set.name)
 }
 
-# Creates a list of metadata from a data set
-metadataFromDataSet <- function(data.set, data.set.name)
-{
-    list(variable.names = names(data.set),
-         variable.labels = vapply(data.set, function(v) {
-             lbl <- attr(v, "label", exact = TRUE)
-             ifelse(!is.null(lbl), lbl, "")
-         }, character(1)),
-         variable.types = vapply(data.set, variableType, character(1)),
-         variable.value.attributes = lapply(data.set, attr, "labels",
-                                      exact = TRUE),
-         n.variables = length(data.set),
-         data.set.name = dataSetNameWithoutPath(data.set.name))
-}
-
 # Creates a list of metadata from a stacked data set
 metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
 {

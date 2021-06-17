@@ -8,7 +8,7 @@ MergeDataSetsByVariable(
   data.set.names,
   merged.data.set.name = NULL,
   id.variables = NULL,
-  include.or.exclude.variables = rep("Include all except those manually specified",
+  include.or.exclude.variables = rep("Include all except those manually omitted",
     length(data.set.names)),
   variables.to.include = NULL,
   variables.to.omit = NULL,
@@ -59,7 +59,7 @@ set in the output.}
 corresponds to an input data set, and indicates whether variables from the
 input data set are to be specified in the merged data set by specifying
 the variables to include ("Only include those manually specified") or the
-variables to omit ("Include all except those manually specified").}
+variables to omit ("Include all except those manually omitted").}
 }
 \value{
 A list with the following elements:
