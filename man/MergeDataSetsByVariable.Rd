@@ -70,6 +70,17 @@ A list with the following elements:
     the input data sets such as variable names, labels etc.
   \item \code{merged.data.set.metadata} A list containing metadata on the
     the merged data set such as variable names, labels etc.
+  \item \code{source.data.set.indices} An integer vector containing the
+    input data set indices of the merged variables.
+  \item \code{omitted.variable.names} A list where each element contains the
+    names of variables from an input data set that have been omitted from
+    the merged data set.
+  \item \code{merged.id.variable.name} The name of the merged ID variable if
+    it exists, otherwise NULL.
+  \item \code{id.variable.names} A character vector of the names of ID
+    variables from each data set (NULL if ID variables not used).
+  \item \code{example.id.values} A character vector of example values from
+    ID variables from each data set (NULL if ID variables not used).
   \item \code{is.saved.to.cloud} Whether the merged data set was saved to
     the Displayr cloud drive.
 }
