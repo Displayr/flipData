@@ -113,7 +113,7 @@ A list with the following elements:
     the variables from the input data sets that have been merged together.
   \item \code{merged.names} A character vector containing the names of the
     variables in the merged data set.
-  \item \code{omitted.variables} A list where each element contains the
+  \item \code{omitted.variable.names} A list where each element contains the
     names of variables from an input data set that have been omitted from
     the merged data set.
   \item \code{input.value.attributes} A list containing value attributes

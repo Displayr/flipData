@@ -71,7 +71,7 @@
 #'     the variables from the input data sets that have been merged together.
 #'   \item \code{merged.names} A character vector containing the names of the
 #'     variables in the merged data set.
-#'   \item \code{omitted.variables} A list where each element contains the
+#'   \item \code{omitted.variable.names} A list where each element contains the
 #'     names of variables from an input data set that have been omitted from
 #'     the merged data set.
 #'   \item \code{input.value.attributes} A list containing value attributes
@@ -149,8 +149,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                                            merged.data.set.name)
     result$matched.names <- matched.names
     result$merged.names <- merged.names
-    result$omitted.variables <- omittedVariables(input.data.sets.metadata,
-                                                 matched.names)
+    result$omitted.variable.names <- omittedVariables(input.data.sets.metadata,
+                                                      matched.names)
     result$input.value.attributes <- lapply(merged.data.set, attr,
                                             "input.value.attributes")
     result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
@@ -2200,7 +2200,8 @@ cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
     }
 }
 
-# Return a list of variables in each data set omitted from the merged data set
+# Return a list of names of variables in each data set omitted from the merged
+# data set
 omittedVariables <- function(input.data.sets.metadata, matched.names)
 {
     lapply(seq_len(input.data.sets.metadata$n.data.sets), function(i) {
@@ -2232,7 +2233,7 @@ print.MergeDataSetByCase <- function(x, ...)
                                x$merged.data.set.metadata,
                                x$matched.names,
                                x$merged.names,
-                               x$omitted.variables,
+                               x$omitted.variable.names,
                                x$input.value.attributes,
                                x$is.saved.to.cloud)
 }
