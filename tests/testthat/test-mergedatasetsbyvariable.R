@@ -14,5 +14,5 @@ test_that("Example used for widget test in flipFormat", {
     expect_error(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                                                             findInstDirFile("cola16.sav")),
                                                                          id.variables = "Attr1,PartyID",
-                                                                         variables.to.omit = "Q1_A_c(1),Q4_B(2)"), NA)
+                                                                         variables.to.include.or.omit = list("Q1_A_c(1)", "Q4_B(2)")), NA)
 })

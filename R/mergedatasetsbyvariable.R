@@ -14,20 +14,13 @@
 #' @param include.or.omit.variables A character vector where each element
 #'  corresponds to an input data set, and indicates whether variables from the
 #'  input data set are to be specified in the merged data set by specifying
-#'  the variables to include ("Only include those manually specified") or the
-#'  variables to omit ("Include all except those manually omitted").
-#' @param variables.to.include A character vector of variables to include,
-#'  where each element contains comma-separated variable names. To specify
-#'  variables from a specific data set, suffix the name with the data set index
-#'  in parentheses, e.g., 'Q2(3)'. Ranges of variables can be specified by
-#'  separating variable names by '-'. This parameter only applies to data sets
-#'  where variables are specified to be included.
-#' @param variables.to.omit A character vector of variables to omit,
-#'  where each element contains comma-separated variable names. To specify
-#'  variables from a specific data set, suffix the name with the data set index
-#'  in parentheses, e.g., 'Q2(3)'. Ranges of variables can be specified by
-#'  separating variable names by '-'. This parameter only applies to data sets
-#'  where variables are specified to be omitted.
+#'  the variables to include ("Only include manually specified variables") or the
+#'  variables to omit ("Include all variables except those manually omitted").
+#' @param variables.to.include.or.omit A list of character vectors corresponding
+#'  to each data set. Each character vector contains comma-separated names of
+#'  variables to include or omit (depending on the option for the data set in
+#'  \code{include.or.omit.variables}). Ranges of variables can be specified by
+#'  separating variable names by '-'.
 #' @param preferred.data.set Either "First data set" or "Last data set".
 #'  This sets the preference for either the first or last data set when
 #'  choosing the order of cases when matching with ID variables and choosing
@@ -62,9 +55,8 @@
 MergeDataSetsByVariable <- function(data.set.names,
                                     merged.data.set.name = NULL,
                                     id.variables = NULL,
-                                    include.or.exclude.variables = rep("Include all except those manually omitted", length(data.set.names)),
-                                    variables.to.include = NULL,
-                                    variables.to.omit = NULL,
+                                    include.or.exclude.variables = rep("Include all variables except those manually omitted", length(data.set.names)),
+                                    variables.to.include.or.omit = NULL,
                                     preferred.data.set = "First data set",
                                     only.keep.cases.matched.to.all.data.sets = FALSE,
                                     include.merged.data.set.in.output = FALSE)
@@ -77,8 +69,7 @@ MergeDataSetsByVariable <- function(data.set.names,
                                 only.keep.cases.matched.to.all.data.sets)
     merged.data.set.var.names <- mergedDataSetVariableNames(input.data.sets.metadata,
                                                             include.or.exclude.variables,
-                                                            variables.to.include,
-                                                            variables.to.omit,
+                                                            variables.to.include.or.omit,
                                                             matched.cases,
                                                             preferred.data.set)
     merged.data.set <- mergedDataSetByVariable(data.sets, matched.cases,
@@ -290,16 +281,15 @@ parseIDVariables <- function(id.variables, input.data.sets.metadata)
 
 mergedDataSetVariableNames <- function(input.data.sets.metadata,
                                        include.or.exclude.variables,
-                                       variables.to.include, variables.to.omit,
+                                       variables.to.include.or.omit,
                                        matched.cases, preferred.data.set)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     v.names <- input.data.sets.metadata$variable.names
     id.var.names <- attr(matched.cases, "id.variable.names")
-    v.names.to.include <- parseInputVariableTextForDataSets(variables.to.include,
-                                                            input.data.sets.metadata)
-    v.names.to.omit <- parseInputVariableTextForDataSets(variables.to.omit,
-                                                         input.data.sets.metadata)
+
+    v.names.to.include.or.omit <- parseInputVariableTextForDataSet(variables.to.include.or.omit,
+                                                                   input.data.sets.metadata)
 
     input.var.names <- vector(mode = "list", length = n.data.sets)
     omitted.var.names <- vector(mode = "list", length = n.data.sets)
@@ -309,15 +299,18 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
     {
         if (include.or.exclude.variables[i] == "Only include those manually specified")
         {
-            input.var.names[[i]] <- v.names.to.include[[i]]
-            omitted.var.names[[i]] <- setdiff(v.names[[i]], v.names.to.include[[i]])
+            input.var.names[[i]] <- v.names.to.include.or.omit[[i]]
+            omitted.var.names[[i]] <- setdiff(v.names[[i]],
+                                              v.names.to.include.or.omit[[i]])
         }
-        else # include.or.exclude.variables[i] == "Include all except those manually omitted"
+        else # include.or.exclude.variables[i] == "Include all variables except those manually omitted"
         {
-            input.var.names[[i]] <- setdiff(v.names[[i]], v.names.to.omit[[i]])
-            omitted.var.names[[i]] <- v.names.to.omit[[i]]
+            input.var.names[[i]] <- setdiff(v.names[[i]],
+                                            v.names.to.include.or.omit[[i]])
+            omitted.var.names[[i]] <- v.names.to.include.or.omit[[i]]
         }
 
+        # Ensure the appropriate ID variable names are present/omitted
         if (!is.null(id.var.names))
         {
             if (preferred.data.set == "First data set" && i == 1 ||
@@ -369,19 +362,40 @@ orderVariablesUsingInputDataSet <- function(var.names.to.order,
     var.names.to.order[order(match(var.names.to.order, data.set.var.names))]
 }
 
-parseInputVariableTextForDataSets <- function(input.text,
-                                              input.data.sets.metadata)
+parseInputVariableTextForDataSet <- function(input.text.list,
+                                             input.data.sets.metadata)
 {
-    split.text <- unlist(lapply(input.text, splitByComma,
-                                ignore.commas.in.parentheses = TRUE),
-                         use.names = FALSE)
-    if (length(split.text) == 0)
-        return(NULL)
-    var.name.matrix <- do.call("rbind", lapply(split.text,
-                                               parseInputVariableText,
-                                               input.data.sets.metadata,
-                                               FALSE))
-    apply(var.name.matrix, 2, function(column) {removeNA(column)})
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    v.names <- input.data.sets.metadata$variable.names
+
+    lapply(seq_len(n.data.sets), function(i) {
+        split.text <- unlist(lapply(input.text.list[[i]], splitByComma),
+                             use.names = FALSE)
+
+        parsed.names <- character(0)
+        for (j in seq_along(split.text))
+        {
+            t <- split.text[j]
+            dash.ind <- match("-", strsplit(t, "")[[1]])
+            if (is.na(dash.ind)) # single variable (not range)
+            {
+                if (!(t %in% v.names[[i]]))
+                    variableNotFoundError(t, i)
+                parsed.names <- union(parsed.names, t)
+            }
+            else # range of variables
+            {
+                range.start <- trimws(substr(t, 1, dash.ind - 1))
+                range.end <- trimws(substr(t, dash.ind + 1, nchar(t)))
+                range.var.names <- variablesFromRange(v.names[[i]],
+                                                      range.start,
+                                                      range.end,
+                                                      i, t)
+                parsed.names <- union(parsed.names, range.var.names)
+            }
+        }
+        parsed.names
+    })
 }
 
 # Parses a string of comma-separated names of variables and returns a matrix
