@@ -452,7 +452,7 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
     id.variable.names <- attr(matched.cases, "id.variable.names")
     merged.id.data.set.ind <- ifelse(preferred.data.set == "First data set",
                                      1, n.data.sets)
-    merged.id.var.name <- id.variable.names[merged.id.data.set.ind]
+    merged.id.var.name <- attr(matched.cases, "merged.id.variable.name")
     merged.ids <- attr(matched.cases, "merged.ids")
 
     merged.data.set.variables <- vector(mode = "list", length = 0)
@@ -462,7 +462,8 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
     {
         for (nm in input.variable.names[[i]])
         {
-            if (i == merged.id.data.set.ind && nm == merged.id.var.name)
+            if (!is.null(merged.id.var.name) && i == merged.id.data.set.ind &&
+                nm == merged.id.var.name)
             {
                 merged.var <- merged.ids
                 attr(merged.var, "label") <- attr(data.sets[[i]][[nm]], "label")
