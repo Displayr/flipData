@@ -9,7 +9,7 @@ MergeDataSetsByVariable(
   merged.data.set.name = NULL,
   id.variables = NULL,
  
-    include.or.exclude.variables = rep("Include all variables except those manually omitted",
+    include.or.omit.variables = rep("Include all variables except those manually omitted",
     length(data.set.names)),
   variables.to.include.or.omit = NULL,
   preferred.data.set = "First data set",
@@ -30,6 +30,12 @@ the merged data set.}
 ID variables. To specify ID variables from a specific data set, suffix the
 name with the data set index in parentheses, e.g., 'ID_VAR(3)'.}
 
+\item{include.or.omit.variables}{A character vector where each element
+corresponds to an input data set, and indicates whether variables from the
+input data set are to be specified in the merged data set by specifying
+the variables to include ("Only include manually specified variables") or the
+variables to omit ("Include all variables except those manually omitted").}
+
 \item{variables.to.include.or.omit}{A list of character vectors corresponding
 to each data set. Each character vector contains comma-separated names of
 variables to include or omit (depending on the option for the data set in
@@ -46,12 +52,6 @@ are present in all data sets, and discard the rest.}
 
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
-
-\item{include.or.omit.variables}{A character vector where each element
-corresponds to an input data set, and indicates whether variables from the
-input data set are to be specified in the merged data set by specifying
-the variables to include ("Only include manually specified variables") or the
-variables to omit ("Include all variables except those manually omitted").}
 }
 \value{
 A list with the following elements:

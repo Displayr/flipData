@@ -55,7 +55,7 @@
 MergeDataSetsByVariable <- function(data.set.names,
                                     merged.data.set.name = NULL,
                                     id.variables = NULL,
-                                    include.or.exclude.variables = rep("Include all variables except those manually omitted", length(data.set.names)),
+                                    include.or.omit.variables = rep("Include all variables except those manually omitted", length(data.set.names)),
                                     variables.to.include.or.omit = NULL,
                                     preferred.data.set = "First data set",
                                     only.keep.cases.matched.to.all.data.sets = FALSE,
@@ -68,7 +68,7 @@ MergeDataSetsByVariable <- function(data.set.names,
                                 preferred.data.set, data.sets,
                                 only.keep.cases.matched.to.all.data.sets)
     merged.data.set.var.names <- mergedDataSetVariableNames(input.data.sets.metadata,
-                                                            include.or.exclude.variables,
+                                                            include.or.omit.variables,
                                                             variables.to.include.or.omit,
                                                             matched.cases,
                                                             preferred.data.set)
@@ -280,7 +280,7 @@ parseIDVariables <- function(id.variables, input.data.sets.metadata)
 }
 
 mergedDataSetVariableNames <- function(input.data.sets.metadata,
-                                       include.or.exclude.variables,
+                                       include.or.omit.variables,
                                        variables.to.include.or.omit,
                                        matched.cases, preferred.data.set)
 {
@@ -297,13 +297,13 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
 
     for (i in seq_len(n.data.sets))
     {
-        if (include.or.exclude.variables[i] == "Only include those manually specified")
+        if (include.or.omit.variables[i] == "Only include those manually specified")
         {
             input.var.names[[i]] <- v.names.to.include.or.omit[[i]]
             omitted.var.names[[i]] <- setdiff(v.names[[i]],
                                               v.names.to.include.or.omit[[i]])
         }
-        else # include.or.exclude.variables[i] == "Include all variables except those manually omitted"
+        else # include.or.omit.variables[i] == "Include all variables except those manually omitted"
         {
             input.var.names[[i]] <- setdiff(v.names[[i]],
                                             v.names.to.include.or.omit[[i]])
