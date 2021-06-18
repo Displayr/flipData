@@ -914,12 +914,11 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
         parsed.names
     }
     else
-        stop("The manually specified names to match '",
+        stop("The manually specified names '",
              source.text[data.set.ind], "' and '", input.text,
-             "' are both present in data set ", data.set.ind,
-             " and cannot be matched. ",
-             "To specify a variable from a specific data set, append '(x)' to the variable name when specifying it, ",
-             "where 'x' is replaced with the data set index, e.g., use 2 for the 2nd input data set.")
+             "' were both found in data set ", data.set.ind,
+             ". One of the names needs to be specified from a different data set by appending '(x)' to the variable name, ",
+             "where 'x' is replaced with the data set index, e.g., use '(2)' for the 2nd input data set.")
 }
 
 # Check that variables to combine, variables to not combine, variables to keep

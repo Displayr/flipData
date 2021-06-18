@@ -236,7 +236,6 @@ test_that("Manually combine variables", {
     expect_false("Q3_3_new_name" %in% names(merged.data.set))
     expect_true(all(!is.na(merged.data.set$Q3_3)))
 
-
     # Data set index
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
@@ -326,6 +325,16 @@ test_that("Manually combine variables", {
                  paste0("The input range 'Q2-Q3-Q4' was not found in any of ",
                         "the input data sets. Ensure that the range has been ",
                         "correctly specified."), fixed = TRUE)
+
+    expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                        findInstDirFile("cola5.sav")),
+                                     variables.to.combine = "Q4_A_3,Q3"),
+                 paste0("The manually specified names 'Q4_A_3' and 'Q3' were ",
+                        "both found in data set 1. One of the names needs to ",
+                        "be specified from a different data set by appending ",
+                        "'(x)' to the variable name, where 'x' is replaced ",
+                        "with the data set index, e.g., use '(2)' for the 2nd ",
+                        "input data set."), fixed = TRUE)
 })
 
 test_that("Variables to not combine", {
