@@ -297,7 +297,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
 
     for (i in seq_len(n.data.sets))
     {
-        if (include.or.omit.variables[i] == "Only include those manually specified")
+        if (include.or.omit.variables[i] == "Only include manually specified variables")
         {
             input.var.names[[i]] <- v.names.to.include.or.omit[[i]]
             omitted.var.names[[i]] <- setdiff(v.names[[i]],
