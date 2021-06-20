@@ -8,9 +8,8 @@
 #' @param merged.data.set.name A string of the name of the merged data set in
 #'  the Displayr cloud drive (if run from Displayr) or the local file path of
 #'  the merged data set.
-#' @param id.variables A string containing comma-separated names of the optional
-#'  ID variables. To specify ID variables from a specific data set, suffix the
-#'  name with the data set index in parentheses, e.g., 'ID_VAR(3)'.
+#' @param id.variables A character vector of ID variable names corresponding
+#'  to each data set. NULL if no ID variables supplied.
 #' @param include.or.omit.variables A character vector where each element
 #'  corresponds to an input data set, and indicates whether variables from the
 #'  input data set are to be specified in the merged data set by specifying
@@ -105,7 +104,7 @@ matchCases <- function(input.data.sets.metadata, id.variables,
                        preferred.data.set, data.sets,
                        only.keep.cases.matched.to.all.data.sets)
 {
-    if (!is.null(id.variables) && trimws(id.variables) != "")
+    if (!is.null(id.variables))
         matchCasesWithIDVariables(input.data.sets.metadata, id.variables,
                                   preferred.data.set, data.sets,
                                   only.keep.cases.matched.to.all.data.sets)
@@ -193,6 +192,22 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     result
 }
 
+# Returns a vector containing ID variable names corresponding to each data set.
+# If an ID variable is not found for a data set, the element will be NA.
+parseIDVariables <- function(id.variables, input.data.sets.metadata)
+{
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    v.names <- input.data.sets.metadata$variable.names
+
+    for (i in seq_len(n.data.sets))
+    {
+        t <- id.variables[i]
+        if (!(t %in% v.names[[i]]))
+            variableNotFoundError(t, i)
+    }
+    id.variables
+}
+
 mergedIDVariableType <- function(id.variable.types)
 {
     if (allIdentical(id.variable.types))
@@ -238,45 +253,6 @@ matchCasesWithoutIDVariables <- function(input.data.sets.metadata)
     for (i in seq_len(n.data.sets))
         result[seq_len(n.cases[i]), i] <- seq_len(n.cases[i])
     result
-}
-
-# Returns a vector containing ID variable names corresponding to each data set.
-# If an ID variable is not found for a data set, the element will be NA.
-parseIDVariables <- function(id.variables, input.data.sets.metadata)
-{
-    n.data.sets <- input.data.sets.metadata$n.data.sets
-    v.names <- input.data.sets.metadata$variable.names
-
-    split.text <- splitByComma(id.variables)
-    id.var.names <- vapply(seq_len(n.data.sets), function(i) {
-        match.ind <- which(!is.na(match(split.text, v.names[[i]])))
-        if (length(match.ind) == 0)
-            stop("No ID variable was identified in data set ", i,
-                 ". Ensure that the ID variables have been correctly specified.")
-        else if (length(match.ind) == 1)
-            split.text[match.ind]
-        else # length(match.ind) > 1
-            stop("The ID variables ",
-                 paste0(paste0("'", split.text[match.ind], "'"), collapse = ", "),
-                 " are both present in data set ", i,
-                 ". Specify the ID variable to use for this data set by appending the data set index to the variable name, e.g., '",
-                 split.text[match.ind[1]], "(", i, ")'.")
-    }, character(1))
-
-    if (sum(!is.na(id.var.names)) == 1)
-        warning("ID variables were only found for one data set (",
-                which(!is.na(id.var.names)), "). ",
-                "Ensure that the ID variables have been correctly specified so that multiple data sets can be matched.")
-
-    not.found.ind <- which(!(split.text %in% id.var.names))
-    if (length(not.found.ind) == 1)
-        warning("The following input ID variable name was not found in any data set: '",
-                split.text[not.found.ind], "'.")
-    else if (length(not.found.ind) > 1)
-        warning("The following input ID variable names were not found in any data set: ",
-                paste0(paste0("'", split.text[not.found.ind], "'"), collapse = ", "), ".")
-
-    id.var.names
 }
 
 mergedDataSetVariableNames <- function(input.data.sets.metadata,
@@ -325,6 +301,10 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
                 input.var.names[[i]] <- setdiff(input.var.names[[i]],
                                                 id.var.names[i])
         }
+
+        if (length(input.var.names[[i]]) == 0)
+            stop("All variables in data set ", i, "were specified to be omitted. ",
+                 "Ensure that the variables to be omitted have been correctly specified.")
 
         input.var.names[[i]] <- orderVariablesUsingInputDataSet(input.var.names[[i]],
                                                                 v.names[[i]])

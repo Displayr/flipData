@@ -13,6 +13,6 @@ findInstDirFile <- function(file)
 test_that("Example used for widget test in flipFormat", {
     expect_error(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                                                             findInstDirFile("cola16.sav")),
-                                                                         id.variables = "Attr1,PartyID",
+                                                                         id.variables = c("Attr1","PartyID"),
                                                                          variables.to.include.or.omit = list("Q1_A_c", "Q4_B")), NA)
 })
