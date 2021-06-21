@@ -12,7 +12,6 @@ MergeDataSetsByVariable(
     include.or.omit.variables = rep("Include all variables except those manually omitted",
     length(data.set.names)),
   variables.to.include.or.omit = NULL,
-  preferred.data.set = "First data set",
   only.keep.cases.matched.to.all.data.sets = FALSE,
   include.merged.data.set.in.output = FALSE
 )
@@ -26,9 +25,8 @@ data sets.}
 the Displayr cloud drive (if run from Displayr) or the local file path of
 the merged data set.}
 
-\item{id.variables}{A string containing comma-separated names of the optional
-ID variables. To specify ID variables from a specific data set, suffix the
-name with the data set index in parentheses, e.g., 'ID_VAR(3)'.}
+\item{id.variables}{A character vector of ID variable names corresponding
+to each data set. NULL if no ID variables supplied.}
 
 \item{include.or.omit.variables}{A character vector where each element
 corresponds to an input data set, and indicates whether variables from the
@@ -41,11 +39,6 @@ to each data set. Each character vector contains comma-separated names of
 variables to include or omit (depending on the option for the data set in
 \code{include.or.omit.variables}). Ranges of variables can be specified by
 separating variable names by '-'.}
-
-\item{preferred.data.set}{Either "First data set" or "Last data set".
-This sets the preference for either the first or last data set when
-choosing the order of cases when matching with ID variables and choosing
-which ID variable to retain.}
 
 \item{only.keep.cases.matched.to.all.data.sets}{Only keep cases if they
 are present in all data sets, and discard the rest.}
@@ -81,4 +74,9 @@ A list with the following elements:
 Merges multiple data sets by case where the data sets contain
  similar variables but different cases, e.g., data sets from different time
  periods.
+}
+\examples{
+path <- c(system.file("examples", "cola15.sav", package = "flipData"),
+          system.file("examples", "Cola16.sav", package = "flipData"))
+print(MergeDataSetsByVariable(path, id.variables = c("Attr1","PartyID")))
 }
