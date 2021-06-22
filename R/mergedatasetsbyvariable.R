@@ -471,7 +471,8 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
             {
                 input.var <- data.sets[[i]][[nm]]
                 non.missing.ind <- which(!is.na(matched.cases[, i]))
-                merged.var <- rep(NA, n.merged.cases)
+                # Initialize with missing values of the same type as input.var
+                merged.var <- rep(c(input.var[1], NA)[2], n.merged.cases)
                 merged.var[non.missing.ind] <- input.var[matched.cases[non.missing.ind, i]]
 
                 if (isIntegerValued(merged.var))
