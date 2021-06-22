@@ -140,10 +140,12 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
         ids
     })
 
+    non.missing.ids.list <- lapply(ids.list, removeNA)
+
     # Warn if no overlap exists
     if (n.data.sets == 2)
     {
-        if (all(!(removeNA(ids.list[[1]]) %in% removeNA(ids.list[[2]]))))
+        if (all(!(non.missing.ids.list[[1]] %in% non.missing.ids.list[[2]])))
             warning("There are no common IDs between the two input data sets. ",
                     "Ensure that the ID variable names have been correctly specified.")
     }
@@ -151,7 +153,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     {
         for (i in seq_len(n.data.sets))
         {
-            if (all(!(removeNA(ids.list[[i]]) %in% removeNA(unlist(ids.list[-i])))))
+            if (all(!(non.missing.ids.list[[i]] %in% unlist(non.missing.ids.list[-i]))))
                 warning("The IDs in data set ", i, " from variable '",
                         id.var.names[i],
                         "' are not present in the other data sets. ",
@@ -160,11 +162,11 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     }
 
     # Merge ID values
-    unique.ids <- removeNA(unique(unlist(ids.list)))
+    unique.ids <- removeNA(unique(unlist(non.missing.ids.list)))
     merged.ids <- NULL
     for (unique.id in unique.ids)
     {
-        id.frequency <- vapply(ids.list, function(ids) {
+        id.frequency <- vapply(non.missing.ids.list, function(ids) {
             sum(ids == unique.id)
         }, integer(1))
 
@@ -460,12 +462,12 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
         for (nm in input.variable.names[[i]])
         {
             if (!is.null(merged.id.var.name) && i == 1 &&
-                nm == merged.id.var.name)
+                nm == merged.id.var.name) # ID variable
             {
                 merged.var <- merged.ids
                 attr(merged.var, "label") <- attr(data.sets[[i]][[nm]], "label")
             }
-            else
+            else # Non-ID variable
             {
                 input.var <- data.sets[[i]][[nm]]
                 non.missing.ind <- which(!is.na(matched.cases[, i]))

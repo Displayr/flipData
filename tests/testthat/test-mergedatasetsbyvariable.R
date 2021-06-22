@@ -9,8 +9,9 @@ findInstDirFile <- function(file)
 # cola15.sav: Q1_*, Q2, Q3, Q3_3, Attr1 included, with "High self-monitor" cases removed.
 # cola16.sav: Q2, Q3, Q3_3, Q4_A, Q4_B, Q4_C, Attr1 (renamed as PartyID) included,
 #             with "Low self-monitor" cases removed.
-# cola17.sav: Q1_* to Q4_* included, with non-"High self-monitor" cases removed.
-# cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 modified to include duplicate values.
+# cola17.sav: Q1_* to Q4_* included, with only "High self-monitor" cases kept.
+# cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 (renamed as Attr1_dup)
+#             modified to include duplicate values.
 
 test_that("Example used for widget test in flipFormat", {
     expect_error(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
@@ -78,6 +79,32 @@ test_that("Match by ID variables", {
                                          include.merged.data.set.in.output = TRUE),
                    paste0("There are no common IDs between the two input data sets. ",
                           "Ensure that the ID variable names have been correctly specified."))
+
+    # IDs duplicated in one data set (cola18.sav)
+    input.data.sets <- readDataSets(c(findInstDirFile("cola17.sav"),
+                                      findInstDirFile("cola18.sav")))
+    result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola17.sav"),
+                                                         findInstDirFile("cola18.sav")),
+                                      id.variables = c("Attr1","Attr1_dup"),
+                                      include.merged.data.set.in.output = TRUE)
+
+    # First 3 cases are from a duplicated ID (appears 3 times)
+    expect_true(all(result$merged.data.set$Attr1[1:3] == "2066969"))
+
+    # Values are duplicated for variables from the data set without duplicate IDs
+    expect_true(all(result$merged.data.set$Q3[1:3] == input.data.sets$cola17.sav$Q3[1]))
+
+    # Values are not duplicated for variables from the data set with duplicate IDs
+    expect_equal(result$merged.data.set$Q3_1[1:3], c(5, 2, 8))
+
+    # IDs in the data set with duplicate IDs are duplicated (appear 3 times)
+    dup.ids <- input.data.sets$cola18.sav$Attr1_dup
+    expect_true(all(sapply(dup.ids, function(id) sum(result$merged.data.set$Attr1 == id)) == 3))
+
+    # IDs not in the data set with duplicate IDs are not duplicated
+    non.dup.ids <- setdiff(input.data.sets$cola17.sav$Attr1,
+                           input.data.sets$cola18.sav$Attr1_dup)
+    expect_true(all(sapply(non.dup.ids, function(id) sum(result$merged.data.set$Attr1 == id)) == 1))
 })
 
 test_that("Include and omit variables", {
