@@ -97,7 +97,7 @@ MergeDataSetsByVariable <- function(data.set.names,
     result
 }
 
-# Returns a matrix (number of merged cases * number of input data sets)
+# Returns the matched.cases matrix (number of merged cases * number of input data sets)
 # containing the input case indices in the merged data set
 matchCases <- function(input.data.sets.metadata, id.variables,
                        data.sets, only.keep.cases.matched.to.all.data.sets)
@@ -110,7 +110,7 @@ matchCases <- function(input.data.sets.metadata, id.variables,
         matchCasesWithoutIDVariables(input.data.sets.metadata)
 }
 
-# Returns a matrix (number of merged cases * number of input data sets)
+# Returns the matched.cases matrix (number of merged cases * number of input data sets)
 # containing the input case indices in the merged data set, after merging
 # cases by ID variables
 matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
@@ -133,51 +133,61 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
         if (id.var.types[i] != merged.id.var.type)
             ids <- convertIDVariableType(ids, id.var.types[i],
                                          merged.id.var.type)
-        ids <- removeNA(ids)
 
-        if (length(ids) == 0)
+        if (all(is.na(ids)))
             stop("The id variable '", id.var.names[i], "' from data set ", i,
                  " does not contain any non-missing IDs.")
-
-        # Check for duplicate values
-        duplicated.ids <- unique(ids[duplicated(ids)])
-        if (length(duplicated.ids) > 0)
-            stop("The ID variable '", id.var.names[i], "' from data set ", i,
-                 " is not a suitable ID variable as it contains duplicated values.")
-
         ids
     })
 
-    merged.ids <- NULL
-    for (i in seq_len(n.data.sets))
+    # Warn if no overlap exists
+    if (n.data.sets == 2)
     {
-        ids <- ids.list[[i]]
-
-        has.overlap <- vapply(ids.list[-i], function(other.ids) {
-            any(ids %in% other.ids)
-        }, logical(1))
-        if (!any(has.overlap))
+        if (all(!(removeNA(ids.list[[1]]) %in% removeNA(ids.list[[2]]))))
+            warning("There are no common IDs between the two input data sets. ",
+                    "Ensure that the ID variable names have been correctly specified.")
+    }
+    else # n.data.sets > 2
+    {
+        for (i in seq_len(n.data.sets))
         {
-            if (n.data.sets == 2 && i == 1)
-                warning("There are no common IDs between the two input data sets. ",
-                        "Ensure that the ID variable names have been correctly specified.")
-            else if (n.data.sets > 2)
+            if (all(!(removeNA(ids.list[[i]]) %in% removeNA(unlist(ids.list[-i])))))
                 warning("The IDs in data set ", i, " from variable '",
                         id.var.names[i],
                         "' are not present in the other data sets. ",
                         "Ensure that the ID variable names have been correctly specified.")
         }
+    }
 
-        match.ind <- match(ids, merged.ids)
-        merged.ids <- c(merged.ids, ids[is.na(match.ind)])
+    # Merge ID values
+    unique.ids <- removeNA(unique(unlist(ids.list)))
+    merged.ids <- NULL
+    for (unique.id in unique.ids)
+    {
+        id.frequency <- vapply(ids.list, function(ids) {
+            sum(ids == unique.id)
+        }, integer(1))
+
+        # Check that there are no IDs that are duplicated in more than one data set
+        if (sum(id.frequency > 1) > 1)
+            stop("The data sets cannot be merged by the specified ID variables as the ID '",
+                 unique.id, "' is duplicated in multiple data sets.")
+
+        merged.ids <- c(merged.ids, rep(unique.id, max(id.frequency)))
     }
 
     result <- matrix(NA_integer_, nrow = length(merged.ids), ncol = n.data.sets)
-    for (i in seq_len(n.data.sets))
+    for (id in unique.ids)
     {
-        ids <- data.sets[[i]][[id.var.names[i]]]
-        non.missing.ind <- which(!is.na(ids))
-        result[match(ids[non.missing.ind], merged.ids), i] <- non.missing.ind
+        merged.id.ind <- which(id == merged.ids)
+        for (i in seq_len(n.data.sets))
+        {
+            id.ind <- which(id == ids.list[[i]])
+            if (length(id.ind) == 0)
+                next
+
+            result[merged.id.ind, i] <- id.ind
+        }
     }
 
     if (only.keep.cases.matched.to.all.data.sets)
@@ -245,7 +255,7 @@ convertIDVariableType <- function(ids, id.variable.type,
     }
 }
 
-# Returns a matrix (number of merged cases * number of input data sets)
+# Returns the matched.cases matrix (number of merged cases * number of input data sets)
 # containing the input case indices in the merged data set, after merging
 # cases by simply joining cases side-by-side (no matching of IDs)
 matchCasesWithoutIDVariables <- function(input.data.sets.metadata)

@@ -30,9 +30,10 @@ test_that("No ID variables", {
 
     expect_error(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                             findInstDirFile("cola16.sav"))),
-                 "The data sets could not be combined without ID variables ",
-                 "(side-by-side, no matching) as they have differing numbers ",
-                 "of cases. To combine them, ID variables need to be specified.")
+                 paste0("The data sets could not be combined without ID variables ",
+                        "(side-by-side, no matching) as they have differing numbers ",
+                        "of cases. To combine them, ID variables need to be specified."),
+                 fixed = TRUE)
 })
 
 test_that("Match by ID variables", {
@@ -65,8 +66,9 @@ test_that("Match by ID variables", {
                                                             findInstDirFile("cola16.sav")),
                                          id.variables = c("Q3","Q3"),
                                          include.merged.data.set.in.output = TRUE),
-                 paste0("The ID variable 'Q3' from data set 1 is not a suitable ID ",
-                        "variable as it contains duplicated values."))
+                 paste0("The data sets cannot be merged by the specified ID ",
+                        "variables as the ID '3' is duplicated in multiple ",
+                        "data sets."))
 
     # Check ID variables have common values
     expect_warning(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
