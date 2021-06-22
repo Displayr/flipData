@@ -792,3 +792,15 @@ test_that("mergeIndicesList", {
                                                                       c(2L, 7L)))
     expect_equal(merged.indices, c(1L, 8L, 2L, 7L, 3L:6L))
 })
+
+test_that("splitByComma", {
+    expect_equal(splitByComma("Q1,Q2"), c("Q1", "Q2"))
+    expect_equal(splitByComma(",Q1,Q2, ,,Q3,"), c("Q1", "Q2", "Q3"))
+    expect_equal(splitByComma(",Q1(,2, 3,,), ,, Q2(3,4),,Q3,", ignore.commas.in.parentheses = TRUE),
+                 c("Q1(,2, 3,,)", "Q2(3,4)", "Q3"))
+})
+
+test_that("isIntegerValued", {
+    expect_true(isIntegerValued(c(-1, 0, 1, 2, 3, NA, Inf)))
+    expect_false(isIntegerValued(c(0, 1.1, NA)))
+})

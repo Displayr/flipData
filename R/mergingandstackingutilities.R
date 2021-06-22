@@ -127,6 +127,7 @@ removeNA <- function(x)
 }
 
 # Split string by comma separators, removing whitespace and empty strings
+# See unit test in test-mergedatasetsbycase.R
 splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 {
     if (!ignore.commas.in.parentheses)
@@ -170,6 +171,8 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
     }
 }
 
+# Whether all numeric values in the vector are integers
+# See unit test in test-mergedatasetsbycase.R
 isIntegerValued <- function(x)
 {
     if (is.numeric(x))
