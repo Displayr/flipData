@@ -9,7 +9,8 @@ findInstDirFile <- function(file)
 # cola15.sav: Q1_*, Q2, Q3, Q3_3, Attr1 included, with "High self-monitor" cases removed.
 # cola16.sav: Q2, Q3, Q3_3, Q4_A, Q4_B, Q4_C, Attr1 (renamed as PartyID) included,
 #             with "Low self-monitor" cases removed.
-# cola16.sav: Q1_* to Q4_* included, with non-"High self-monitor" cases removed.
+# cola17.sav: Q1_* to Q4_* included, with non-"High self-monitor" cases removed.
+# cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 modified to include duplicate values.
 
 test_that("Example used for widget test in flipFormat", {
     expect_error(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
