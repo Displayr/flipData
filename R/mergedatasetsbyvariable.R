@@ -5,11 +5,17 @@
 #' @param data.set.names A character vector of names of data sets from the
 #'  Displayr cloud drive to merge (if run from Displayr) or file paths of local
 #'  data sets.
-#' @param merged.data.set.name A string of the name of the merged data set in
-#'  the Displayr cloud drive (if run from Displayr) or the local file path of
-#'  the merged data set.
+#' @param merged.data.set.name A character scalar of the name of the merged
+#'  data set in the Displayr cloud drive (if run from Displayr) or the local
+#'  file path of the merged data set.
 #' @param id.variables A character vector of ID variable names corresponding
-#'  to each data set. NULL if no ID variables supplied.
+#'  to each data set. ID variables should generally contain unique IDs, but
+#'  otherwise an ID can only be duplicated in at most one data set. The ID
+#'  variable in the merged data set will use the name and label from the ID
+#'  variable from the first input data set.
+#'  NULL if ID variables are not used, in which case the input data sets are
+#'  simply combined side-by-side, and the input data sets are required to have
+#'  the same number of cases.
 #' @param include.or.omit.variables A character vector where each element
 #'  corresponds to an input data set, and indicates whether variables from the
 #'  input data set are to be specified in the merged data set by specifying
@@ -20,31 +26,37 @@
 #'  variables to include or omit (depending on the option for the data set in
 #'  \code{include.or.omit.variables}). Ranges of variables can be specified by
 #'  separating variable names by '-'.
-#' @param only.keep.cases.matched.to.all.data.sets Only keep cases if they
-#'  are present in all data sets, and discard the rest.
-#' @param include.merged.data.set.in.output Whether to include the merged data
-#'  set in the output.
-#' @return A list with the following elements:
+#' @param only.keep.cases.matched.to.all.data.sets A logical scalar which
+#'  controls whether to only keep cases if they are present in all data sets,
+#'  and discard the rest.
+#' @param include.merged.data.set.in.output A logical scalar which controls
+#'  whether to include the merged data set in the output object, which can be
+#'  used for diagnostic purposes in R.
+#' @return A list of class MergeDataSetByVariable with the following elements:
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
 #'   is TRUE, this is a data frame of the merged data set.
 #'   \item \code{input.data.sets.metadata} A list containing metadata on the
-#'     the input data sets such as variable names, labels etc.
+#'     the input data sets such as variable names, labels etc. See the function
+#'     \code{metadataFromDataSets} for more information.
 #'   \item \code{merged.data.set.metadata} A list containing metadata on the
-#'     the merged data set such as variable names, labels etc.
-#'   \item \code{source.data.set.indices} An integer vector containing the
-#'     input data set indices of the merged variables.
-#'   \item \code{omitted.variable.names} A list where each element contains the
-#'     names of variables from an input data set that have been omitted from
-#'     the merged data set.
-#'   \item \code{merged.id.variable.name} The name of the merged ID variable if
-#'     it exists, otherwise NULL.
-#'   \item \code{id.variable.names} A character vector of the names of ID
-#'     variables from each data set (NULL if ID variables not used).
-#'   \item \code{example.id.values} A character vector of example values from
-#'     ID variables from each data set (NULL if ID variables not used).
-#'   \item \code{is.saved.to.cloud} Whether the merged data set was saved to
-#'     the Displayr cloud drive.
+#'     the merged data set such as variable names, labels etc. See the function
+#'     \code{metadataFromDataSet} for more information.
+#'   \item \code{source.data.set.indices} An integer vector corresponding to the
+#'   variables in the merged data set. Each element contains the index of the
+#'   input data set from which the variable originated.
+#'   \item \code{omitted.variable.names} A list whose elements correspond to the
+#'   input data sets. Each element contains the names of variables from a data
+#'   set that were omitted from the merged data set.
+#'   \item \code{merged.id.variable.name} A character scalar of the name of the
+#'   ID variable in the merged data set. It is NULL if there is no ID variable.
+#'   \item \code{id.variable.names} A character vector corresponding to the
+#'   input data sets. Each element is an ID variable name from an input data set.
+#'   \item \code{example.id.values} A character vector corresponding to the
+#'   input data sets. Each element is an example ID value from an ID variable
+#'   from an input data set.
+#'   \item \code{is.saved.to.cloud} A logical scalar indicating whether the
+#'   merged data set was saved to the Displayr cloud drive.
 #' }
 #' @examples
 #' path <- c(system.file("examples", "cola15.sav", package = "flipData"),
@@ -59,6 +71,42 @@ MergeDataSetsByVariable <- function(data.set.names,
                                     only.keep.cases.matched.to.all.data.sets = FALSE,
                                     include.merged.data.set.in.output = FALSE)
 {
+    # === Data dictionary ===
+    # data.sets: A list of data frames, with each representing an input data set.
+    # input.data.sets.metadata: A list of containing metadata on the input data
+    #                           sets. See the function metadataFromDataSets.
+    # matched.cases: An integer matrix whose rows correspond to the cases in the
+    #                merged data set and whose columns correspond to the input
+    #                data sets. Each row contains the input data set case
+    #                indices that map to a case in the merged data set. Has the
+    #                attributes id.variable.names and merged.ids (see below).
+    # id.variable.names: Character vector of the names of the ID variables from
+    #                    each input data set.
+    # merged.ids: A vector representing the ID variable in the merged data set,
+    #             which was created by merging the ID variables from the input
+    #             data sets.
+    # merged.data.set.var.names: A character vector containing the names of the
+    #                            variables in the merged data set. Has the
+    #                            attributes input.variable.names,
+    #                            omitted.variable.names, merged.id.variable.name,
+    #                            source.data.set.indices.
+    # input.variable.names: A list of character vectors corresponding to the
+    #                       input data sets. Each element contains the names of
+    #                       the variables from an input data set that will be
+    #                       present in the merged data set.
+    # omitted.variable.names: A list whose elements correspond to the input
+    #                         data sets. Each element contains the names of
+    #                         variables from a data set that were omitted from
+    #                         the merged data set.
+    # merged.id.variable.name: A character scalar of the name of the ID
+    #                          variable in the merged data set. It is NULL if
+    #                          there is no ID variable.
+    # source.data.set.indices: An integer vector corresponding to the variables
+    #                          in the merged data set. Each element contains
+    #                          the index of the input data set from which the
+    #                          variable originated.
+    # merged.data.set: A data frame representing the merged data set.
+
     data.sets <- readDataSets(data.set.names, 2)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
@@ -97,8 +145,13 @@ MergeDataSetsByVariable <- function(data.set.names,
     result
 }
 
-# Returns the matched.cases matrix (number of merged cases * number of input data sets)
-# containing the input case indices in the merged data set
+#' @param input.data.sets.metadata See data dictionary.
+#' @param id.variables See documentation for id.variables in MergeDataSetsByVariable.
+#' @param data.sets See data dictionary.
+#' @param only.keep.cases.matched.to.all.data.sets See documentation for
+#'  only.keep.cases.matched.to.all.data.sets in MergeDataSetsByVariable.
+#' @return Returns the matched.cases matrix, see data dictionary.
+#' @noRd
 matchCases <- function(input.data.sets.metadata, id.variables,
                        data.sets, only.keep.cases.matched.to.all.data.sets)
 {
@@ -110,9 +163,9 @@ matchCases <- function(input.data.sets.metadata, id.variables,
         matchCasesWithoutIDVariables(input.data.sets.metadata)
 }
 
-# Returns the matched.cases matrix (number of merged cases * number of input data sets)
-# containing the input case indices in the merged data set, after merging
-# cases by ID variables
+# See params for the function matchCases.
+#' @return Returns the matched.cases matrix, see data dictionary.
+#' @noRd
 matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
                                       data.sets,
                                       only.keep.cases.matched.to.all.data.sets)
@@ -207,8 +260,12 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     result
 }
 
-# Returns a vector containing ID variable names corresponding to each data set.
-# If an ID variable is not found for a data set, the element will be NA.
+#' @param id.variables See documentation for id.variables in
+#'  MergeDataSetsByVariable.
+#' @param input.data.sets.metadata See data dictionary.
+#' @return A character vector containing ID variable names corresponding to
+#'  each data set.
+#' @noRd
 parseIDVariables <- function(id.variables, input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
@@ -218,12 +275,15 @@ parseIDVariables <- function(id.variables, input.data.sets.metadata)
     {
         t <- id.variables[i]
         if (!(t %in% v.names[[i]]))
-            variableNotFoundError(t, i)
+            throwVariableNotFoundError(t, i)
     }
     id.variables
 }
 
-# The variable type of the merged ID given the input variable types
+#' @param id.variable.types A character vector of variable types
+#'  (see function variableType) of the ID variables to be merged.
+#' @return A character scalar of the variable type of the merged ID variable.
+#' @noRd
 mergedIDVariableType <- function(id.variable.types)
 {
     if (allIdentical(id.variable.types))
@@ -234,7 +294,14 @@ mergedIDVariableType <- function(id.variable.types)
         "Text"
 }
 
-# Convert ID variable to have type merged.id.variable.type
+#' @description Convert ID variable to have type merged.id.variable.type
+#' @param ids A vector representing the ID variable to be converted.
+#' @param id.variable.type The variable type (see function variableType) of the
+#'  ID variable to be converted.
+#' @param merged.id.variable.type The variable type that the ID variable will
+#'  be converted to.
+#' @return A vector representing the converted ID variable.
+#' @noRd
 convertIDVariableType <- function(ids, id.variable.type,
                                   merged.id.variable.type)
 {
@@ -257,9 +324,10 @@ convertIDVariableType <- function(ids, id.variable.type,
     }
 }
 
-# Returns the matched.cases matrix (number of merged cases * number of input data sets)
-# containing the input case indices in the merged data set, after merging
-# cases by simply joining cases side-by-side (no matching of IDs)
+#' @description Match cases side-by-side (no matching of IDs).
+#' @param input.data.sets.metadata See data dictionary.
+#' @return Returns the matched.cases matrix, see data dictionary.
+#' @noRd
 matchCasesWithoutIDVariables <- function(input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
@@ -272,7 +340,14 @@ matchCasesWithoutIDVariables <- function(input.data.sets.metadata)
     matrix(rep(seq_len(n.cases[1]), n.data.sets), ncol = n.data.sets)
 }
 
-# The names of the variables in the merged data set
+#' @param input.data.sets.metadata See data dictionary.
+#' @param include.or.omit.variables See documentation for
+#'  include.or.omit.variables in MergeDataSetsByVariable.
+#' @param variables.to.include.or.omit See documentation for
+#'  variables.to.include.or.omit in MergeDataSetsByVariable.
+#' @param matched.cases See data dictionary.
+#' @return Character vector of the names of the variables in the merged data set.
+#' @noRd
 mergedDataSetVariableNames <- function(input.data.sets.metadata,
                                        include.or.omit.variables,
                                        variables.to.include.or.omit,
@@ -354,15 +429,27 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
     merged.data.set.var.names
 }
 
-# Order a character vector of variable names according to their order in their
-# data set
+#' @param var.names.to.order Character vector of variable names to be reordered.
+#' @param data.set.var.names Character vector of variable names from a data set
+#'  that will be used to order the names in var.names.to.order.
+#' @return Character vector of the names in var.names.to.order reordered
+#'  according to their order in data.set.var.names.
+#' @noRd
 orderVariablesUsingInputDataSet <- function(var.names.to.order,
                                             data.set.var.names)
 {
     var.names.to.order[order(match(var.names.to.order, data.set.var.names))]
 }
 
-# Parse character vector of comma-separated variable names
+#' @param input.text Character vector containing comma-separated variable names
+#'  or variable ranges (see documentation for variables.to.include.or.omit in
+#'  MergeDataSetsByVariable).
+#' @param data.set.variable.names Character vector of variable names from a
+#'  data set. The variables in input.text are expected to be from this data set.
+#' @param data.set.index Integer scalar of the index of the data set among the
+#'  input data sets.
+#' @return A character vector of the names of variables parsed from input text.
+#' @noRd
 parseInputVariableTextForDataSet <- function(input.text,
                                              data.set.variable.names,
                                              data.set.index)
@@ -378,7 +465,7 @@ parseInputVariableTextForDataSet <- function(input.text,
         if (is.na(dash.ind)) # single variable (not range)
         {
             if (!(t %in% data.set.variable.names))
-                variableNotFoundError(t, data.set.index)
+                throwVariableNotFoundError(t, data.set.index)
             parsed.names <- union(parsed.names, t)
         }
         else # range of variables
@@ -395,51 +482,12 @@ parseInputVariableTextForDataSet <- function(input.text,
     parsed.names
 }
 
-# TODO: to be moved to merging and stacking utilities, removing the copy in merging by case
-# Returns all variables within the specified start and end variables
-variablesFromRange <- function(variable.names, range.start, range.end,
-                               data.set.index, input.text,
-                               error.if.not.found = TRUE)
-{
-    start.ind <- ifelse(range.start != "", match(range.start, variable.names), 1)
-    end.ind <- ifelse(range.end != "", match(range.end, variable.names),
-                      length(variable.names))
-
-    if (error.if.not.found)
-    {
-        if (is.na(start.ind))
-            variableNotFoundError(range.start, data.set.index)
-        if (is.na(end.ind))
-            variableNotFoundError(range.end, data.set.index)
-    }
-    else
-    {
-        if (is.na(start.ind) || is.na(end.ind))
-            return(NULL)
-    }
-
-    if (start.ind > end.ind)
-        stop("The start variable '", range.start,
-             "' appears after the end variable '", range.end,
-             "' in the input data set ", data.set.index,
-             " for the input range '", input.text, "'.")
-    variable.names[start.ind:end.ind]
-}
-
-# TODO: to be moved to merging and stacking utilities, removing the copy in merging by case
-variableNotFoundError <- function(var.name, data.set.index = NULL)
-{
-    data.set.text <- if (is.null(data.set.index))
-        "any of the input data sets. "
-    else
-        paste0("the input data set ", data.set.index, ". ")
-
-    stop("The input variable '", var.name,
-         "' could not be found in ", data.set.text,
-         "Ensure that the variable has been correctly specified.")
-}
-
-# Create the merged data set (as a data frame) by merging by variable
+#' @param data.sets See data dictionary.
+#' @param matched.cases See data dictionary.
+#' @param merged.data.set.variable.names See data dictionary.
+#' @param input.data.sets.metadata See data dictionary.
+#' @return A data frame representing the merged data set.
+#' @noRd
 mergedDataSetByVariable <- function(data.sets, matched.cases,
                                     merged.data.set.variable.names,
                                     input.data.sets.metadata)
@@ -506,7 +554,11 @@ mergedDataSetByVariable <- function(data.sets, matched.cases,
     data.frame(merged.data.set.variables)
 }
 
-# Character vector of the first ID values from each ID variable
+#' @param id.variable.names See data dictionary.
+#' @param data.sets See data dictionary.
+#' @return Character vector of the first ID values from the ID variables from
+#'  each input data set.
+#' @noRd
 exampleIDValues <- function(id.variable.names, data.sets)
 {
     if (is.null(id.variable.names))
@@ -523,6 +575,10 @@ exampleIDValues <- function(id.variable.names, data.sets)
     }, character(1))
 }
 
+#' @description Produces a widget output when printing a MergeDataSetByVariable
+#'  object.
+#' @param x A list of class MergeDataSetByVariable
+#' @noRd
 #' @importFrom flipFormat DataSetMergingByVariableWidget
 #' @export
 print.MergeDataSetByVariable <- function(x, ...)

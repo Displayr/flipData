@@ -21,12 +21,18 @@ MergeDataSetsByVariable(
 Displayr cloud drive to merge (if run from Displayr) or file paths of local
 data sets.}
 
-\item{merged.data.set.name}{A string of the name of the merged data set in
-the Displayr cloud drive (if run from Displayr) or the local file path of
-the merged data set.}
+\item{merged.data.set.name}{A character scalar of the name of the merged
+data set in the Displayr cloud drive (if run from Displayr) or the local
+file path of the merged data set.}
 
 \item{id.variables}{A character vector of ID variable names corresponding
-to each data set. NULL if no ID variables supplied.}
+to each data set. ID variables should generally contain unique IDs, but
+otherwise an ID can only be duplicated in at most one data set. The ID
+variable in the merged data set will use the name and label from the ID
+variable from the first input data set.
+NULL if ID variables are not used, in which case the input data sets are
+simply combined side-by-side, and the input data sets are required to have
+the same number of cases.}
 
 \item{include.or.omit.variables}{A character vector where each element
 corresponds to an input data set, and indicates whether variables from the
@@ -40,34 +46,40 @@ variables to include or omit (depending on the option for the data set in
 \code{include.or.omit.variables}). Ranges of variables can be specified by
 separating variable names by '-'.}
 
-\item{only.keep.cases.matched.to.all.data.sets}{Only keep cases if they
-are present in all data sets, and discard the rest.}
+\item{only.keep.cases.matched.to.all.data.sets}{A logical scalar which
+controls whether to only keep cases if they are present in all data sets,
+and discard the rest.}
 
-\item{include.merged.data.set.in.output}{Whether to include the merged data
-set in the output.}
+\item{include.merged.data.set.in.output}{A logical scalar which controls
+whether to include the merged data set in the output object, which can be
+used for diagnostic purposes in R.}
 }
 \value{
-A list with the following elements:
+A list of class MergeDataSetByVariable with the following elements:
 \itemize{
   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
   is TRUE, this is a data frame of the merged data set.
   \item \code{input.data.sets.metadata} A list containing metadata on the
-    the input data sets such as variable names, labels etc.
+    the input data sets such as variable names, labels etc. See the function
+    \code{metadataFromDataSets} for more information.
   \item \code{merged.data.set.metadata} A list containing metadata on the
-    the merged data set such as variable names, labels etc.
-  \item \code{source.data.set.indices} An integer vector containing the
-    input data set indices of the merged variables.
-  \item \code{omitted.variable.names} A list where each element contains the
-    names of variables from an input data set that have been omitted from
-    the merged data set.
-  \item \code{merged.id.variable.name} The name of the merged ID variable if
-    it exists, otherwise NULL.
-  \item \code{id.variable.names} A character vector of the names of ID
-    variables from each data set (NULL if ID variables not used).
-  \item \code{example.id.values} A character vector of example values from
-    ID variables from each data set (NULL if ID variables not used).
-  \item \code{is.saved.to.cloud} Whether the merged data set was saved to
-    the Displayr cloud drive.
+    the merged data set such as variable names, labels etc. See the function
+    \code{metadataFromDataSet} for more information.
+  \item \code{source.data.set.indices} An integer vector corresponding to the
+  variables in the merged data set. Each element contains the index of the
+  input data set from which the variable originated.
+  \item \code{omitted.variable.names} A list whose elements correspond to the
+  input data sets. Each element contains the names of variables from a data
+  set that were omitted from the merged data set.
+  \item \code{merged.id.variable.name} A character scalar of the name of the
+  ID variable in the merged data set. It is NULL if there is no ID variable.
+  \item \code{id.variable.names} A character vector corresponding to the
+  input data sets. Each element is an ID variable name from an input data set.
+  \item \code{example.id.values} A character vector corresponding to the
+  input data sets. Each element is an example ID value from an ID variable
+  from an input data set.
+  \item \code{is.saved.to.cloud} A logical scalar indicating whether the
+  merged data set was saved to the Displayr cloud drive.
 }
 }
 \description{

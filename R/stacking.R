@@ -174,61 +174,6 @@ StackData <- function(input.data.set.name,
     result
 }
 
-#' @importFrom flipAPI IsDisplayrCloudDriveAvailable
-readDataSets <- function(data.set.names, min.data.sets = 1)
-{
-    if (length(data.set.names) < min.data.sets)
-        stop("At least ", min.data.sets, " data set(s) are required.")
-
-    if (IsDisplayrCloudDriveAvailable())
-        readDataSetsFromDisplayrCloudDrive(data.set.names)
-    else
-        readLocalDataSets(data.set.names)
-}
-
-#' @importFrom haven read_sav
-readLocalDataSets <- function(data.set.paths)
-{
-    result <- lapply(data.set.paths, function(path) {
-        read_sav(path)
-    })
-    names(result) <- basename(data.set.paths)
-    result
-}
-
-#' @importFrom flipAPI QLoadData
-readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
-{
-    result <- lapply(data.set.names, QLoadData)
-    names(result) <- data.set.names
-    result
-}
-
-#' @importFrom haven write_sav
-#' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
-writeDataSet <- function(data.set, data.set.name)
-{
-    if (IsDisplayrCloudDriveAvailable())
-        QSaveData(data.set, data.set.name)
-    else
-        write_sav(data.set, data.set.name)
-}
-
-dataSetNameWithoutPath <- function(data.set.name.or.path)
-{
-    if (IsDisplayrCloudDriveAvailable())
-        data.set.name.or.path
-    else
-        basename(data.set.name.or.path)
-}
-
-checkFileNameCharacters <- function(file.name)
-{
-    if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
-        stop("The file name '", file.name,
-             "' is invalid as file names cannot contain the characters '>', ':', '\"', '/', '\\', '|', '?', '*'.")
-}
-
 # Get common labels ready to be used for stacking. The actions of this function
 # depend on the value of stack.with.common.labels.
 # Returns a list where each element is a set of common labels
@@ -1190,17 +1135,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     data.frame(stacked.data.set)
 }
 
-isIntegerValued <- function(x)
-{
-    if (is.numeric(x))
-    {
-        x.without.na <- removeNA(x)
-        all(floor(x.without.na) == x.without.na)
-    }
-    else
-        FALSE
-}
-
 #' @importFrom utils object.size
 checkStackedDataSetSize <- function(input.data.set, stacking.groups,
                                     stacked.v.ind.in.stacked.data.set,
@@ -1263,23 +1197,6 @@ stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.varia
         lbl[1]
     else
         trimws(paste(common.prefix, common.suffix))
-}
-
-# Creates a name from new.name that does not exist in existing.names by
-# appending a numeric suffix if necessary
-uniqueName <- function(new.name, existing.names, delimiter = "")
-{
-    if (!(new.name %in% existing.names))
-        return (new.name)
-
-    i <- 1
-    repeat
-    {
-        candidate.name <- paste0(new.name, delimiter, i)
-        if (!(candidate.name %in% existing.names))
-            return(candidate.name)
-        i <- i + 1
-    }
 }
 
 # Common prefix from a character vector of names.
@@ -1507,47 +1424,6 @@ metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
     result$stacking.input.variable.labels <- lapply(stacked.data.set, attr,
                                                     "stacking.input.variable.labels")
     result
-}
-
-# Gets the variable type from a variable. The types are used internally by
-# R code and not intended to be exposed to the user.
-variableType <- function(variable)
-{
-    if (is.null(variable))
-        NA_character_
-    else if (!is.null(attr(variable, "labels", exact = TRUE)))
-    {
-        if (is.numeric(attr(variable, "labels", exact = TRUE)))
-            "Categorical"
-        else
-            "Categorical with string values"
-    }
-    else if (is.numeric(variable))
-        "Numeric"
-    else if (is.character(variable))
-        "Text"
-    else if (inherits(variable, "POSIXct") ||
-             inherits(variable, "POSIXt") ||
-             inherits(variable, "Date"))
-        "Date/Time"
-    else if (inherits(variable, "difftime"))
-        "Duration"
-    else
-    {
-        stop("Variable type not recognised")
-    }
-}
-
-# Whether all elements in a vector are identical
-allIdentical <- function(x)
-{
-    length(unique(x)) < 2
-}
-
-# Remove NA values from a vector
-removeNA <- function(x)
-{
-    x[!is.na(x)]
 }
 
 # Split string by comma separators, removing whitespace and empty strings
