@@ -372,43 +372,43 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
     omitted.var.names.list <- rep(list(character(0)), n.data.sets)
     merged.id.var.name <- NA_character_
 
-    for (i in seq_len(n.data.sets))
+    for (data.set.ind in seq_len(n.data.sets))
     {
-        if (include.or.omit.variables[i] == "Only include manually specified variables")
+        if (include.or.omit.variables[data.set.ind] == "Only include manually specified variables")
         {
-            input.var.names.list[[i]] <- v.names.to.include.or.omit[[i]]
-            omitted.var.names.list[[i]] <- setdiff(v.names[[i]],
-                                                   v.names.to.include.or.omit[[i]])
+            input.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit[[data.set.ind]]
+            omitted.var.names.list[[data.set.ind]] <- setdiff(v.names[[data.set.ind]],
+                                                   v.names.to.include.or.omit[[data.set.ind]])
         }
-        else # include.or.omit.variables[i] == "Include all variables except those manually omitted"
+        else # include.or.omit.variables[data.set.ind] == "Include all variables except those manually omitted"
         {
-            input.var.names.list[[i]] <- setdiff(v.names[[i]],
-                                                 v.names.to.include.or.omit[[i]])
-            omitted.var.names.list[[i]] <- v.names.to.include.or.omit[[i]]
+            input.var.names.list[[data.set.ind]] <- setdiff(v.names[[data.set.ind]],
+                                                 v.names.to.include.or.omit[[data.set.ind]])
+            omitted.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit[[data.set.ind]]
         }
 
         # Keep ID variable from first data set
         if (!is.null(id.var.names))
         {
-            if (i == 1)
+            if (data.set.ind == 1)
             {
-                input.var.names.list[[i]] <- union(input.var.names.list[[i]],
-                                                   id.var.names[i])
-                merged.id.var.name <- id.var.names[i]
+                input.var.names.list[[data.set.ind]] <- union(input.var.names.list[[data.set.ind]],
+                                                              id.var.names[data.set.ind])
+                merged.id.var.name <- id.var.names[data.set.ind]
             }
-            else if (i > 1)
-                input.var.names.list[[i]] <- setdiff(input.var.names.list[[i]],
-                                                     id.var.names[i])
+            else if (data.set.ind > 1)
+                input.var.names.list[[data.set.ind]] <- setdiff(input.var.names.list[[data.set.ind]],
+                                                                id.var.names[data.set.ind])
         }
 
-        if (length(input.var.names.list[[i]]) == 0)
-            stop("All variables in data set ", i, "were specified to be omitted. ",
+        if (length(input.var.names.list[[data.set.ind]]) == 0)
+            stop("All variables in data set ", data.set.ind, "were specified to be omitted. ",
                  "Ensure that the variables to be omitted have been correctly specified.")
 
-        input.var.names.list[[i]] <- orderVariablesUsingInputDataSet(input.var.names.list[[i]],
-                                                                     v.names[[i]])
-        omitted.var.names.list[[i]] <- orderVariablesUsingInputDataSet(omitted.var.names.list[[i]],
-                                                                       v.names[[i]])
+        input.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(input.var.names.list[[data.set.ind]],
+                                                                                v.names[[data.set.ind]])
+        omitted.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(omitted.var.names.list[[data.set.ind]],
+                                                                                  v.names[[data.set.ind]])
     }
 
     merged.data.set.var.names <- character(0)
@@ -511,23 +511,24 @@ mergedDataSetByVariable <- function(data.sets, matched.cases.matrix,
     merged.data.set.size <- 0
 
     j <- 1
-    for (i in seq_len(n.data.sets))
+    for (data.set.ind in seq_len(n.data.sets))
     {
-        for (nm in input.var.names.list[[i]])
+        for (nm in input.var.names.list[[data.set.ind]])
         {
-            if (!is.null(merged.id.var.name) && i == 1 &&
+            if (!is.null(merged.id.var.name) && data.set.ind == 1 &&
                 nm == merged.id.var.name) # ID variable
             {
                 merged.var <- merged.id.variable
-                attr(merged.var, "label") <- attr(data.sets[[i]][[nm]], "label")
+                attr(merged.var, "label") <- attr(data.sets[[data.set.ind]][[nm]], "label")
             }
             else # Non-ID variable
             {
-                input.var <- data.sets[[i]][[nm]]
-                non.missing.ind <- which(!is.na(matched.cases.matrix[, i]))
+                input.var <- data.sets[[data.set.ind]][[nm]]
+                non.missing.ind <- which(!is.na(matched.cases.matrix[, data.set.ind]))
                 # Initialize with missing values of the same type as input.var
                 merged.var <- rep(c(input.var[1], NA)[2], n.merged.cases)
-                merged.var[non.missing.ind] <- input.var[matched.cases.matrix[non.missing.ind, i]]
+                merged.var[non.missing.ind] <- input.var[matched.cases.matrix[non.missing.ind,
+                                                                              data.set.ind]]
 
                 if (isIntegerValued(merged.var))
                     merged.var <- as.integer(merged.var)
