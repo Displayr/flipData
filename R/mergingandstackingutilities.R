@@ -97,18 +97,18 @@ metadataFromDataSet <- function(data.set, data.set.name)
 #' @param data.sets A list of data frame, each representing a data set.
 #' @return A list with the following elements:
 #'   \itemize{
-#'     \item \code{variable.names} A list whose elements correspond to the data
+#'     \item \code{variable.names.list} A list whose elements correspond to the data
 #'       sets. Each element is a character vector of names of variables in a
 #'       data set.
-#'     \item \code{variable.labels} A list whose elements correspond to the data
+#'     \item \code{variable.labels.list} A list whose elements correspond to the data
 #'       sets. Each element is a character vector of labels of variables in a
 #'       data set.
-#'     \item \code{variable.value.attributes} A list whose elements correspond to the data
+#'     \item \code{variable.value.attributes.list} A list whose elements correspond to the data
 #'       sets. Each element is another list with elements corresponding to
 #'       variables in a data set. If a variable is categorical, the element
 #'       will be a named numeric vector representing the values and value
 #'       labels. The element is NULL if the variable is not categorical.
-#'     \item \code{variable.types} A list whose elements correspond to the data
+#'     \item \code{variable.types.list} A list whose elements correspond to the data
 #'       sets. Each element is a character vector of variable types for
 #'       variables in a data set (see function variableType).
 #'     \item \code{n.data.sets} Integer scalar of the number of data sets,
@@ -119,8 +119,8 @@ metadataFromDataSet <- function(data.set, data.set.name)
 #' @noRd
 metadataFromDataSets <- function(data.sets)
 {
-    list(variable.names = lapply(data.sets, names),
-         variable.labels = lapply(data.sets, function(data.set) {
+    list(variable.names.list = lapply(data.sets, names),
+         variable.labels.list = lapply(data.sets, function(data.set) {
              vapply(data.set, function(v) {
                  lbl <- attr(v, "label", exact = TRUE)
                  if (!is.null(lbl))
@@ -129,7 +129,7 @@ metadataFromDataSets <- function(data.sets)
                      ""
              }, character(1))
          }),
-         variable.value.attributes = lapply(data.sets, function(data.set) {
+         variable.value.attributes.list = lapply(data.sets, function(data.set) {
              lapply(data.set, function(v) {
                  val.attr <- attr(v, "labels", exact = TRUE)
                  if (is.character(val.attr))
@@ -138,7 +138,7 @@ metadataFromDataSets <- function(data.sets)
                      val.attr
              })
          }),
-         variable.types = lapply(data.sets, function(data.set) {
+         variable.types.list = lapply(data.sets, function(data.set) {
              vapply(data.set, variableType, character(1))
          }),
          n.data.sets = length(data.sets),

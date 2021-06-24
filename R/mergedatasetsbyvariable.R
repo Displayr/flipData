@@ -275,12 +275,12 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
 parseIDVariables <- function(id.variables, input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
-    v.names <- input.data.sets.metadata$variable.names
+    v.names.list <- input.data.sets.metadata$variable.names.list
 
     for (i in seq_len(n.data.sets))
     {
         t <- id.variables[i]
-        if (!(t %in% v.names[[i]]))
+        if (!(t %in% v.names.list[[i]]))
             throwVariableNotFoundError(t, i)
     }
     id.variables
@@ -360,12 +360,12 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
                                        matched.cases)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
-    v.names <- input.data.sets.metadata$variable.names
+    v.names.list <- input.data.sets.metadata$variable.names.list
     id.var.names <- attr(matched.cases, "id.variable.names")
 
-    v.names.to.include.or.omit <-  lapply(seq_len(n.data.sets), function(i) {
+    v.names.to.include.or.omit.list <- lapply(seq_len(n.data.sets), function(i) {
         parseInputVariableTextForDataSet(variables.to.include.or.omit[[i]],
-                                         v.names[[i]], i)
+                                         v.names.list[[i]], i)
     })
 
     input.var.names.list <- rep(list(character(0)), n.data.sets)
@@ -376,15 +376,15 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
     {
         if (include.or.omit.variables[data.set.ind] == "Only include manually specified variables")
         {
-            input.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit[[data.set.ind]]
-            omitted.var.names.list[[data.set.ind]] <- setdiff(v.names[[data.set.ind]],
-                                                   v.names.to.include.or.omit[[data.set.ind]])
+            input.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
+            omitted.var.names.list[[data.set.ind]] <- setdiff(v.names.list[[data.set.ind]],
+                                                              v.names.to.include.or.omit.list[[data.set.ind]])
         }
         else # include.or.omit.variables[data.set.ind] == "Include all variables except those manually omitted"
         {
-            input.var.names.list[[data.set.ind]] <- setdiff(v.names[[data.set.ind]],
-                                                 v.names.to.include.or.omit[[data.set.ind]])
-            omitted.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit[[data.set.ind]]
+            input.var.names.list[[data.set.ind]] <- setdiff(v.names.list[[data.set.ind]],
+                                                            v.names.to.include.or.omit.list[[data.set.ind]])
+            omitted.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
         }
 
         # Keep ID variable from first data set
@@ -406,9 +406,9 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
                  "Ensure that the variables to be omitted have been correctly specified.")
 
         input.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(input.var.names.list[[data.set.ind]],
-                                                                                v.names[[data.set.ind]])
+                                                                                v.names.list[[data.set.ind]])
         omitted.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(omitted.var.names.list[[data.set.ind]],
-                                                                                  v.names[[data.set.ind]])
+                                                                                  v.names.list[[data.set.ind]])
     }
 
     merged.data.set.var.names <- character(0)
