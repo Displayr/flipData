@@ -295,9 +295,9 @@ mergedIDVariableType <- function(id.variable.types)
     if (allIdentical(id.variable.types))
         id.variable.types[1]
     else if (all(isDateType(id.variable.types)))
-        "Date/Time"
-    else # Combination of 2 or more variable types (except "Date" + "Date/Time")
-        "Text"
+        DATE.TIME.VARIABLE.TYPE
+    else # Combination of 2 or more variable types (except date and date/time types)
+        TEXT.VARIABLE.TYPE
 }
 
 #' @description Convert ID variable to have type merged.id.variable.type
@@ -311,12 +311,12 @@ mergedIDVariableType <- function(id.variable.types)
 convertIDVariableType <- function(ids, id.variable.type,
                                   merged.id.variable.type)
 {
-    if (merged.id.variable.type == "Date/Time" &&
-        id.variable.type == "Date")
+    if (merged.id.variable.type == DATE.TIME.VARIABLE.TYPE &&
+        id.variable.type == DATE.VARIABLE.TYPE)
         AsDateTime(as.character(ids))
-    else # merged.id.variable.type == "Text"
+    else # merged.id.variable.type == TEXT.VARIABLE.TYPE
     {
-        if (id.variable.type == "Categorical")
+        if (id.variable.type == CATEGORICAL.VARIABLE.TYPE)
         {
             converted.ids <- rep(NA_character_, length(ids))
             val.attrs <- attr(ids, "labels")
@@ -532,7 +532,7 @@ mergedDataSetByVariable <- function(data.sets, matched.cases.matrix,
                 if (isIntegerValued(merged.var))
                     merged.var <- as.integer(merged.var)
                 v.type <- variableType(input.var)
-                if (v.type == "Categorical")
+                if (v.type == CATEGORICAL.VARIABLE.TYPE)
                 {
                     val.attr <- attr(input.var, "labels")
                     if (is.integer(merged.var))

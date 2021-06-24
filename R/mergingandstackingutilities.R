@@ -159,23 +159,30 @@ variableType <- function(variable)
     else if (!is.null(attr(variable, "labels", exact = TRUE)))
     {
         if (is.numeric(attr(variable, "labels", exact = TRUE)))
-            "Categorical"
+            CATEGORICAL.VARIABLE.TYPE
         else
-            "Text"
+            TEXT.VARIABLE.TYPE
     }
     else if (is.numeric(variable))
-        "Numeric"
+        NUMERIC.VARIABLE.TYPE
     else if (is.character(variable))
-        "Text"
+        TEXT.VARIABLE.TYPE
     else if (inherits(variable, "Date"))
-        "Date"
+        DATE.VARIABLE.TYPE
     else if (inherits(variable, "POSIXct"))
-        "Date/Time"
+        DATE.TIME.VARIABLE.TYPE
     else if (inherits(variable, "difftime"))
-        "Duration"
+        DURATION.VARIABLE.TYPE
     else
         stop("Variable type not recognised")
 }
+
+NUMERIC.VARIABLE.TYPE = "Numeric";
+TEXT.VARIABLE.TYPE = "Text";
+CATEGORICAL.VARIABLE.TYPE = "Categorical";
+DATE.VARIABLE.TYPE = "Date";
+DATE.TIME.VARIABLE.TYPE = "Date/Time";
+DURATION.VARIABLE.TYPE = "Duration";
 
 #' @param var.types A character vector containing variable types (see function
 #'  variableType).
@@ -354,9 +361,9 @@ variablesFromRange <- function(variable.names, range.start, range.end,
     if (error.if.not.found)
     {
         if (is.na(start.ind))
-            variableNotFoundError(range.start, data.set.index)
+            throwVariableNotFoundError(range.start, data.set.index)
         if (is.na(end.ind))
-            variableNotFoundError(range.end, data.set.index)
+            throwVariableNotFoundError(range.end, data.set.index)
     }
     else
     {

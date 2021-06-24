@@ -158,39 +158,48 @@ test_that("Only keep cases matched to all data sets", {
 })
 
 test_that("mergedIDVariableType", {
-    expect_equal(mergedIDVariableType(c("Numeric", "Numeric")), "Numeric")
-    expect_equal(mergedIDVariableType(c("Numeric", "Categorical")), "Text")
-    expect_equal(mergedIDVariableType(c("Date", "Date/Time")), "Date/Time")
+    expect_equal(mergedIDVariableType(id.variable.types = c("Numeric", "Numeric")), "Numeric")
+    expect_equal(mergedIDVariableType(id.variable.types = c("Numeric", "Categorical")), "Text")
+    expect_equal(mergedIDVariableType(id.variable.types = c("Date", "Date/Time")), "Date/Time")
 })
 
 test_that("convertIDVariableType", {
-    expect_equal(convertIDVariableType(1:10, "Numeric", "Text"),
+    expect_equal(convertIDVariableType(ids = 1:10,
+                                       id.variable.type = "Numeric",
+                                       merged.id.variable.type = "Text"),
                  as.character(1:10))
 
     date.id <- structure(c(18799, 18800, 18801), class = "Date")
-    expect_equal(convertIDVariableType(date.id, "Date", "Date/Time"),
+    expect_equal(convertIDVariableType(ids = date.id,
+                                       id.variable.type = "Date",
+                                       merged.id.variable.type = "Date/Time"),
                  structure(c(1624233600, 1624320000, 1624406400),
                            class = c("POSIXct", "POSIXt"), tzone = "UTC"))
 
     categorical.id <- c(1,2,1)
     attr(categorical.id, "labels") <- structure(1:2, .Names = c("A", "B"))
-    expect_equal(convertIDVariableType(categorical.id, "Categorical", "Text"),
+    expect_equal(convertIDVariableType(ids = categorical.id,
+                                       id.variable.type = "Categorical",
+                                       merged.id.variable.type = "Text"),
                  c("A", "B", "A"))
 })
 
 test_that("matchCasesWithoutIDVariables", {
     input.data.sets.metadata <- list(n.data.sets = 3, n.cases = 10)
-    expect_equal(matchCasesWithoutIDVariables(input.data.sets.metadata),
+    expect_equal(matchCasesWithoutIDVariables(input.data.sets.metadata = input.data.sets.metadata),
                  matrix(rep(1:10, 3), ncol = 3))
 })
 
 test_that("orderVariablesUsingInputDataSet", {
-    expect_equal(orderVariablesUsingInputDataSet(c("T", "W", "A"), LETTERS),
+    expect_equal(orderVariablesUsingInputDataSet(var.names.to.order = c("T", "W", "A"),
+                                                 data.set.var.names = LETTERS),
                  c("A", "T", "W"))
 })
 
 test_that("parseInputVariableTextForDataSet", {
-    expect_equal(parseInputVariableTextForDataSet(c("A,B, C", "X-", "G-J"), LETTERS),
+    expect_equal(parseInputVariableTextForDataSet(input.text = c("A,B, C", "X-", "G-J"),
+                                                  data.set.variable.names = LETTERS,
+                                                  data.set.index = 1),
                  c("A", "B", "C", "X", "Y", "Z", "G", "H", "I", "J"))
 })
 
@@ -201,6 +210,7 @@ test_that("exampleIDValues", {
     data.sets <- list(data.frame(list(ID_1 = 1:10, VAR_1 = 11:20)),
                       data.frame(list(ID_2 = 21:30, VAR_2 = 31:40)),
                       data.frame(list(ID_3 = categorical.id)))
-    expect_equal(exampleIDValues(c("ID_1", "ID_2", "ID_3"), data.sets),
+    expect_equal(exampleIDValues(id.variable.names = c("ID_1", "ID_2", "ID_3"),
+                                 data.sets = data.sets),
                  c("1", "21", "A"))
 })
