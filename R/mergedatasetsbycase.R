@@ -630,7 +630,7 @@ parseVariablesToOmit <- function(variables.to.omit,
 }
 
 # Parses a string of comma-separated names of variables and returns a matrix
-# of names where columns correspond to input data. Ranges of variables can be
+# of names where columns correspond to input data sets. Ranges of variables can be
 # specified with a dash. Variables are specified to be from a data set when
 # their names have the suffix consisting of the data set index in parentheses.
 # See unit tests in test-mergedatasetsbycase.R
