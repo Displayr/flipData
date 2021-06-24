@@ -29,7 +29,9 @@ test_that("No ID variables", {
     expect_equal(names(result$merged.data.set)[11:20],
                  paste0(names(result$merged.data.set)[1:10], "_1"))
     expect_true(all(result$merged.data.set[1] == result$merged.data.set[11]))
+})
 
+test_that("Error when no ID variables supplied and data sets have different number of cases", {
     expect_error(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                             findInstDirFile("cola16.sav"))),
                  paste0("The data sets could not be combined without ID variables ",
@@ -38,7 +40,7 @@ test_that("No ID variables", {
                  fixed = TRUE)
 })
 
-test_that("Match by ID variables", {
+test_that("Match by ID variables (no duplicates)", {
     result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                          findInstDirFile("cola16.sav")),
                                       id.variables = c("Attr1","PartyID"),
@@ -62,25 +64,10 @@ test_that("Match by ID variables", {
     expect_true(all(result$merged.data.set[["Attr1"]][252:327] == remaining.ids))
     remaining.ind <- match(remaining.ids, input.data.sets$cola16.sav[["PartyID"]])
     expect_true(all(result$merged.data.set[["Q2_1"]][252:327] == input.data.sets$cola16.sav[["Q2_1"]]))
+})
 
-    # Check ID variables are appropriate
-    expect_error(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
-                                                            findInstDirFile("cola16.sav")),
-                                         id.variables = c("Q3","Q3"),
-                                         include.merged.data.set.in.output = TRUE),
-                 paste0("The data sets cannot be merged by the specified ID ",
-                        "variables as the ID '3' is duplicated in multiple ",
-                        "data sets."))
-
-    # Check ID variables have common values
-    expect_warning(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
-                                                            findInstDirFile("cola17.sav")),
-                                         id.variables = c("Attr1","Attr1"),
-                                         include.merged.data.set.in.output = TRUE),
-                   paste0("There are no common IDs between the two input data sets. ",
-                          "Ensure that the ID variable names have been correctly specified."))
-
-    # IDs duplicated in one data set (cola18.sav)
+test_that("Match by ID variables (IDs duplicated in one data set)", {
+    # IDs duplicated in (cola18.sav)
     input.data.sets <- readDataSets(c(findInstDirFile("cola17.sav"),
                                       findInstDirFile("cola18.sav")))
     result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola17.sav"),
@@ -107,7 +94,26 @@ test_that("Match by ID variables", {
     expect_true(all(sapply(non.dup.ids, function(id) sum(result$merged.data.set$Attr1 == id)) == 1))
 })
 
-test_that("Include and omit variables", {
+test_that("Error when matching by ID variables and an ID is duplicated in multiple data sets", {
+    expect_error(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
+                                                            findInstDirFile("cola16.sav")),
+                                         id.variables = c("Q3","Q3"),
+                                         include.merged.data.set.in.output = TRUE),
+                 paste0("The data sets cannot be merged by the specified ID ",
+                        "variables as the ID '3' is duplicated in multiple ",
+                        "data sets."))
+})
+
+test_that("Warning when matching by ID variables and data sets have no IDs in common", {
+    expect_warning(MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
+                                                              findInstDirFile("cola17.sav")),
+                                           id.variables = c("Attr1","Attr1"),
+                                           include.merged.data.set.in.output = TRUE),
+                   paste0("There are no common IDs between the two input data sets. ",
+                          "Ensure that the ID variable names have been correctly specified."))
+})
+
+test_that("Specify variables to omit from both data sets", {
     # Specify variables to omit from both data sets
     result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                          findInstDirFile("cola16.sav")),
@@ -121,9 +127,9 @@ test_that("Include and omit variables", {
     expect_equal(names(result$merged.data.set),
                  c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_B_c1", "Q2",
                    "Q3", "Q3_3", "Attr1", "Q2_1", "Q3_1", "Q3_3_1", "Q4_A", "Q4_C"))
+})
 
-    # Specify variables to omit from the first data set,
-    # specify variables to include from the second data set
+test_that("Specify variables to omit from first data set, variables to include from second data set", {
     result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                          findInstDirFile("cola16.sav")),
                                       id.variables = c("Attr1","PartyID"),

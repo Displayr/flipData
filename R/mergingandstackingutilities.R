@@ -281,25 +281,35 @@ isIntegerValued <- function(x)
         FALSE
 }
 
-#' @param merged.data.set.name A character scalar of the candidate name of the
-#'  merged data set. This may be NULL or empty.
+#' @param data.set.name A character scalar of the user-input name for
+#'  the data set. This may be NULL or empty.
 #' @return A character scalar of a valid name for the merged data set.
 #' @examples
-#' cleanMergedDataSetName(NULL) # "Merged data set.sav"
-#' cleanMergedDataSetName("") # "Merged data set.sav"
-#' cleanMergedDataSetName(" merged ") # "merged.sav"
-#' cleanMergedDataSetName("merged?") # error due to question mark in name
+#' correctDataSetName(NULL, "Merged data set.sav") # "Merged data set.sav"
+#' correctDataSetName("", "Merged data set.sav") # "Merged data set.sav"
+#' correctDataSetName(" merged ") # "merged.sav"
+#' correctDataSetName("merged?") # "merged.sav"
 #' @noRd
-cleanMergedDataSetName <- function(merged.data.set.name)
+correctDataSetName <- function(data.set.name, default.data.set.name)
 {
-    if (is.null(merged.data.set.name) || trimws(merged.data.set.name) == "")
-        "Merged data set.sav"
+    if (is.null(data.set.name) || trimws(data.set.name) == "")
+        default.data.set.name
     else
     {
-        result <- trimws(merged.data.set.name)
-        if (!grepl(".sav$", merged.data.set.name))
+        result <- data.set.name
+
+        # Check for '<', '>', ':', '\"', '/', '\\', '|', '?', '*'
+        if (grepl("[<>:\"/\\\\\\|\\?\\*]", result))
+        {
+            warning("The input data set name '", data.set.name
+                    , "' contains invalid characters that have been removed.")
+            result <- gsub("[<>:\"/\\\\\\|\\?\\*]", "", result)
+        }
+
+        result <- trimws(result)
+        if (!grepl(".sav$", result))
             result <- paste0(result, ".sav")
-        checkFileNameCharacters(result)
+
         result
     }
 }
@@ -316,20 +326,6 @@ dataSetNameWithoutPath <- function(data.set.name.or.path)
         data.set.name.or.path
     else
         basename(data.set.name.or.path)
-}
-
-#' @description Throws an error if the file name contains invalid characters.
-#' @param file.name A character scalar of the file name.
-#' @return Nothing
-#' @examples
-#' checkFileNameCharacters("Merged?.sav") # error due to question mark in name
-#' checkFileNameCharacters("Merged.sav") # no error
-#' @noRd
-checkFileNameCharacters <- function(file.name)
-{
-    if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
-        stop("The file name '", file.name,
-             "' is invalid as file names cannot contain the characters '>', ':', '\"', '/', '\\', '|', '?', '*'.")
 }
 
 #' @description Returns all variables in variable.names within the specified
@@ -385,7 +381,7 @@ throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
     data.set.text <- if (is.null(data.set.index))
         "any of the input data sets. "
     else
-        paste0("the input data set ", data.set.index, ". ")
+        paste0("input data set ", data.set.index, ". ")
 
     stop("The input variable '", var.name,
          "' could not be found in ", data.set.text,
