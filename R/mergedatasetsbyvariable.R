@@ -387,7 +387,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
             omitted.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
         }
 
-        # Keep ID variable from first data set
+        # Keep ID variable from first data set,  because they must be included regardless of v.names.to.include.or.omit.list
         if (!is.null(id.var.names))
         {
             if (data.set.ind == 1)
