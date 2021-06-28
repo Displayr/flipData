@@ -83,7 +83,7 @@ MergeDataSetsByVariable <- function(data.set.names,
     #                       and merged.id.variable (see below).
     # id.variable.names: Character vector of the names of the ID variables from
     #                    each input data set.
-    # merged.id.variable: A vector representing the ID variable in the merged
+    # merged.id.variable: A vector containing the values of the ID variable in the merged
     #                     data set, which was created by merging the ID
     #                     variables from the input data sets.
     # merged.data.set.var.names: A character vector containing the names of the
