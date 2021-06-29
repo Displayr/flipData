@@ -208,9 +208,11 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
     if (nrow(matched.names) > 0)
     {
         # If the data set index was specified for a variable in a manual match,
-        # we don't use it
+        # we don't find matches for the variable since we are likely to pick up
+        # matches that the user explicitly wanted to avoid by specifying the
+        # data set index.
         not.used.for.name.matching <- attr(v.names.to.combine,
-                                           "is.data.set.specified")
+                                           "is.data.set.specified.matrix")
         output <- findMatchesForRows(matched.names, seqRow(matched.names),
                                      seq_len(n.data.sets),
                                      input.data.sets.metadata,
@@ -563,13 +565,18 @@ parseVariablesToCombine <- function(variables.to.combine,
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     result <- matrix(nrow = 0, ncol = n.data.sets)
-    is.data.set.specified <- matrix(nrow = 0, ncol = n.data.sets)
+    is.data.set.specified.matrix <- matrix(nrow = 0, ncol = n.data.sets)
     for (txt in variables.to.combine)
     {
-        rows <- parseInputVariableText(txt, input.data.sets.metadata, TRUE)
-        result <- rbind(result, rows, deparse.level = 0)
-        is.data.set.specified <- rbind(is.data.set.specified,
-                                       attr(rows, "is.data.set.specified"))
+        new.rows <- parseInputTextForVariableInteraction(txt,
+                                                         input.data.sets.metadata,
+                                                         "Variables to manually combine")
+        result <- rbind(result, new.rows, deparse.level = 0)
+
+        n.new.rows <- nrow(new.rows)
+        is.data.set.specified.matrix <- rbind(is.data.set.specified.matrix,
+                                              matrix(rep(attr(new.rows, "is.data.set.specified.vector"),
+                                                         each = n.new.rows), nrow = n.new.rows))
     }
 
     # Check that variables to combine have not been specified multiple times
@@ -587,7 +594,7 @@ parseVariablesToCombine <- function(variables.to.combine,
         }
     }
 
-    attr(result, "is.data.set.specified") <- is.data.set.specified
+    attr(result, "is.data.set.specified.matrix") <- is.data.set.specified.matrix
     result
 }
 
@@ -598,8 +605,9 @@ parseVariablesToCombine <- function(variables.to.combine,
 parseVariablesToNotCombine <- function(variables.to.not.combine,
                                        input.data.sets.metadata)
 {
-    do.call("rbind", lapply(variables.to.not.combine, parseInputVariableText,
-                            input.data.sets.metadata, TRUE))
+    do.call("rbind", lapply(variables.to.not.combine,
+                            parseInputTextForVariableInteraction,
+                            input.data.sets.metadata, "Variables that should not be combined"))
 }
 
 # Parse the character vector variables.to.keep and return a matrix where
@@ -611,8 +619,9 @@ parseVariablesToKeep <- function(variables.to.keep, input.data.sets.metadata)
     split.text <- unlist(lapply(variables.to.keep, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
-    do.call("rbind", lapply(split.text, parseInputVariableText,
-                            input.data.sets.metadata, FALSE))
+    do.call("rbind", lapply(split.text, parseInputTextIntoVariableNamesMatrix,
+                            input.data.sets.metadata, allow.wildcards = TRUE,
+                            "Variables to manually include"))
 }
 
 # Parse the character vector variables.to.omit and return a matrix where
@@ -625,161 +634,247 @@ parseVariablesToOmit <- function(variables.to.omit,
     split.text <- unlist(lapply(variables.to.omit, splitByComma,
                                 ignore.commas.in.parentheses = TRUE),
                          use.names = FALSE)
-    do.call("rbind", lapply(split.text, parseInputVariableText,
-                            input.data.sets.metadata, FALSE))
+    do.call("rbind", lapply(split.text, parseInputTextIntoVariableNamesMatrix,
+                            input.data.sets.metadata, allow.wildcards = TRUE,
+                            "Variables to manually omit"))
+}
+
+# Parse input text containing a variable name, variable range or variable name
+# with a wildcard character into a matrix of variable names. The columns of the
+# matrix correspond to the input data sets and contain the parsed variable names
+# from a data set.
+# The matrix has the attribute is.data.set.specified which is a logical scalar
+# indicating if the data set was specified in the input.
+# See unit tests in test-mergedatasetsbycase.R
+parseInputTextIntoVariableNamesMatrix <- function(input.text,
+                                                  input.data.sets.metadata,
+                                                  allow.wildcards,
+                                                  input.purpose)
+{
+    v.names <- input.data.sets.metadata$variable.names
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    is.data.set.specified <- FALSE
+
+    if (!allow.wildcards && grepl("\\*", input.text))
+        stop("The input '", input.text,
+             "' could not be parsed as wildcard characters are not supported for '",
+             input.purpose, "' inputs.")
+
+    parsed.v.names.list <- vector(mode = "list", length = n.data.sets)
+
+    dash.ind <- match("-", strsplit(input.text, "")[[1]])
+
+    if (is.na(dash.ind)) # single variable (not range)
+    {
+        data.set.indices <- parseDataSetIndices(input.text, n.data.sets)
+        if (length(data.set.indices) == 0) # data set index not supplied
+        {
+            is.variable.found <- FALSE
+            if (!grepl("\\*", input.text)) # no wildcard
+            {
+                for (j in seq_len(n.data.sets))
+                {
+                    if (input.text %in% v.names[[j]])
+                    {
+                        parsed.v.names.list[[j]] <- input.text
+                        is.variable.found <- TRUE
+                    }
+                }
+                if (!is.variable.found)
+                    variableNotFoundError(input.text)
+            }
+            else # has wildcard
+            {
+                for (j in seq_len(n.data.sets))
+                {
+                    parsed.v.names <- parseVariableWildcardForMerging(input.text,
+                                                                      v.names[[j]],
+                                                                      j, FALSE)
+                    if (length(parsed.v.names) > 0)
+                    {
+                        parsed.v.names.list[[j]] <- parsed.v.names
+                        is.variable.found <- TRUE
+                    }
+                }
+                if (!is.variable.found)
+                    stop("No variables matching the wildcard name '",
+                         input.text,
+                         "' could be found in any of the input data sets. ",
+                         "Ensure that the wildcard name has been correctly specified.")
+            }
+        }
+        else # data set indices supplied
+        {
+            input.text.without.index <- removeDataSetIndices(input.text)
+            if (!grepl("\\*", input.text)) # no wildcard
+            {
+                for (j in data.set.indices)
+                {
+                    if (!(input.text.without.index %in% v.names[[j]]))
+                        variableNotFoundError(input.text.without.index, j)
+                    parsed.v.names.list[[j]] <- input.text.without.index
+                }
+            }
+            else # has wildcard
+            {
+                for (j in data.set.indices)
+                    parsed.v.names.list[[j]] <- parseVariableWildcardForMerging(input.text.without.index,
+                                                                                v.names[[j]],
+                                                                                j, TRUE)
+            }
+            is.data.set.specified <- TRUE
+        }
+    }
+    else # range of variables
+    {
+        if (grepl("\\*", input.text))
+            stop("The input '", input.text,
+                 "' is invalid as wildcard characters are not supported for variable ranges.")
+
+        range.start <- trimws(substr(input.text, 1, dash.ind - 1))
+        range.end <- trimws(substr(input.text, dash.ind + 1, nchar(input.text)))
+
+        data.set.ind <- parseDataSetIndicesForRange(range.start,
+                                                    range.end,
+                                                    n.data.sets)
+
+        if (length(data.set.ind) == 0) # data set index not supplied for range
+        {
+            is.range.found <- FALSE
+            for (j in seq_len(n.data.sets))
+            {
+                range.var.names <- variablesFromRange(v.names[[j]],
+                                                      range.start,
+                                                      range.end,
+                                                      j, input.text, FALSE)
+                if (length(range.var.names) > 0)
+                {
+                    parsed.v.names.list[[j]] <- range.var.names
+                    is.range.found <- TRUE
+                }
+            }
+            if (!is.range.found)
+                stop("The input range '", input.text,
+                     "' was not found in any of the input data sets. ",
+                     "Ensure that the range has been correctly specified.")
+        }
+        else # data set indices supplied for range
+        {
+            range.start.without.index <- removeDataSetIndices(range.start)
+            range.end.without.index <- removeDataSetIndices(range.end)
+            for (j in data.set.ind)
+            {
+                parsed.v.names.list[[j]] <- variablesFromRange(v.names[[j]],
+                                                               range.start.without.index,
+                                                               range.end.without.index,
+                                                               j, input.text,
+                                                               TRUE)
+            }
+            is.data.set.specified <- TRUE
+        }
+    }
+
+    # Convert parsed.v.names.list to matrix
+    n.var <- max(vapply(parsed.v.names.list, length, integer(1)))
+    result <- do.call("cbind", lapply(parsed.v.names.list, function(nms) {
+        column <- rep(NA_character_, n.var)
+        column[seq_along(nms)] <- nms
+        column
+    }))
+
+    n.row <- nrow(result)
+    attr(result, "is.data.set.specified") <- is.data.set.specified
+    result
 }
 
 # Parses a string of comma-separated names of variables and returns a matrix
-# of names where columns correspond to input data sets. Ranges of variables can be
+# of names where columns correspond to input data. Ranges of variables can be
 # specified with a dash. Variables are specified to be from a data set when
 # their names have the suffix consisting of the data set index in parentheses.
-# See unit tests in test-mergedatasetsbycase.R
-parseInputVariableText <- function(input.text, input.data.sets.metadata,
-                                   require.variables.in.multiple.data.sets)
+# The returned matrix has the attribute is.data.set.specified.vector which is a
+# logical vector indicating the columns of the matrix where the data set index
+# was specified. See unit tests in test-mergedatasetsbycase.R
+parseInputTextForVariableInteraction <- function(input.text,
+                                                 input.data.sets.metadata,
+                                                 input.purpose)
 {
-    n.data.sets <- input.data.sets.metadata$n.data.sets
-    var.names <- input.data.sets.metadata$variable.names
-    split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
 
-    parsed.names <- vector(mode = "list", length = n.data.sets)
-    source.text <- rep(NA_character_, n.data.sets)
-    is.data.set.specified <- rep(FALSE, n.data.sets)
+
+    n.data.sets <- input.data.sets.metadata$n.data.sets
+    split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
+    if (length(split.text) == 0)
+        stop("The input '", input.text, "' is invalid. It needs to specify ",
+             input.purpose, ".")
+
+    result <- NULL
+    is.data.set.specified.vector <- NULL
     for (i in seq_along(split.text))
     {
-        t <- split.text[i]
-        dash.ind <- match("-", strsplit(t, "")[[1]])
-
-        if (is.na(dash.ind)) # single variable (not range)
+        v.names.matrix <- parseInputTextIntoVariableNamesMatrix(split.text[i],
+                                                                input.data.sets.metadata,
+                                                                allow.wildcards = FALSE,
+                                                                input.purpose)
+        if (is.null(result))
         {
-            data.set.ind <- parseDataSetIndices(t, n.data.sets)
-            if (length(data.set.ind) > 0) # data set indices supplied
-            {
-                t.without.index <- removeDataSetIndices(t)
-                for (j in data.set.ind)
-                {
-                    if (!(t.without.index %in% var.names[[j]]))
-                        variableNotFoundError(t.without.index, j)
-
-                    parsed.names <- addToParsedNames(parsed.names,
-                                                     t.without.index,
-                                                     j, source.text, t)
-                    source.text[j] <- t
-                }
-                is.data.set.specified[data.set.ind] <- TRUE
-            }
-            else # data set index not supplied
-            {
-                ind.with.match <- which(vapply(var.names, function(nms) {
-                    t %in% nms
-                }, logical(1)))
-
-                if (length(ind.with.match) == 0)
-                    variableNotFoundError(t)
-
-                for (j in ind.with.match)
-                {
-                    # Existing variable was specified with data set index which
-                    # takes precedence over this variable which does not have an
-                    # index
-                    if (!is.na(source.text[j]) &&
-                        grepl("\\(.+\\)", source.text[j]))
-                        next
-
-                    parsed.names <- addToParsedNames(parsed.names, t,
-                                                     j, source.text, t)
-                    source.text[j] <- t
-                }
-            }
+            result <- v.names.matrix
+            attr(result, "is.data.set.specified") <- NULL
+            is.data.set.specified.vector <- !is.na(v.names.matrix[1, ]) &
+                                                   attr(v.names.matrix, "is.data.set.specified")
         }
-        else # range of variables
-        {
-            range.start <- trimws(substr(t, 1, dash.ind - 1))
-            range.end <- trimws(substr(t, dash.ind + 1, nchar(t)))
-
-            data.set.ind <- parseDataSetIndicesForRange(range.start,
-                                                        range.end,
-                                                        n.data.sets)
-
-            if (length(data.set.ind) > 0) # data set indices supplied for range
-            {
-                range.start.without.index <- removeDataSetIndices(range.start)
-                range.end.without.index <- removeDataSetIndices(range.end)
-                for (j in data.set.ind)
-                {
-                    range.var.names <- variablesFromRange(var.names[[j]],
-                                                          range.start.without.index,
-                                                          range.end.without.index,
-                                                          j, t)
-                    parsed.names <- addToParsedNames(parsed.names, range.var.names,
-                                                     j, source.text, t)
-                    source.text[j] <- t
-                }
-                is.data.set.specified[data.set.ind] <- TRUE
-            }
-            else # data set index not supplied for range
-            {
-                is.range.found <- FALSE
-                for (j in seq_len(n.data.sets))
-                {
-                    range.var.names <- variablesFromRange(var.names[[j]],
-                                                          range.start,
-                                                          range.end,
-                                                          j, t, FALSE)
-                    if (is.null(range.var.names))
-                        next
-
-                    is.range.found <- TRUE
-
-                    # Existing variable was specified with data set index which
-                    # takes precedence over this variable which does not have an
-                    # index
-                    if (!is.na(source.text[j]) &&
-                        grepl("\\(.+\\)", source.text[j]))
-                        next
-
-                    parsed.names <- addToParsedNames(parsed.names,
-                                                     range.var.names, j,
-                                                     source.text, t)
-                    source.text[j] <- t
-                }
-                if (!is.range.found)
-                    stop("The input range '", t, "' was not found in any of the input data sets. ",
-                         "Ensure that the range has been correctly specified.")
-            }
-        }
-    }
-
-    if (require.variables.in.multiple.data.sets)
-    {
-        if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
-            stop("The input '", input.text, "' does not specify any variables. ",
-                 "It needs to specify variables from two or more data sets.")
-
-        if (sum(!vapply(parsed.names, is.null, logical(1))) == 1)
-            stop("The input '", input.text, "' only specifies variables from one data set. ",
-                 "It needs to specify variables from two or more data sets.")
-    }
-    else
-    {
-        if (sum(!vapply(parsed.names, is.null, logical(1))) == 0)
-            stop("The input '", input.text, "' does not specify any variables.")
-    }
-
-    n.vars <- vapply(parsed.names, length, integer(1))
-    if (!allIdentical(n.vars[n.vars > 0]))
-        stop("The input '", input.text, "' contains variable ranges with differing numbers of variables. ",
-             "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
-
-    n.var <- max(vapply(parsed.names, length, integer(1)))
-    result <- do.call("cbind", lapply(parsed.names, function(nms) {
-        if (is.null(nms))
-            rep(NA_character_, n.var)
         else
-            nms
-    }))
-    n.row <- nrow(result)
-    attr(result, "is.data.set.specified") <- matrix(rep(is.data.set.specified, n.row),
-                                                    nrow = n.row, byrow = TRUE)
+        {
+            if (nrow(v.names.matrix) != nrow(result))
+                stop("The input '", input.text,
+                     "' contains variable ranges with differing numbers of variables. ",
+                     "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
+
+            is.data.set.specified <- attr(v.names.matrix, "is.data.set.specified")
+            if (is.data.set.specified)
+            {
+                for (j in which(!is.na(v.names.matrix[1, ])))
+                {
+                    if (is.na(result[1, j]) || !is.data.set.specified.vector[j])
+                    {
+                        result[, j] <- v.names.matrix[, j]
+                        is.data.set.specified.vector[j] <- TRUE
+                    }
+                    else # !is.na(result[1, j]) && is.data.set.specified.vector[j]
+                        stop("The input '", input.text,
+                             "' contains different variables which have been specified for data set ",
+                             j, ". Each input for '", input.purpose,
+                             "' may only specify at most one variable or variable range per data set.")
+                }
+            }
+            else # is.data.set.specified == FALSE
+            {
+                for (j in which(!is.na(v.names.matrix[1, ])))
+                {
+                    if (is.na(result[1, j]))
+                    {
+                        result[, j] <- v.names.matrix[, j]
+                        is.data.set.specified.vector[j] <- FALSE
+                    }
+                    else if (!is.data.set.specified.vector[j]) # && !is.na(result[1, j])
+                    {
+                        stop("The input '", input.text, "' for '",
+                             input.purpose,
+                             "' contains variables which are both present in data set ",
+                             j, ". Each input may only specify at most one variable or variable range per data set. ",
+                             "Try explicitly specifying the data set index for variables by appending '(x)' to the variable name, ",
+                             "where 'x' is replaced with the data set index, e.g., use '(2)' for the 2nd input data set.")
+                    }
+
+                }
+            }
+        }
+    }
+
+    if (sum(!is.na(result[1, ])) == 1)
+        stop("The input '", input.text, "' for '", input.purpose,
+             "' only specifies variables from one data set. ",
+             "It needs to specify variables from two or more data sets.")
+
+    attr(result, "is.data.set.specified.vector") <- is.data.set.specified.vector
     result
 }
 
@@ -865,7 +960,7 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
 # Returns all variables within the specified start and end variables
 variablesFromRange <- function(variable.names, range.start, range.end,
                                data.set.index, input.text,
-                               error.if.not.found = TRUE)
+                               error.if.not.found)
 {
     start.ind <- ifelse(range.start != "", match(range.start, variable.names), 1)
     end.ind <- ifelse(range.end != "", match(range.end, variable.names),

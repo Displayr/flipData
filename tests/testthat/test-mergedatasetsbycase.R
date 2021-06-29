@@ -288,7 +288,7 @@ test_that("Manually combine variables", {
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                               findInstDirFile("cola4.sav")),
                                      variables.to.combine = "Q3_3"),
-                 paste0("The input 'Q3_3' only specifies variables from one data set. ",
+                 paste0("The input 'Q3_3' for 'Variables to manually combine' only specifies variables from one data set. ",
                         "It needs to specify variables from two or more data sets."))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
@@ -329,12 +329,14 @@ test_that("Manually combine variables", {
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola5.sav")),
                                      variables.to.combine = "Q4_A_3,Q3"),
-                 paste0("The manually specified names 'Q4_A_3' and 'Q3' were ",
-                        "both found in data set 1. One of the names needs to ",
-                        "be specified from a different data set by appending ",
-                        "'(x)' to the variable name, where 'x' is replaced ",
-                        "with the data set index, e.g., use '(2)' for the 2nd ",
-                        "input data set."), fixed = TRUE)
+                 paste0("The input 'Q4_A_3,Q3' for 'Variables to manually combine' ",
+                        "contains variables which are both present in data set 1. ",
+                        "Each input may only specify at most one variable or ",
+                        "variable range per data set. Try explicitly specifying ",
+                        "the data set index for variables by appending '(x)' to ",
+                        "the variable name, where 'x' is replaced with the data ",
+                        "set index, e.g., use '(2)' for the 2nd input data set."),
+                 fixed = TRUE)
 })
 
 test_that("Variables to not combine", {
@@ -360,6 +362,17 @@ test_that("Keep variables", {
     expect_true("Q1_B_c1" %in% names(result$merged.data.set))
     # Omitted as not in cola3.sav and not specified to be kept
     expect_false("Q1_C_c1" %in% names(result$merged.data.set))
+
+    # Wildcard
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  auto.select.what.to.match.by = FALSE,
+                                  include.merged.data.set.in.output = TRUE,
+                                  data.sets.whose.variables.are.kept = 3,
+                                  variables.to.keep = "Q1_*")
+    expect_true(all(c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1") %in%
+                        names(result$merged.data.set)))
 })
 
 test_that("Omit variables", {
@@ -371,6 +384,15 @@ test_that("Omit variables", {
     merged.data.set <- result$merged.data.set
     expect_true(all(is.na(merged.data.set$Q2[1:654])))
     expect_true(all(!is.na(merged.data.set$Q2[655:981])))
+
+    # Wildcard
+    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola2.sav"),
+                                                     findInstDirFile("cola3.sav")),
+                                  include.merged.data.set.in.output = TRUE,
+                                  variables.to.omit = "Q1_*")
+    expect_true(!any(c("Q1_F_c", "Q1_E_c1", "Q1_D_c", "Q1_C_c1", "Q1_A_c", "Q1_B_c1") %in%
+                     names(result$merged.data.set)))
 
     expect_error(MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                         findInstDirFile("cola2.sav")),
@@ -466,65 +488,98 @@ test_that("maxOneToManyValueAttrProportion", {
     expect_equal(maxOneToManyValueAttrProportion(v.val.attrs), 0.5)
 })
 
-test_that("parseInputVariableText", {
-    input.text <- "Q1A, Q1B"
+test_that("parseInputTextIntoVariableNamesMatrix", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")),
                                      n.data.sets = 3)
-    v.name.matrix <- parseInputVariableText(input.text,
-                                            input.data.sets.metadata, TRUE)
+
+    input.text <- "Q2"
+    v.name.matrix <- parseInputTextIntoVariableNamesMatrix(input.text,
+                                                           input.data.sets.metadata,
+                                                           allow.wildcards = TRUE,
+                                                           "Variables to manually include")
     expect_equal(v.name.matrix,
-                 structure(c("Q1A", NA, "Q1B"), .Dim = c(1L, 3L),
-                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE),
-                                                             .Dim = c(1L, 3L))))
+                 structure(c("Q2", "Q2", NA), .Dim = c(1L, 3L),
+                           is.data.set.specified = FALSE))
 
     # Data set indices specified
-    input.text <- "Q3(2),Q3(3)"
-    v.name.matrix <- parseInputVariableText(input.text,
-                                            input.data.sets.metadata, TRUE)
+    input.text <- "Q3(2)"
+    v.name.matrix <- parseInputTextIntoVariableNamesMatrix(input.text,
+                                                           input.data.sets.metadata,
+                                                           allow.wildcards = TRUE,
+                                                           "Variables to manually include")
     expect_equal(v.name.matrix,
-                 structure(c(NA, "Q3", "Q3"),
-                           .Dim = c(1L, 3L),
-                           is.data.set.specified = structure(c(FALSE, TRUE, TRUE),
-                                                             .Dim = c(1L, 3L))))
+                 structure(c(NA, "Q3", NA), .Dim = c(1L, 3L),
+                           is.data.set.specified = TRUE))
 
     # Variable range
     input.text <- "Q2-Q4"
-    v.name.matrix <- parseInputVariableText(input.text,
-                                            input.data.sets.metadata, TRUE)
+    v.name.matrix <- parseInputTextIntoVariableNamesMatrix(input.text,
+                                                           input.data.sets.metadata,
+                                                           allow.wildcards = TRUE,
+                                                           "Variables to manually include")
     expect_equal(v.name.matrix,
                  structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
-                           .Dim = c(3L, 3L),
-                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE,
-                                                               FALSE, FALSE, FALSE,
-                                                               FALSE, FALSE, FALSE),
-                                                             .Dim = c(3L, 3L))))
+                           .Dim = c(3L, 3L), is.data.set.specified = FALSE))
 
     # Variable range with data set index
-    input.text <- "Q2(1)-Q4(1),Q2(2)-Q4(2)"
-    v.name.matrix <- parseInputVariableText(input.text,
-                                            input.data.sets.metadata, TRUE)
+    input.text <- "Q2(1)-Q4(1)"
+    v.name.matrix <- parseInputTextIntoVariableNamesMatrix(input.text,
+                                                           input.data.sets.metadata,
+                                                           allow.wildcards = TRUE,
+                                                           "Variables to manually include")
     expect_equal(v.name.matrix,
-                 structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
-                           .Dim = c(3L, 3L),
-                           is.data.set.specified = structure(c(TRUE, TRUE, TRUE,
-                                                               TRUE, TRUE, TRUE,
-                                                               FALSE, FALSE, FALSE),
-                                                             .Dim = c(3L, 3L))))
+                 structure(c("Q2", "Q3", "Q4", NA, NA, NA, NA, NA, NA),
+                           .Dim = c(3L, 3L), is.data.set.specified = TRUE))
+
+    # Wildcard character
+    input.text <- "Q1*"
+    v.name.matrix <- parseInputTextIntoVariableNamesMatrix(input.text,
+                                                           input.data.sets.metadata,
+                                                           allow.wildcards = TRUE,
+                                                           "Variables to manually include")
+    expect_equal(v.name.matrix,
+                 structure(c("Q1A", NA, "Q1B"), .Dim = c(1L, 3L),
+                           is.data.set.specified = FALSE))
+
+    # Error when wildcard character supplied when not allowed
+    input.text <- "Q1*"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = FALSE,
+                                                       "Variables to manually combine"),
+                 paste0("The input 'Q1*' could not be parsed as wildcard ",
+                        "characters are not supported for 'Variables to ",
+                        "manually combine' inputs."), fixed = TRUE)
 
     # Variable does not exist error
     input.text <- "Q99"
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
                  paste0("The input variable 'Q99' could not be found in any ",
                         "of the input data sets. Ensure that the variable ",
                         "has been correctly specified."))
 
+    # No wildcard match error
+    input.text <- "Q99*"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
+                 paste0("No variables matching the wildcard name 'Q99*' ",
+                        "could be found in any of the input data sets. ",
+                        "Ensure that the wildcard name has been correctly specified."),
+                 fixed = TRUE)
+
     # Data set index could not be parsed error
     input.text <- c("Q2(not an index)")
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
                  paste0("The data set indices in the input 'Q2(not an index)' ",
                         "could not be parsed. They need to be numbers ",
                         "corresponding to the data sets, e.g., 'Q2(3)'."),
@@ -532,32 +587,119 @@ test_that("parseInputVariableText", {
 
     # Data set index out of range error
     input.text <- "Q2(99)"
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
                  paste0("The data set index in the input 'Q2(99)' is out of ",
                         "range. Data set indices must be between 1 and the ",
                         "number of input data sets (3)."), fixed = TRUE)
 
+    # Variable does not exist in specified data set error
+    input.text <- "Q2(3)"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
+                 paste0("The input variable 'Q2' could not be found in the ",
+                        "input data set 3. Ensure that the variable has been ",
+                        "correctly specified."), fixed = TRUE)
+
+    # No wildcard match in specified data set error
+    input.text <- "Q1*(2)"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
+                 "No variables were found in data set 2 matching the wildcard input 'Q1*'.",
+                 fixed = TRUE)
+
+    # Wildcard in range error
+    input.text <- "Q1*-Q4"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
+                 paste0("The input 'Q1*-Q4' is invalid as wildcard characters ",
+                        "are not supported for variable ranges."), fixed = TRUE)
+
     # Range not found error
     input.text <- "Q2-Q99"
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                        input.data.sets.metadata,
+                                                        allow.wildcards = TRUE,
+                                                        "Variables to manually include"),
                  paste0("The input range 'Q2-Q99' was not found in any of ",
                         "the input data sets. Ensure that the range has been ",
                         "correctly specified."))
 
+    # Range not found in specified data set error
+    input.text <- "Q1A(2)-Q4(2)"
+    expect_error(parseInputTextIntoVariableNamesMatrix(input.text,
+                                                       input.data.sets.metadata,
+                                                       allow.wildcards = TRUE,
+                                                       "Variables to manually include"),
+                 paste0("The input variable 'Q1A' could not be found in the ",
+                        "input data set 2. Ensure that the variable has been ",
+                        "correctly specified."))
+})
+
+test_that("parseInputTextForVariableInteraction", {
+    input.text <- "Q1A, Q1B"
+    input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
+                                                           c("Q2", "Q3", "Q4"),
+                                                           c("Q1B", "Q3")),
+                                     n.data.sets = 3)
+    v.name.matrix <- parseInputTextForVariableInteraction(input.text,
+                                                          input.data.sets.metadata,
+                                                          "Variables to manually combine")
+    expect_equal(v.name.matrix,
+                 structure(c("Q1A", NA, "Q1B"), .Dim = c(1L, 3L),
+                           is.data.set.specified = structure(c(FALSE, FALSE, FALSE),
+                                                             .Dim = c(1L, 3L))))
+
+    # Data set indices specified
+    input.text <- "Q3(2),Q3(3)"
+    v.name.matrix <- parseInputTextForVariableInteraction(input.text,
+                                                          input.data.sets.metadata,
+                                                          "Variables to manually combine")
+    expect_equal(v.name.matrix,
+                 structure(c(NA, "Q3", "Q3"), .Dim = c(1L, 3L),
+                           is.data.set.specified.vector = c(FALSE, TRUE, TRUE)))
+
+    # Variable range
+    input.text <- "Q2-Q4"
+    v.name.matrix <- parseInputTextForVariableInteraction(input.text,
+                                                          input.data.sets.metadata,
+                                                          "Variables to manually combine")
+    expect_equal(v.name.matrix,
+                 structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
+                           .Dim = c(3L, 3L), is.data.set.specified.vector = c(FALSE, FALSE, FALSE)))
+
+    # Variable range with data set index
+    input.text <- "Q2(1)-Q4(1),Q2(2)-Q4(2)"
+    v.name.matrix <- parseInputTextForVariableInteraction(input.text,
+                                                          input.data.sets.metadata,
+                                                          "Variables to manually combine")
+    expect_equal(v.name.matrix,
+                 structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
+                           .Dim = c(3L, 3L), is.data.set.specified.vector = c(TRUE, TRUE, FALSE)))
+
     # Variables from only one data set error
     input.text <- "Q2(1)"
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
-                 paste0("The input 'Q2(1)' only specifies variables from one ",
-                        "data set. It needs to specify variables from two or ",
-                        "more data sets."), fixed = TRUE)
+    expect_error(parseInputTextForVariableInteraction(input.text,
+                                                      input.data.sets.metadata,
+                                                      "Variables to manually combine"),
+                 paste0("The input 'Q2(1)' for 'Variables to manually combine' ",
+                        "only specifies variables from one data set. ",
+                        "It needs to specify variables from two or more data sets."),
+                 fixed = TRUE)
 
     # Ranges with differing lengths error
     input.text <- "Q2(1)-Q3(1),Q2(2)-Q4(2)"
-    expect_error(parseInputVariableText(input.text,
-                                        input.data.sets.metadata, TRUE),
+    expect_error(parseInputTextForVariableInteraction(input.text,
+                                                      input.data.sets.metadata,
+                                                      "Variables to manually combine"),
                  paste0("The input 'Q2(1)-Q3(1),Q2(2)-Q4(2)' contains ",
                         "variable ranges with differing numbers of variables. ",
                         "Ensure that the ranges have been correctly specified ",

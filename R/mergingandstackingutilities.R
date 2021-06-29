@@ -184,5 +184,23 @@ isIntegerValued <- function(x)
         FALSE
 }
 
+# Return variable name matches to wildcard.text. Throw error if no matches
+# found and error.if.not.found == TRUE.
+parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
+                                            data.set.ind, error.if.not.found)
+{
+    ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
+    start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
+    end.var.text <- trimws(substr(wildcard.text, ind.asterisk + 1,
+                                  nchar(wildcard.text)))
+    pattern <- paste0("^", EscapeRegexSymbols(start.var.text), ".*",
+                      EscapeRegexSymbols(end.var.text), "$")
+    is.match <- grepl(pattern, variable.names)
+    if (error.if.not.found && !any(is.match))
+        stop("No variables were found in data set ", data.set.ind,
+             " matching the wildcard input '", wildcard.text, "'.")
+    variable.names[is.match]
+}
+
 # Set to 2GB as I found that memory issues start to occur beyond here
 DATA.SET.SIZE.LIMIT <- 2 * 1e9
