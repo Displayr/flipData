@@ -71,13 +71,15 @@ with the data set index in parentheses, e.g., 'Q2(3)'.}
 the merged data set. To specify variables from a specific data set,
 suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 Ranges of variables can be specified by separating variable names by '-'.
+Wildcard matching of names is supported using the asterisk character '*'.
 This parameter is only useful when data.sets.whose.variables.are.kept is
 used (i.e., when variables are left out).}
 
 \item{variables.to.omit}{Character vector of variable names to omit from
 the merged data set. To specify variables from a specific data set,
 suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
-Ranges of variables can be specified by separating variable names by '-'.}
+Ranges of variables can be specified by separating variable names by '-'.
+Wildcard matching of names is supported using the asterisk character '*'.}
 
 \item{include.merged.data.set.in.output}{Whether to include the merged data
 set in the output.}
