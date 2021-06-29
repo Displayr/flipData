@@ -1638,18 +1638,17 @@ mergedVariableNames <- function(matched.names, use.names.and.labels.from)
     # specifying variables with the same name to not be combined or variables
     # with the same name not being combined as their types are incompatible.
     # We rename variables so that the names are unique.
-    renamed.variables <- list()
     dup <- which(duplicated(merged.names))
-    for (i in dup)
+    renamed.variables <- matrix(nrow = length(dup), ncol = 2)
+    colnames(renamed.variables) <- c("Original name", "New name")
+    for (i in seq_along(dup))
     {
-        new.name <- uniqueName(merged.names[i], merged.names, "_")
-        renamed.variables <- c(renamed.variables,
-                               list(list(original.name = merged.names[i],
-                                         new.name = new.name)))
-        merged.names[i] <- new.name
+        new.name <- uniqueName(merged.names[dup[i]], merged.names, "_")
+        renamed.variables[i, ] <- c(merged.names[dup[i]], new.name)
+        merged.names[dup[i]] <- new.name
     }
-
     attr(merged.names, "renamed.variables") <- renamed.variables
+
     merged.names
 }
 
