@@ -1,7 +1,6 @@
 #' @title Merge Data Sets by Variable
-#' @description Merges multiple data sets by case where the data sets contain
-#'  similar variables but different cases, e.g., data sets from different time
-#'  periods.
+#' @description Merges multiple data sets by combining variables, matching
+#'  cases either using ID variables or by simply joining data sets side-by-side.
 #' @param data.set.names A character vector of names of data sets from the
 #'  Displayr cloud drive to merge (if run from Displayr) or file paths of local
 #'  data sets.
@@ -61,7 +60,7 @@
 #' }
 #' @examples
 #' path <- c(system.file("examples", "cola15.sav", package = "flipData"),
-#'           system.file("examples", "Cola16.sav", package = "flipData"))
+#'           system.file("examples", "cola16.sav", package = "flipData"))
 #' print(MergeDataSetsByVariable(path, id.variables = c("Attr1","PartyID")))
 #' @export
 MergeDataSetsByVariable <- function(data.set.names,
@@ -471,7 +470,7 @@ parseInputVariableTextForDataSet <- function(input.text,
         dash.ind <- match("-", strsplit(t, "")[[1]])
         if (is.na(dash.ind)) # not range
         {
-            if (!grepl("\\*", input.text)) # single variable, not wildcard
+            if (!grepl("\\*", t)) # single variable, not wildcard
             {
                 if (!(t %in% data.set.variable.names))
                     throwVariableNotFoundError(t, data.set.index)

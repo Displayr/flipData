@@ -84,12 +84,11 @@ A list of class MergeDataSetByVariable with the following elements:
 }
 }
 \description{
-Merges multiple data sets by case where the data sets contain
- similar variables but different cases, e.g., data sets from different time
- periods.
+Merges multiple data sets by combining variables, matching
+ cases either using ID variables or by simply joining data sets side-by-side.
 }
 \examples{
 path <- c(system.file("examples", "cola15.sav", package = "flipData"),
-          system.file("examples", "Cola16.sav", package = "flipData"))
+          system.file("examples", "cola16.sav", package = "flipData"))
 print(MergeDataSetsByVariable(path, id.variables = c("Attr1","PartyID")))
 }

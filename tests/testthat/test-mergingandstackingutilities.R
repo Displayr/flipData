@@ -86,7 +86,7 @@ test_that("parseVariableWildcardForMerging", {
                                                  error.if.not.found = FALSE),
                  c("Coke Zero", "Coke No Sugar"))
 
-    expect_equal(parseVariableWildcardForMerging(wildcard.text = c("Pepsi*"),
+    expect_error(parseVariableWildcardForMerging(wildcard.text = c("Pepsi*"),
                                                  variable.names = c("Coca-cola",
                                                                     "Coke Zero",
                                                                     "Diet Coke",
@@ -94,5 +94,5 @@ test_that("parseVariableWildcardForMerging", {
                                                  data.set.ind = 1,
                                                  error.if.not.found = TRUE),
                  paste0("No variables were found in data set 1 matching the ",
-                        "wildcard input 'Pepsi*'."))
+                        "wildcard input 'Pepsi*'."), fixed = TRUE)
 })

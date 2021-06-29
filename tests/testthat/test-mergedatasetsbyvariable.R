@@ -229,7 +229,8 @@ test_that("parseInputVariableTextForDataSet error when wildcard supplied in rang
                                                                               "Diet Coke", "Coke No Sugar"),
                                                   data.set.index = 1),
                  paste0("The input 'Coke*-Pepsi' is invalid as wildcard ",
-                        "characters are not supported for variable ranges."))
+                        "characters are not supported for variable ranges."),
+                 fixed = TRUE)
 })
 
 test_that("exampleIDValues", {
