@@ -44,7 +44,8 @@ variables to omit ("Include all variables except those manually omitted").}
 to each data set. Each character vector contains comma-separated names of
 variables to include or omit (depending on the option for the data set in
 \code{include.or.omit.variables}). Ranges of variables can be specified by
-separating variable names by '-'.}
+separating variable names by '-'. Wildcard matching of names is supported
+using the asterisk character '*'.}
 
 \item{only.keep.cases.matched.to.all.data.sets}{A logical scalar which
 controls whether to only keep cases if they are present in all data sets,

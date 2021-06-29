@@ -129,6 +129,18 @@ test_that("Specify variables to omit from both data sets", {
                    "Q3", "Q3_3", "Attr1", "Q2_1", "Q3_1", "Q3_3_1", "Q4_A", "Q4_C"))
 })
 
+test_that("Specify variables to omit using wildcard", {
+    result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
+                                                         findInstDirFile("cola16.sav")),
+                                      id.variables = c("Attr1","PartyID"),
+                                      include.or.omit.variables = c("Include all variables except those manually omitted",
+                                                                    "Include all variables except those manually omitted"),
+                                      variables.to.include.or.omit = list("Q1_*", ""), # omitted
+                                      include.merged.data.set.in.output = TRUE)
+    expect_true(all(!grepl("Q1_*", names(result$merged.data.set))))
+
+})
+
 test_that("Specify variables to omit from first data set, variables to include from second data set", {
     result <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                          findInstDirFile("cola16.sav")),
@@ -201,6 +213,23 @@ test_that("parseInputVariableTextForDataSet", {
                                                   data.set.variable.names = LETTERS,
                                                   data.set.index = 1),
                  c("A", "B", "C", "X", "Y", "Z", "G", "H", "I", "J"))
+})
+
+test_that("parseInputVariableTextForDataSet with wildcard", {
+    expect_equal(parseInputVariableTextForDataSet(input.text = c("Coke*"),
+                                                  data.set.variable.names = c("Coca-cola", "Coke Zero",
+                                                                              "Diet Coke", "Coke No Sugar"),
+                                                  data.set.index = 1),
+                 c("Coke Zero", "Coke No Sugar"))
+})
+
+test_that("parseInputVariableTextForDataSet error when wildcard supplied in range", {
+    expect_error(parseInputVariableTextForDataSet(input.text = c("Coke*-Pepsi"),
+                                                  data.set.variable.names = c("Coca-cola", "Coke Zero",
+                                                                              "Diet Coke", "Coke No Sugar"),
+                                                  data.set.index = 1),
+                 paste0("The input 'Coke*-Pepsi' is invalid as wildcard ",
+                        "characters are not supported for variable ranges."))
 })
 
 test_that("exampleIDValues", {

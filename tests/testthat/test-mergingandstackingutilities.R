@@ -75,3 +75,24 @@ test_that("uniqueName", {
                             existing.names = c("Q1", "Q2", "Q3"),
                             delimiter = "_"), "Q2_1")
 })
+
+test_that("parseVariableWildcardForMerging", {
+    expect_equal(parseVariableWildcardForMerging(wildcard.text = c("Coke*"),
+                                                 variable.names = c("Coca-cola",
+                                                                    "Coke Zero",
+                                                                    "Diet Coke",
+                                                                    "Coke No Sugar"),
+                                                 data.set.ind = 1,
+                                                 error.if.not.found = FALSE),
+                 c("Coke Zero", "Coke No Sugar"))
+
+    expect_equal(parseVariableWildcardForMerging(wildcard.text = c("Pepsi*"),
+                                                 variable.names = c("Coca-cola",
+                                                                    "Coke Zero",
+                                                                    "Diet Coke",
+                                                                    "Coke No Sugar"),
+                                                 data.set.ind = 1,
+                                                 error.if.not.found = TRUE),
+                 paste0("No variables were found in data set 1 matching the ",
+                        "wildcard input 'Pepsi*'."))
+})

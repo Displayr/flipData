@@ -25,7 +25,8 @@
 #'  to each data set. Each character vector contains comma-separated names of
 #'  variables to include or omit (depending on the option for the data set in
 #'  \code{include.or.omit.variables}). Ranges of variables can be specified by
-#'  separating variable names by '-'.
+#'  separating variable names by '-'. Wildcard matching of names is supported
+#'  using the asterisk character '*'.
 #' @param only.keep.cases.matched.to.all.data.sets A logical scalar which
 #'  controls whether to only keep cases if they are present in all data sets,
 #'  and discard the rest.
@@ -468,14 +469,29 @@ parseInputVariableTextForDataSet <- function(input.text,
     {
         t <- split.text[j]
         dash.ind <- match("-", strsplit(t, "")[[1]])
-        if (is.na(dash.ind)) # single variable (not range)
+        if (is.na(dash.ind)) # not range
         {
-            if (!(t %in% data.set.variable.names))
-                throwVariableNotFoundError(t, data.set.index)
-            parsed.names <- union(parsed.names, t)
+            if (!grepl("\\*", input.text)) # single variable, not wildcard
+            {
+                if (!(t %in% data.set.variable.names))
+                    throwVariableNotFoundError(t, data.set.index)
+                parsed.names <- union(parsed.names, t)
+            }
+            else # wildcard
+            {
+                nms <-  parseVariableWildcardForMerging(t,
+                                                        data.set.variable.names,
+                                                        data.set.index,
+                                                        error.if.not.found = TRUE)
+                parsed.names <- union(parsed.names, nms)
+            }
         }
         else # range of variables
         {
+            if (grepl("\\*", t))
+                stop("The input '", t,
+                     "' is invalid as wildcard characters are not supported for variable ranges.")
+
             range.start <- trimws(substr(t, 1, dash.ind - 1))
             range.end <- trimws(substr(t, dash.ind + 1, nchar(t)))
             range.var.names <- variablesFromRange(data.set.variable.names,

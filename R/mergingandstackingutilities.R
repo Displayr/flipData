@@ -395,14 +395,14 @@ throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
          "Ensure that the variable has been correctly specified.")
 }
 
-# Creates a name from new.name that does not exist in existing.names by
-# appending a numeric suffix if necessary
+#' @description Creates a name from new.name that does not exist in existing.names by
+#'  appending a numeric suffix if necessary
 #' @param new.name Character scalar containing the candidate name that may need
 #'  to be renamed to be different from the names in existing.names.
 #' @param existing.names Character vector of existing names.
 #' @param delimiter Character scalar to be placed between new.name and an
 #'  integer suffix.
-#' @return
+#' @return Character scalar of name that is not present in existing.names.
 #' @examples
 #' uniqueName("Q2", c("Q1", "Q2", "Q3")) # "Q21"
 #' uniqueName("Q2", c("Q1", "Q2", "Q3"), delimiter = "_") # "Q2_1"
@@ -420,6 +420,33 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
             return(candidate.name)
         i <- i + 1
     }
+}
+
+#' @description Return variable name matches to wildcard.text. Throw error if no matches
+#'  found and error.if.not.found == TRUE.
+#' @param wildcard.text Character scalar of the wildcard pattern to match for.
+#' @param variable.names Character vector of variable names to match against.
+#' @param data.set.ind Integer scalar of the index of the data set from which
+#'  the variable names originate.
+#' @param error.if.not.found Logical scalar indicating whether to throw an
+#'  error if no match is found.
+#' @return Character vector containing the variable names that match the
+#'  wildcard pattern.
+#' @noRd
+parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
+                                            data.set.ind, error.if.not.found)
+{
+    ind.asterisk <- match("*", strsplit(wildcard.text, "")[[1]])
+    start.var.text <- trimws(substr(wildcard.text, 1, ind.asterisk - 1))
+    end.var.text <- trimws(substr(wildcard.text, ind.asterisk + 1,
+                                  nchar(wildcard.text)))
+    pattern <- paste0("^", EscapeRegexSymbols(start.var.text), ".*",
+                      EscapeRegexSymbols(end.var.text), "$")
+    is.match <- grepl(pattern, variable.names)
+    if (error.if.not.found && !any(is.match))
+        stop("No variables were found in data set ", data.set.ind,
+             " matching the wildcard input '", wildcard.text, "'.")
+    variable.names[is.match]
 }
 
 # Set to 2GB as I found that memory issues start to occur beyond here
