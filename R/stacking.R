@@ -152,8 +152,9 @@ StackData <- function(input.data.set.name,
                                                      input.data.set.name)
 
     write.stacked.data.set <- nrow(stacked.data.set) > 0
+    is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
     if (write.stacked.data.set)
-        writeDataSet(stacked.data.set, stacked.data.set.name)
+        writeDataSet(stacked.data.set, stacked.data.set.name, is.saved.to.cloud)
 
     # Create an object containing metadata on the stacked data set such as
     # variable names and labels
@@ -165,28 +166,13 @@ StackData <- function(input.data.set.name,
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
+    result$is.saved.to.cloud <- is.saved.to.cloud
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set
 
     class(result) <- "StackedData"
     result
-}
-
-dataSetNameWithoutPath <- function(data.set.name.or.path)
-{
-    if (IsDisplayrCloudDriveAvailable())
-        data.set.name.or.path
-    else
-        basename(data.set.name.or.path)
-}
-
-checkFileNameCharacters <- function(file.name)
-{
-    if (grepl("[<>:\"/\\\\\\|\\?\\*]", file.name))
-        stop("The file name '", file.name,
-             "' is invalid as file names cannot contain the characters '>', ':', '\"', '/', '\\', '|', '?', '*'.")
 }
 
 # Get common labels ready to be used for stacking. The actions of this function
@@ -1193,23 +1179,6 @@ stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.varia
         lbl[1]
     else
         trimws(paste(common.prefix, common.suffix))
-}
-
-# Creates a name from new.name that does not exist in existing.names by
-# appending a numeric suffix if necessary
-uniqueName <- function(new.name, existing.names, delimiter = "")
-{
-    if (!(new.name %in% existing.names))
-        return (new.name)
-
-    i <- 1
-    repeat
-    {
-        candidate.name <- paste0(new.name, delimiter, i)
-        if (!(candidate.name %in% existing.names))
-            return(candidate.name)
-        i <- i + 1
-    }
 }
 
 # Common prefix from a character vector of names.
