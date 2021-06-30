@@ -71,6 +71,7 @@
 #'     the merged data set such as variable names, labels etc.
 #'   \item \code{matched.names} A matrix where each row contains the names of
 #'     the variables from the input data sets that have been merged together.
+#'     Each row represents a single output variable.
 #'   \item \code{merged.names} A character vector containing the names of the
 #'     variables in the merged data set.
 #'   \item \code{omitted.variable.names} A list where each element contains the
