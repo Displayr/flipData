@@ -130,7 +130,7 @@ MergeDataSetsByVariable <- function(data.set.names,
                                                "Merged data set.sav")
     is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
     writeDataSet(merged.data.set, merged.data.set.name,
-                 is.saved.to.cloud = IsDisplayrCloudDriveAvailable())
+                 is.saved.to.cloud = is.saved.to.cloud)
 
     result <- list()
     if (include.merged.data.set.in.output)
