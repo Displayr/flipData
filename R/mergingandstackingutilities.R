@@ -48,9 +48,9 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 #' @noRd
 #' @importFrom haven write_sav
 #' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
-writeDataSet <- function(data.set, data.set.name)
+writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
-    if (IsDisplayrCloudDriveAvailable())
+    if (is.saved.to.cloud)
         QSaveData(data.set, data.set.name)
     else
         write_sav(data.set, data.set.name)
@@ -282,7 +282,8 @@ isIntegerValued <- function(x)
     if (is.numeric(x))
     {
         x.without.na <- removeNA(x)
-        all(floor(x.without.na) == x.without.na)
+        all(floor(x.without.na) == x.without.na &
+            !is.infinite(x.without.na))
     }
     else
         FALSE

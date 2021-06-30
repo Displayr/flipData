@@ -13,11 +13,18 @@ findInstDirFile <- function(file)
 # cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 (renamed as Attr1_dup)
 #             modified to include duplicate values.
 
+#' @param expr Expression to test
+#' @return Nothing. Errors if the expression errors.
+#' @noRd
+expectNoError <- function(expr) {
+    expect_error(expr, NA)
+}
+
 test_that("Example used for widget test in flipFormat", {
-    expect_error(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
+    expectNoError(merge.data.set.by.var.output <- MergeDataSetsByVariable(data.set.names = c(findInstDirFile("cola15.sav"),
                                                                                             findInstDirFile("cola16.sav")),
-                                                                         id.variables = c("Attr1","PartyID"),
-                                                                         variables.to.include.or.omit = list("Q1_A_c", "Q4_B")), NA)
+                                                                          id.variables = c("Attr1","PartyID"),
+                                                                          variables.to.include.or.omit = list("Q1_A_c", "Q4_B")))
 })
 
 test_that("No ID variables", {
@@ -170,29 +177,32 @@ test_that("Only keep cases matched to all data sets", {
 })
 
 test_that("mergedIDVariableType", {
-    expect_equal(mergedIDVariableType(id.variable.types = c("Numeric", "Numeric")), "Numeric")
-    expect_equal(mergedIDVariableType(id.variable.types = c("Numeric", "Categorical")), "Text")
-    expect_equal(mergedIDVariableType(id.variable.types = c("Date", "Date/Time")), "Date/Time")
+    expect_equal(mergedIDVariableType(id.variable.types = c(NUMERIC.VARIABLE.TYPE, NUMERIC.VARIABLE.TYPE)),
+                 NUMERIC.VARIABLE.TYPE)
+    expect_equal(mergedIDVariableType(id.variable.types = c(NUMERIC.VARIABLE.TYPE, CATEGORICAL.VARIABLE.TYPE)),
+                 TEXT.VARIABLE.TYPE)
+    expect_equal(mergedIDVariableType(id.variable.types = c(DATE.VARIABLE.TYPE, DATE.TIME.VARIABLE.TYPE)),
+                 DATE.TIME.VARIABLE.TYPE)
 })
 
 test_that("convertIDVariableType", {
     expect_equal(convertIDVariableType(ids = 1:10,
-                                       id.variable.type = "Numeric",
-                                       merged.id.variable.type = "Text"),
+                                       id.variable.type = NUMERIC.VARIABLE.TYPE,
+                                       merged.id.variable.type = TEXT.VARIABLE.TYPE),
                  as.character(1:10))
 
-    date.id <- structure(c(18799, 18800, 18801), class = "Date")
+    date.id <- structure(c(18799, 18800, 18801), class = DATE.VARIABLE.TYPE)
     expect_equal(convertIDVariableType(ids = date.id,
-                                       id.variable.type = "Date",
-                                       merged.id.variable.type = "Date/Time"),
+                                       id.variable.type = DATE.VARIABLE.TYPE,
+                                       merged.id.variable.type = DATE.TIME.VARIABLE.TYPE),
                  structure(c(1624233600, 1624320000, 1624406400),
                            class = c("POSIXct", "POSIXt"), tzone = "UTC"))
 
     categorical.id <- c(1,2,1)
     attr(categorical.id, "labels") <- structure(1:2, .Names = c("A", "B"))
     expect_equal(convertIDVariableType(ids = categorical.id,
-                                       id.variable.type = "Categorical",
-                                       merged.id.variable.type = "Text"),
+                                       id.variable.type = CATEGORICAL.VARIABLE.TYPE,
+                                       merged.id.variable.type = TEXT.VARIABLE.TYPE),
                  c("A", "B", "A"))
 })
 

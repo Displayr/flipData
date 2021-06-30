@@ -21,10 +21,10 @@
 #'  the variables to include ("Only include manually specified variables") or the
 #'  variables to omit ("Include all variables except those manually omitted").
 #' @param variables.to.include.or.omit A list of character vectors corresponding
-#'  to each data set. Each character vector contains comma-separated names of
-#'  variables to include or omit (depending on the option for the data set in
-#'  \code{include.or.omit.variables}). Ranges of variables can be specified by
-#'  separating variable names by '-'. Wildcard matching of names is supported
+#'  to each data set. Each element in a character vector contains comma-separated
+#'  names of variables to include or omit (depending on the option for the data
+#'  set in \code{include.or.omit.variables}). Ranges of variables can be specified
+#'  by separating variable names by '-'. Wildcard matching of names is supported
 #'  using the asterisk character '*'.
 #' @param only.keep.cases.matched.to.all.data.sets A logical scalar which
 #'  controls whether to only keep cases if they are present in all data sets,
@@ -44,7 +44,9 @@
 #'     \code{metadataFromDataSet} for more information.
 #'   \item \code{source.data.set.indices} An integer vector corresponding to the
 #'   variables in the merged data set. Each element contains the index of the
-#'   input data set from which the variable originated.
+#'   input data set from which the variable originated. The data set index
+#'   for the ID variable will be 1 even though ID variables are present in all
+#'   data sets when ID variables are specified.
 #'   \item \code{omitted.variable.names} A list whose elements correspond to the
 #'   input data sets. Each element contains the names of variables from a data
 #'   set that were omitted from the merged data set.
@@ -88,13 +90,13 @@ MergeDataSetsByVariable <- function(data.set.names,
     #                     variables from the input data sets.
     # merged.data.set.var.names: A character vector containing the names of the
     #                            variables in the merged data set. Has the
-    #                            attributes input.variable.names.list,
+    #                            attributes included.variable.names.list,
     #                            omitted.variable.names, merged.id.variable.name,
     #                            source.data.set.indices.
-    # input.variable.names.list: A list of character vectors corresponding to
-    #                            the input data sets. Each element contains the
-    #                            names of the variables from an input data set
-    #                            that will be present in the merged data set.
+    # included.variable.names.list: A list of character vectors corresponding to
+    #                               the input data sets. Each element contains the
+    #                               names of the variables from an input data set
+    #                               that will be present in the merged data set.
     # omitted.variable.names.list: A list whose elements correspond to the input
     #                              data sets. Each element contains the names of
     #                              variables from a data set that were omitted
@@ -105,7 +107,10 @@ MergeDataSetsByVariable <- function(data.set.names,
     # source.data.set.indices: An integer vector corresponding to the variables
     #                          in the merged data set. Each element contains
     #                          the index of the input data set from which the
-    #                          variable originated.
+    #                          variable originated. The data set index for the
+    #                          ID variable will be 1 even though ID variables
+    #                          are present in all data sets when ID variables
+    #                          are specified.
     # merged.data.set: A data frame representing the merged data set.
 
     data.sets <- readDataSets(data.set.names, 2)
@@ -118,12 +123,14 @@ MergeDataSetsByVariable <- function(data.set.names,
                                                             include.or.omit.variables,
                                                             variables.to.include.or.omit,
                                                             matched.cases.matrix)
-    merged.data.set <- mergedDataSetByVariable(data.sets, matched.cases.matrix,
-                                               merged.data.set.var.names,
-                                               input.data.sets.metadata)
+    merged.data.set <- doMergeByVariable(data.sets, matched.cases.matrix,
+                                         merged.data.set.var.names,
+                                         input.data.sets.metadata)
     merged.data.set.name <- correctDataSetName(merged.data.set.name,
                                                "Merged data set.sav")
-    writeDataSet(merged.data.set, merged.data.set.name)
+    is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    writeDataSet(merged.data.set, merged.data.set.name,
+                 is.saved.to.cloud = IsDisplayrCloudDriveAvailable())
 
     result <- list()
     if (include.merged.data.set.in.output)
@@ -141,7 +148,7 @@ MergeDataSetsByVariable <- function(data.set.names,
     result$id.variable.names <- attr(matched.cases.matrix, "id.variable.names")
     result$example.id.values <- exampleIDValues(result$id.variable.names,
                                                 data.sets)
-    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    result$is.saved.to.cloud <- is.saved.to.cloud
     class(result) <- "MergeDataSetByVariable"
     result
 }
@@ -186,10 +193,8 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     # its type to merged.id.var.type
     ids.list <- lapply(seq_len(n.data.sets), function(i) {
         ids <- data.sets[[i]][[id.var.names[i]]]
-
-        if (id.var.types[i] != merged.id.var.type)
-            ids <- convertIDVariableType(ids, id.var.types[i],
-                                         merged.id.var.type)
+        ids <- convertIDVariableType(ids, id.var.types[i],
+                                     merged.id.var.type)
 
         if (all(is.na(ids)))
             stop("The id variable '", id.var.names[i], "' from data set ", i,
@@ -219,7 +224,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     }
 
     # Merge ID values
-    unique.ids <- removeNA(unique(unlist(non.missing.ids.list)))
+    unique.ids <- unique(unlist(non.missing.ids.list))
     merged.id.variable <- NULL
     for (unique.id in unique.ids)
     {
@@ -311,10 +316,16 @@ mergedIDVariableType <- function(id.variable.types)
 convertIDVariableType <- function(ids, id.variable.type,
                                   merged.id.variable.type)
 {
-    if (merged.id.variable.type == DATE.TIME.VARIABLE.TYPE &&
-        id.variable.type == DATE.VARIABLE.TYPE)
-        AsDateTime(as.character(ids))
-    else # merged.id.variable.type == TEXT.VARIABLE.TYPE
+    if (id.variable.type == merged.id.variable.type) # no conversion necessary
+    {
+        ids
+    }
+    else if (merged.id.variable.type == DATE.TIME.VARIABLE.TYPE &&
+             id.variable.type == DATE.VARIABLE.TYPE)
+    {
+             AsDateTime(as.character(ids))
+    }
+    else # merged.id.variable.type == TEXT.VARIABLE.TYPE (final possibility, see mergedIDVariableType)
     {
         if (id.variable.type == CATEGORICAL.VARIABLE.TYPE)
         {
@@ -368,7 +379,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
                                          v.names.list[[i]], i)
     })
 
-    input.var.names.list <- rep(list(character(0)), n.data.sets)
+    included.variable.names.list <- rep(list(character(0)), n.data.sets)
     omitted.var.names.list <- rep(list(character(0)), n.data.sets)
     merged.id.var.name <- NA_character_
 
@@ -376,13 +387,13 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
     {
         if (include.or.omit.variables[data.set.ind] == "Only include manually specified variables")
         {
-            input.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
+            included.variable.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
             omitted.var.names.list[[data.set.ind]] <- setdiff(v.names.list[[data.set.ind]],
                                                               v.names.to.include.or.omit.list[[data.set.ind]])
         }
         else # include.or.omit.variables[data.set.ind] == "Include all variables except those manually omitted"
         {
-            input.var.names.list[[data.set.ind]] <- setdiff(v.names.list[[data.set.ind]],
+            included.variable.names.list[[data.set.ind]] <- setdiff(v.names.list[[data.set.ind]],
                                                             v.names.to.include.or.omit.list[[data.set.ind]])
             omitted.var.names.list[[data.set.ind]] <- v.names.to.include.or.omit.list[[data.set.ind]]
         }
@@ -392,20 +403,20 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
         {
             if (data.set.ind == 1)
             {
-                input.var.names.list[[data.set.ind]] <- union(input.var.names.list[[data.set.ind]],
-                                                              id.var.names[data.set.ind])
+                included.variable.names.list[[data.set.ind]] <- union(included.variable.names.list[[data.set.ind]],
+                                                                      id.var.names[data.set.ind])
                 merged.id.var.name <- id.var.names[data.set.ind]
             }
             else if (data.set.ind > 1)
-                input.var.names.list[[data.set.ind]] <- setdiff(input.var.names.list[[data.set.ind]],
-                                                                id.var.names[data.set.ind])
+                included.variable.names.list[[data.set.ind]] <- setdiff(included.variable.names.list[[data.set.ind]],
+                                                                        id.var.names[data.set.ind])
         }
 
-        if (length(input.var.names.list[[data.set.ind]]) == 0)
+        if (length(included.variable.names.list[[data.set.ind]]) == 0)
             stop("All variables in data set ", data.set.ind, "were specified to be omitted. ",
                  "Ensure that the variables to be omitted have been correctly specified.")
 
-        input.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(input.var.names.list[[data.set.ind]],
+        included.variable.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(included.variable.names.list[[data.set.ind]],
                                                                                 v.names.list[[data.set.ind]])
         omitted.var.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(omitted.var.names.list[[data.set.ind]],
                                                                                   v.names.list[[data.set.ind]])
@@ -413,22 +424,22 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
 
     merged.data.set.var.names <- character(0)
     for (i in seq_len(n.data.sets))
-        for (nm in input.var.names.list[[i]])
+        for (nm in included.variable.names.list[[i]])
             merged.data.set.var.names <- c(merged.data.set.var.names,
                                            uniqueName(nm, merged.data.set.var.names, delimiter = "_"))
 
-    attr(merged.data.set.var.names, "input.variable.names.list") <- input.var.names.list
+    attr(merged.data.set.var.names, "included.variable.names.list") <- included.variable.names.list
     attr(merged.data.set.var.names, "omitted.variable.names.list") <- omitted.var.names.list
 
     if (!is.null(id.var.names))
     {
         merged.id.var.name <- merged.data.set.var.names[match(merged.id.var.name,
-                                                              unlist(input.var.names.list))]
+                                                              unlist(included.variable.names.list))]
         attr(merged.data.set.var.names, "merged.id.variable.name") <- merged.id.var.name
     }
 
-    source.data.set.indices <- unlist(lapply(seq_along(input.var.names.list), function(i) {
-        rep(i, length(input.var.names.list[[i]]))
+    source.data.set.indices <- unlist(lapply(seq_along(included.variable.names.list), function(i) {
+        rep(i, length(included.variable.names.list[[i]]))
     }))
     attr(merged.data.set.var.names, "source.data.set.indices") <- source.data.set.indices
 
@@ -509,26 +520,27 @@ parseInputVariableTextForDataSet <- function(input.text,
 #' @param input.data.sets.metadata See data dictionary.
 #' @return A data frame representing the merged data set.
 #' @noRd
-mergedDataSetByVariable <- function(data.sets, matched.cases.matrix,
-                                    merged.data.set.variable.names,
-                                    input.data.sets.metadata)
+doMergeByVariable <- function(data.sets, matched.cases.matrix,
+                              merged.data.set.variable.names,
+                              input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     n.merged.cases <- nrow(matched.cases.matrix)
-    input.var.names.list <- attr(merged.data.set.variable.names,
-                                 "input.variable.names.list")
+    included.variable.names.list <- attr(merged.data.set.variable.names,
+                                         "included.variable.names.list")
     id.variable.names <- attr(matched.cases.matrix, "id.variable.names")
     merged.id.var.name <- attr(merged.data.set.variable.names,
                                "merged.id.variable.name")
     merged.id.variable <- attr(matched.cases.matrix, "merged.id.variable")
 
-    merged.data.set.variables <- vector(mode = "list", length = 0)
+    merged.data.set.variables <- vector(mode = "list",
+                                        length = length(merged.data.set.variable.names))
     merged.data.set.size <- 0
 
     j <- 1
     for (data.set.ind in seq_len(n.data.sets))
     {
-        for (nm in input.var.names.list[[data.set.ind]])
+        for (nm in included.variable.names.list[[data.set.ind]])
         {
             if (!is.null(merged.id.var.name) && data.set.ind == 1 &&
                 nm == merged.id.var.name) # ID variable

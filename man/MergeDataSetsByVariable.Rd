@@ -41,10 +41,10 @@ the variables to include ("Only include manually specified variables") or the
 variables to omit ("Include all variables except those manually omitted").}
 
 \item{variables.to.include.or.omit}{A list of character vectors corresponding
-to each data set. Each character vector contains comma-separated names of
-variables to include or omit (depending on the option for the data set in
-\code{include.or.omit.variables}). Ranges of variables can be specified by
-separating variable names by '-'. Wildcard matching of names is supported
+to each data set. Each element in a character vector contains comma-separated
+names of variables to include or omit (depending on the option for the data
+set in \code{include.or.omit.variables}). Ranges of variables can be specified
+by separating variable names by '-'. Wildcard matching of names is supported
 using the asterisk character '*'.}
 
 \item{only.keep.cases.matched.to.all.data.sets}{A logical scalar which
@@ -68,7 +68,9 @@ A list of class MergeDataSetByVariable with the following elements:
     \code{metadataFromDataSet} for more information.
   \item \code{source.data.set.indices} An integer vector corresponding to the
   variables in the merged data set. Each element contains the index of the
-  input data set from which the variable originated.
+  input data set from which the variable originated. The data set index
+  for the ID variable will be 1 even though ID variables are present in all
+  data sets when ID variables are specified.
   \item \code{omitted.variable.names} A list whose elements correspond to the
   input data sets. Each element contains the names of variables from a data
   set that were omitted from the merged data set.

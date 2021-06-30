@@ -1,20 +1,22 @@
 test_that("variableType", {
-    expect_equal(variableType(variable = 1:10), "Numeric")
-    expect_equal(variableType(variable = LETTERS), "Text")
+    expect_equal(variableType(variable = 1:10), NUMERIC.VARIABLE.TYPE)
+    expect_equal(variableType(variable = LETTERS), TEXT.VARIABLE.TYPE)
     categorical.var <- structure(c(1, 2, 1),
                                  labels = structure(1:2, .Names = c("A", "B")))
-    expect_equal(variableType(variable = categorical.var), "Categorical")
-    dates <- structure(c(18802, 18803, 18804), class = "Date")
-    expect_equal(variableType(variable = dates), "Date")
+    expect_equal(variableType(variable = categorical.var), CATEGORICAL.VARIABLE.TYPE)
+    dates <- structure(c(18802, 18803, 18804), class = DATE.VARIABLE.TYPE)
+    expect_equal(variableType(variable = dates), DATE.VARIABLE.TYPE)
     date.times <- structure(c(1624538040, 1624589160, 1624733100),
                             class = c("POSIXct", "POSIXt"), tzone = "UTC")
-    expect_equal(variableType(variable = date.times), "Date/Time")
+    expect_equal(variableType(variable = date.times), DATE.TIME.VARIABLE.TYPE)
     duration <- structure(10:12, class = "difftime", units = "mins")
-    expect_equal(variableType(variable = duration), "Duration")
+    expect_equal(variableType(variable = duration), DURATION.VARIABLE.TYPE)
 })
 
 test_that("isDateType", {
-    expect_equal(isDateType(var.types = c("Date", "Date/Time", "Numeric")),
+    expect_equal(isDateType(var.types = c(DATE.VARIABLE.TYPE,
+                                          DATE.TIME.VARIABLE.TYPE,
+                                          NUMERIC.VARIABLE.TYPE)),
                  c(TRUE, TRUE, FALSE))
 })
 
@@ -36,8 +38,9 @@ test_that("splitByComma", {
 })
 
 test_that("isIntegerValued", {
-    expect_true(isIntegerValued(x = c(-1, 0, 1, 2, 3, NA, Inf)))
-    expect_false(isIntegerValued(x = c(0, 1.1, NA)))
+    expect_false(isIntegerValued(x = c(0, 1.1, NA))) # contains 1.1
+    expect_false(isIntegerValued(x = c(-1, 0, 1, 2, 3, NA, Inf))) # contains Inf
+    expect_true(isIntegerValued(x = c(-1, 0, 1, 2, 3, NA)))
 })
 
 test_that("correctDataSetName", {

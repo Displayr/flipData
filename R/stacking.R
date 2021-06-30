@@ -152,8 +152,9 @@ StackData <- function(input.data.set.name,
                                                      input.data.set.name)
 
     write.stacked.data.set <- nrow(stacked.data.set) > 0
+    is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
     if (write.stacked.data.set)
-        writeDataSet(stacked.data.set, stacked.data.set.name)
+        writeDataSet(stacked.data.set, stacked.data.set.name, is.saved.to.cloud)
 
     # Create an object containing metadata on the stacked data set such as
     # variable names and labels
@@ -165,7 +166,7 @@ StackData <- function(input.data.set.name,
     result$stacked.data.set.metadata <- stacked.data.set.metadata
     result$unstackable.names <- attr(stacking.groups, "unstackable.names")
     result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
+    result$is.saved.to.cloud <- is.saved.to.cloud
 
     if (include.stacked.data.set.in.output)
         result$stacked.data.set <- stacked.data.set
