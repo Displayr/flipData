@@ -2228,7 +2228,7 @@ variableLabelFromDataSets <- function(matched.names.row, data.sets,
     return("")
 }
 
-# Create mergesrc variable
+# Create `Source of cases` variable for the output file, which allows the consumer to determine which input file each variable came from.
 mergeSrc <- function(n.data.set.cases, data.set.names)
 {
     n.data.sets <- length(n.data.set.cases)
