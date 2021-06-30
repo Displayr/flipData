@@ -140,7 +140,8 @@ MergeDataSetsByCase <- function(data.set.names,
     merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
                                                    data.set.names)
 
-    writeDataSet(merged.data.set, merged.data.set.name)
+    is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    writeDataSet(merged.data.set, merged.data.set.name, is.saved.to.cloud)
 
     result <- list()
     if (include.merged.data.set.in.output)
@@ -155,7 +156,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                                       matched.names)
     result$input.value.attributes <- lapply(merged.data.set, attr,
                                             "input.value.attributes")
-    result$is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+    result$is.saved.to.cloud <- is.saved.to.cloud
     class(result) <- "MergeDataSetByCase"
     result
 }
@@ -683,7 +684,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
                     }
                 }
                 if (!is.variable.found)
-                    variableNotFoundError(input.text)
+                    throwVariableNotFoundError(input.text)
             }
             else # has wildcard
             {
@@ -713,7 +714,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
                 for (j in data.set.indices)
                 {
                     if (!(input.text.without.index %in% v.names[[j]]))
-                        variableNotFoundError(input.text.without.index, j)
+                        throwVariableNotFoundError(input.text.without.index, j)
                     parsed.v.names.list[[j]] <- input.text.without.index
                 }
             }
@@ -957,48 +958,6 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
         else
             return(integer(0))
     }
-}
-
-# Returns all variables within the specified start and end variables
-variablesFromRange <- function(variable.names, range.start, range.end,
-                               data.set.index, input.text,
-                               error.if.not.found)
-{
-    start.ind <- ifelse(range.start != "", match(range.start, variable.names), 1)
-    end.ind <- ifelse(range.end != "", match(range.end, variable.names),
-                      length(variable.names))
-
-    if (error.if.not.found)
-    {
-        if (is.na(start.ind))
-            variableNotFoundError(range.start, data.set.index)
-        if (is.na(end.ind))
-            variableNotFoundError(range.end, data.set.index)
-    }
-    else
-    {
-        if (is.na(start.ind) || is.na(end.ind))
-            return(NULL)
-    }
-
-    if (start.ind > end.ind)
-        stop("The start variable '", range.start,
-             "' appears after the end variable '", range.end,
-             "' in the input data set ", data.set.index,
-             " for the input range '", input.text, "'.")
-    variable.names[start.ind:end.ind]
-}
-
-variableNotFoundError <- function(var.name, data.set.index = NULL)
-{
-    data.set.text <- if (is.null(data.set.index))
-        "any of the input data sets. "
-    else
-        paste0("the input data set ", data.set.index, ". ")
-
-    stop("The input variable '", var.name,
-         "' could not be found in ", data.set.text,
-         "Ensure that the variable has been correctly specified.")
 }
 
 addToParsedNames <- function(parsed.names, input.text.without.index,
