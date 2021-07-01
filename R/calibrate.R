@@ -356,7 +356,7 @@ print.Calibrate <- function (x, ...)
     instruction.for.getting.variable = ""
     product = get0("productName")
     if (!is.null(product))
-        instruction.for.getting.variable <- "\n\nTo save the variable, click ACTION > Save weight variable"
+        instruction.for.getting.variable <- "\n\nTo save the variable, click SAVE VARIABLE(S) > Save Weight Variable from Configuration"
     ess = EffectiveSampleSize(x)
     ess.percent = round(ess / length(x) * 100)
     n = length(x)
