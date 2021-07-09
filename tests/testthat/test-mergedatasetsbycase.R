@@ -1059,6 +1059,8 @@ test_that("mergedVariableNames (preferring first data set)", {
 })
 
 test_that("mergedVariableNames (preferring last data set)", {
+    matched.names <- matrix(c("Q1", NA_character_, "Q3", "Q1B", "Q2", "Q3B"),
+                            ncol = 2)
     merged.names <- mergedVariableNames(matched.names,
                                         use.names.and.labels.from = "Last data set")
     expect_equal(merged.names,
