@@ -2129,6 +2129,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     }
 }
 
+# Combine variables in var.list into a date-time variable
 # v.types can be text, numeric, date and date/time
 #' @importFrom lubridate as_datetime
 combineAsDateTimeVariable <- function(var.list, data.sets, v.types)
@@ -2148,6 +2149,7 @@ combineAsDateTimeVariable <- function(var.list, data.sets, v.types)
     }))
 }
 
+# Combine variables in var.list into a date variable
 # v.types can be text, numeric and date
 #' @importFrom lubridate as_date
 combineAsDateVariable <- function(var.list, data.sets, v.types)
@@ -2165,6 +2167,7 @@ combineAsDateVariable <- function(var.list, data.sets, v.types)
     }))
 }
 
+# Combine variables in var.list into a duration variable
 # v.types can be text and duration
 combineAsDurationVariable <- function(var.list, data.sets, v.types)
 {
@@ -2179,6 +2182,7 @@ combineAsDurationVariable <- function(var.list, data.sets, v.types)
     }))
 }
 
+# Combine variables in var.list into a numeric variable
 # v.types can be text and numeric
 combineAsNumericVariable <- function(var.list, data.sets, v.types)
 {
@@ -2198,6 +2202,7 @@ combineAsNumericVariable <- function(var.list, data.sets, v.types)
     return(result)
 }
 
+# Combine variables in var.list into a text variable
 # v.types can be text, numeric and categorical
 combineAsTextVariable <- function(var.list, data.sets, v.types)
 {
