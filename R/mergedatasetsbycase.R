@@ -2153,7 +2153,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
         }
         else
         {
-            // Not all values are numeric, so turn everything into text.
+            # Not all values are numeric, so turn everything into text.
             return(unlist(lapply(seq_len(n.data.sets), function(i) {
                 v <- var.list[[i]]
                 if (is.null(v))
