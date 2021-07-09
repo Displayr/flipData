@@ -2075,122 +2075,51 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
 }
 
 # Combine variables in var.list into a (non-categorical) variable
-#' @importFrom lubridate as_date as_datetime
 combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
 {
-    n.data.sets <- length(data.sets)
-
-    .combineVar <- function(parser)
-    {
-        parser.name <- as.character(sys.call()[2])
-
-        result <- NULL
-        for (i in seq_len(n.data.sets))
-        {
-            v <- var.list[[i]]
-            new.vals <- if (is.null(v))
-                parser(rep(NA_character_, nrow(data.sets[[i]])))
-            else if (v.types[i] == TEXT.VARIABLE.TYPE)
-            {
-                missing.ind <- isMissingValue(v)
-                parsed <- parser(rep(NA_character_, length(v)))
-                parsed[!missing.ind] <- parser(v[!missing.ind])
-                parsed
-            }
-            else if (v.types[i] == NUMERIC.VARIABLE.TYPE && parser.name == "AsDateTime")
-            {
-                missing.ind <- is.na(v)
-                converted <- parser(rep(NA_character_, length(v)))
-                converted[!missing.ind] <- as_datetime(v[!missing.ind])
-                converted
-            }
-            else if (v.types[i] == NUMERIC.VARIABLE.TYPE && parser.name == "AsDate")
-            {
-                missing.ind <- is.na(v)
-                converted <- parser(rep(NA_character_, length(v)))
-                converted[!missing.ind] <- as_date(v[!missing.ind])
-                converted
-            }
-            else if (v.types[i] == DATE.VARIABLE.TYPE &&
-                     parser.name == DATE.TIME.VARIABLE.TYPE)
-                parser(as.character(v))
-            else
-                v
-
-            if (is.null(result))
-                result <- new.vals
-            else
-                result <- c(result, new.vals)
-        }
-        result
-    }
-
     unique.v.types <- unique(removeNA(v.types))
 
     if (DATE.TIME.VARIABLE.TYPE %in% unique.v.types &&
         all(unique.v.types %in% c(DATE.VARIABLE.TYPE, DATE.TIME.VARIABLE.TYPE,
                                   NUMERIC.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
-        return(.combineVar(AsDateTime))
+    {
+        return(combineAsDateTimeVariable(var.list, data.sets, v.types))
+    }
     else if (DATE.VARIABLE.TYPE %in% unique.v.types &&
              all(unique.v.types %in% c(DATE.VARIABLE.TYPE, NUMERIC.VARIABLE.TYPE,
                                        TEXT.VARIABLE.TYPE)))
-        return(.combineVar(AsDate))
+    {
+        return(combineAsDateVariable(var.list, data.sets, v.types))
+    }
     else if (DURATION.VARIABLE.TYPE %in% unique.v.types &&
              all(unique.v.types %in% c(DURATION.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
-        return(.combineVar(as.difftime))
+    {
+        return(combineAsDurationVariable(var.list, data.sets, v.types))
+    }
     else if (NUMERIC.VARIABLE.TYPE %in% unique.v.types &&
              all(unique.v.types %in% c(NUMERIC.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
     {
         text.ind <- which(v.types == TEXT.VARIABLE.TYPE)
-        is.parsable <- all(vapply(text.ind, function(j) {
+        is.parsable.as.numeric <- all(vapply(text.ind, function(j) {
             isParsableAsNumeric(var.list[[j]])
         }, logical(1)))
 
-        if (is.parsable)
-        {
-            result <- .combineVar(as.numeric)
-            if (isIntegerValued(result))
-                return(as.integer(result))
-            else
-                return(result)
-        }
+        if (is.parsable.as.numeric)
+            return(combineAsNumericVariable(var.list, data.sets, v.types))
         else
-        {
-            # Not all values are numeric, so turn everything into text.
-            return(unlist(lapply(seq_len(n.data.sets), function(i) {
-                v <- var.list[[i]]
-                if (is.null(v))
-                    rep(NA, nrow(data.sets[[i]]))
-                else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
-                    as.character(v)
-                else
-                    v
-            })))
-        }
+            return(combineAsTextVariable(var.list, data.sets, v.types))
     }
     else if (unique.v.types == TEXT.VARIABLE.TYPE)
-        return(.combineVar(function(x) x))
+    {
+        return(combineAsTextVariable(var.list, data.sets, v.types))
+    }
     else if (CATEGORICAL.VARIABLE.TYPE %in% unique.v.types)
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
         # duration variables or there are too many unique values in numeric or
         # text variables.
-        return(unlist(lapply(seq_len(n.data.sets), function(i) {
-            v <- var.list[[i]]
-            if (is.null(v))
-                rep(NA_character_, nrow(data.sets[[i]]))
-            else if (v.types[i] == CATEGORICAL.VARIABLE.TYPE)
-            {
-                result <- rep(NA_character_, nrow(data.sets[[i]]))
-                val.attr <- attr(var.list[[i]], "labels")
-                for (j in seq_along(val.attr))
-                    result[v == val.attr[j]] <- names(val.attr)[j]
-                result
-            }
-            else
-                as.character(v)
-        })))
+        return(combineAsTextVariable(var.list, data.sets, v.types))
     }
     else
     {
@@ -2198,6 +2127,123 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
         stop("Unhandled variable types combination: ",
              paste0(unique.v.types, collapse = ", "))
     }
+}
+
+# v.types can be text, numeric, date and date/time
+#' @importFrom lubridate as_datetime
+combineAsDateTimeVariable <- function(var.list, data.sets, v.types)
+{
+    do.call("c", lapply(seq_along(data.sets), function(i) {
+        v <- var.list[[i]]
+        if (is.null(v))
+            AsDateTime(rep(NA_character_, nrow(data.sets[[i]])))
+        else if (v.types[i] == TEXT.VARIABLE.TYPE)
+            parseTextVariable(v, AsDateTime)
+        else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
+            parseNumericVariable(v, as_datetime)
+        else if (v.types[i] == DATE.VARIABLE.TYPE)
+            AsDateTime(as.character(v))
+        else # v.types[i] == DATE.TIME.VARIABLE.TYPE
+            v
+    }))
+}
+
+# v.types can be text, numeric and date
+#' @importFrom lubridate as_date
+combineAsDateVariable <- function(var.list, data.sets, v.types)
+{
+    do.call("c", lapply(seq_along(data.sets), function(i) {
+        v <- var.list[[i]]
+        if (is.null(v))
+            AsDate(rep(NA_character_, nrow(data.sets[[i]])))
+        else if (v.types[i] == TEXT.VARIABLE.TYPE)
+            parseTextVariable(v, AsDate)
+        else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
+            parseNumericVariable(v, as_date)
+        else # v.types[i] == DATE.VARIABLE.TYPE
+            v
+    }))
+}
+
+# v.types can be text and duration
+combineAsDurationVariable <- function(var.list, data.sets, v.types)
+{
+    do.call("c", lapply(seq_along(data.sets), function(i) {
+        v <- var.list[[i]]
+        if (is.null(v))
+            as.difftime(rep(NA_character_, nrow(data.sets[[i]])))
+        else if (v.types[i] == TEXT.VARIABLE.TYPE)
+            parseTextVariable(v, as.difftime)
+        else # v.types[i] == DURATION.VARIABLE.TYPE
+            v
+    }))
+}
+
+# v.types can be text and numeric
+combineAsNumericVariable <- function(var.list, data.sets, v.types)
+{
+    result <- do.call("c", lapply(seq_along(data.sets), function(i) {
+        v <- var.list[[i]]
+        if (is.null(v))
+            rep(NA_real_, nrow(data.sets[[i]]))
+        else if (v.types[i] == TEXT.VARIABLE.TYPE)
+            parseTextVariable(v, as.numeric)
+        else # v.types[i] == NUMERIC.VARIABLE.TYPE
+            v
+    }))
+
+    if (isIntegerValued(result))
+        result <- as.integer(result)
+
+    return(result)
+}
+
+# v.types can be text, numeric and categorical
+combineAsTextVariable <- function(var.list, data.sets, v.types)
+{
+    do.call("c", lapply(seq_along(data.sets), function(i) {
+        v <- var.list[[i]]
+        if (is.null(v))
+            rep(NA_character_, nrow(data.sets[[i]]))
+        else if (v.types[i] == CATEGORICAL.VARIABLE.TYPE)
+        {
+            result <- rep(NA_character_, nrow(data.sets[[i]]))
+            val.attr <- attr(var.list[[i]], "labels")
+            for (j in seq_along(val.attr))
+                result[v == val.attr[j]] <- names(val.attr)[j]
+            result
+        }
+        else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
+            as.character(v)
+        else # v.types[i] == TEXT.VARIABLE.TYPE
+            v
+    }))
+}
+
+#' @param text.variable A character vector representing a text variable.
+#' @param parser A function that parses a character vector into a vector of
+#'  some other type.
+#' @return A vector of type determined by the parser.
+#' @noRd
+parseTextVariable <- function(text.variable, parser)
+{
+    missing.ind <- isMissingValue(text.variable)
+    result <- parser(rep(NA_character_, length(text.variable)))
+    result[!missing.ind] <- parser(text.variable[!missing.ind])
+    result
+}
+
+#' @param numeric.variable A numeric vector representing a text variable.
+#' @param parser A function that parses a numeric vector into a vector of
+#'  some other type.
+#' @return A vector of type determined by the parser.
+#' @noRd
+parseNumericVariable <- function(numeric.variable, parser)
+{
+    missing.ind <- is.na(numeric.variable)
+    parsed <- parser(rep(NA_real_, length(numeric.variable)))
+    parsed[!missing.ind] <- parser(numeric.variable[!missing.ind])
+    parsed
 }
 
 # Remap values in variable given a value map
