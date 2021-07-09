@@ -1099,10 +1099,11 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
     # Find fuzzy label match
     if (match.by.variable.labels && length(lbls) > 0)
     {
-        match.percentages <- matchPercentages(candidate.labels, lbls,
-                                              ignore.case,
-                                              ignore.non.alphanumeric,
-                                              min.match.percentage)
+        match.percentages <- matchPercentages(strings.1 = candidate.labels,
+                                              strings.2 = lbls,
+                                              ignore.case = ignore.case,
+                                              ignore.non.alphanumeric = ignore.non.alphanumeric,
+                                              min.match.percentage = min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -1148,9 +1149,11 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
     # Find fuzzy name match
     if (match.by.variable.names)
     {
-        match.percentages <- matchPercentages(candidate.names, nms, ignore.case,
-                                              ignore.non.alphanumeric,
-                                              min.match.percentage)
+        match.percentages <- matchPercentages(strings.1 = candidate.names,
+                                              strings.2 = nms,
+                                              ignore.case = ignore.case,
+                                              ignore.non.alphanumeric = ignore.non.alphanumeric,
+                                              min.match.percentage = min.match.percentage)
         sorted.match.percentages <- unique(sort(match.percentages, decreasing = TRUE))
 
         for (p in sorted.match.percentages)
@@ -1210,11 +1213,11 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
     # Find fuzzy value label match
     if (match.by.value.labels && length(val.attrs) > 0)
     {
-        match.percentages <- matchPercentagesForValueAttributes(candidate.val.attrs,
-                                                                val.attrs,
-                                                                ignore.case,
-                                                                ignore.non.alphanumeric,
-                                                                min.match.percentage)
+        match.percentages <- matchPercentagesForValueAttributes(val.attrs.1 = candidate.val.attrs,
+                                                                val.attrs.2 = val.attrs,
+                                                                ignore.case = ignore.case,
+                                                                ignore.non.alphanumeric = ignore.non.alphanumeric,
+                                                                min.match.percentage = min.match.percentage)
         best.match.percentage <- max(match.percentages)
         if (best.match.percentage >= min.match.percentage)
         {
@@ -1275,7 +1278,7 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
         ind <- which(n.char.1 > 0)
         n.char.diff <- abs(nchar(s) - n.char.1[ind])
         max.n.char <- pmax(nchar(s), n.char.1[ind])
-        ind <- ind[adjustedMatchPercentage(n.char.diff, max.n.char) >= min.match.percentage]
+        ind <- ind[adjustedMatchPercentage(distances = n.char.diff, max.nchars = max.n.char) >= min.match.percentage]
 
         d[ind] <- stringdist(s, strings.1[ind])
         d
@@ -1285,7 +1288,8 @@ matchPercentages <- function(strings.1, strings.2, ignore.case,
                       nrow = length(strings.1))
     nchar.matrix.2 <- matrix(rep(n.char.2, each = length(strings.1)),
                       nrow = length(strings.1))
-    adjustedMatchPercentage(distances, pmax(nchar.matrix.1, nchar.matrix.2))
+    adjustedMatchPercentage(distances = distances,
+                            max.nchars = pmax(nchar.matrix.1, nchar.matrix.2))
 }
 
 # Compute an adjusted match percentage that gives higher values when two
@@ -1344,8 +1348,11 @@ matchPercentagesForValueAttributes <- function(val.attrs.1, val.attrs.2,
         paste0(sort(lbls), collapse = ",")
     }, character(1))
 
-    matchPercentages(lbls.combined.1, lbls.combined.2, FALSE, FALSE,
-                     min.match.percentage)
+    matchPercentages(strings.1 = lbls.combined.1,
+                     strings.2 = lbls.combined.2,
+                     ignore.case = FALSE,
+                     ignore.non.alphanumeric = FALSE,
+                     min.match.percentage = min.match.percentage)
 }
 
 # Returns a vector of percentage matches (similarities) between the value label
@@ -1362,7 +1369,7 @@ matchPercentagesForValueLabels <- function(lbl, lbls.to.compare.against,
         return(rep(0, length(lbls.to.compare.against)))
 
     distances <- stringdist(lbl, lbls.to.compare.against)
-    adjustedMatchPercentage(distances, nchar.lbls)
+    adjustedMatchPercentage(distances = distances, max.nchars = nchar.lbls)
 }
 
 normalizeValueLabels <- function(lbls, match.parameters)
@@ -1647,9 +1654,9 @@ orderMatchedNames <- function(matched.names, input.data.sets.metadata,
     indices.to.keep.togther <- lapply(duplicated.names,
                                       function(nm) which(nm == nms))
 
-    ordering <- mergeIndicesList(v.indices,
-                                 use.names.and.labels.from == "First data set",
-                                 indices.to.keep.togther)
+    ordering <- mergeIndicesList(indices.list = v.indices,
+                                 prefer.first.element = use.names.and.labels.from == "First data set",
+                                 indices.to.keep.togther = indices.to.keep.togther)
 
     ordered.matched.names <- matched.names[ordering, , drop = FALSE]
     attr(ordered.matched.names, "non.combinable.variables") <- attr(matched.names, "non.combinable.variables")
@@ -2021,9 +2028,9 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
     }
     else
     {
-        match.percentages <- matchPercentagesForValueLabels(lbl,
-                                                            names(merged.val.attr),
-                                                            match.parameters)
+        match.percentages <- matchPercentagesForValueLabels(lbl = lbl,
+                                                            lbls.to.compare.against = names(merged.val.attr),
+                                                            match.parameters = match.parameters)
         if (max(match.percentages) >= match.parameters$min.value.label.match.percentage) # label is close enough
         {
             merged.val <- unname(merged.val.attr[which.max(match.percentages)])
