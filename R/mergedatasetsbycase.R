@@ -1478,31 +1478,31 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         md$variable.value.attributes[[non.missing.ind[i]]][[row.vars.ind[i]]]
     })
 
-    if (var.type == "Numeric")
+    if (var.type == NUMERIC.VARIABLE.TYPE)
     {
         if (any(isDateType(row.vars.types)))
             return(isConvertibleToDateTime(var.vals))
 
-        if ("Duration" %in% row.vars.types)
+        if (DURATION.VARIABLE.TYPE %in% row.vars.types)
             return(FALSE)
 
-        if ("Categorical" %in% row.vars.types)
-            return(isConvertibleToCategorical("Numeric", var.vals,
-                                              row.vars.val.attr[row.vars.types == "Categorical"],
+        if (CATEGORICAL.VARIABLE.TYPE %in% row.vars.types)
+            return(isConvertibleToCategorical(NUMERIC.VARIABLE.TYPE, var.vals,
+                                              row.vars.val.attr[row.vars.types == CATEGORICAL.VARIABLE.TYPE],
                                               20))
         return(TRUE)
     }
-    else if (var.type == "Text")
+    else if (var.type == TEXT.VARIABLE.TYPE)
     {
         if (any(isDateType(row.vars.types)))
             return(isParsableAsDateTime(var.vals))
 
-        if ("Duration" %in% row.vars.types)
+        if (DURATION.VARIABLE.TYPE %in% row.vars.types)
             return(FALSE)
 
-        if ("Categorical" %in% row.vars.types)
-            return(isConvertibleToCategorical("Text", var.vals,
-                                              row.vars.val.attr[row.vars.types == "Categorical"],
+        if (CATEGORICAL.VARIABLE.TYPE %in% row.vars.types)
+            return(isConvertibleToCategorical(TEXT.VARIABLE.TYPE, var.vals,
+                                              row.vars.val.attr[row.vars.types == CATEGORICAL.VARIABLE.TYPE],
                                               20))
         return(TRUE)
     }
@@ -1510,17 +1510,17 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
     {
         if (any(isDateType(row.vars.types)))
             return(TRUE)
-        if (any(c("Categorical", "Duration") %in% row.vars.types))
+        if (any(c(CATEGORICAL.VARIABLE.TYPE, DURATION.VARIABLE.TYPE) %in% row.vars.types))
             return(FALSE)
 
         for (i in seq_along(row.vars.types))
         {
-            if (row.vars.types[i] == "Numeric")
+            if (row.vars.types[i] == NUMERIC.VARIABLE.TYPE)
             {
                 if (!isConvertibleToDateTime(row.vars.vals[[i]]))
                     return(FALSE)
             }
-            else # row.vars.types[i] == "Text"
+            else # row.vars.types[i] == TEXT.VARIABLE.TYPE
             {
                 if (!isParsableAsDateTime(row.vars.vals[[i]]))
                     return(FALSE)
@@ -1528,16 +1528,16 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         }
         return(TRUE)
     }
-    else if (var.type == "Duration")
-        return(all(row.vars.types == "Duration"))
-    else if (var.type == "Categorical")
+    else if (var.type == DURATION.VARIABLE.TYPE)
+        return(all(row.vars.types == DURATION.VARIABLE.TYPE))
+    else if (var.type == CATEGORICAL.VARIABLE.TYPE)
     {
-        if ("Duration" %in% row.vars.types || any(isDateType(row.vars.types)))
+        if (DURATION.VARIABLE.TYPE %in% row.vars.types || any(isDateType(row.vars.types)))
             return(FALSE)
         for (i in seq_along(row.vars.types))
         {
             val.attrs <- c(list(var.val.attr),
-                           row.vars.val.attr[row.vars.types == "Categorical"])
+                           row.vars.val.attr[row.vars.types == CATEGORICAL.VARIABLE.TYPE])
             if(!isConvertibleToCategorical(row.vars.types[i], row.vars.vals[[i]],
                                            val.attrs, 20))
                 return(FALSE)
@@ -1583,10 +1583,11 @@ isConvertibleToDateTime <- function(num)
 isConvertibleToCategorical <- function(variable.type, values, val.attrs,
                                        max.unique.values)
 {
-    if (variable.type == "Categorical")
+    if (variable.type == CATEGORICAL.VARIABLE.TYPE)
         return(TRUE)
 
-    if (variable.type %in% c("Date", "Date/Time", "Duration"))
+    if (variable.type %in% c(DATE.VARIABLE.TYPE, DATE.TIME.VARIABLE.TYPE,
+                             DURATION.VARIABLE.TYPE))
         return(FALSE)
 
     n.category.values <- length(unique(unlist(lapply(val.attrs, as.character))))
@@ -1812,10 +1813,10 @@ compositeVariable <- function(matched.names.row, data.sets,
 
 isCombinedAsCategoricalVariable <- function(var.list, v.types)
 {
-    if ("Categorical" %in% removeNA(v.types))
+    if (CATEGORICAL.VARIABLE.TYPE %in% removeNA(v.types))
     {
         combine.as.categorical.var <- TRUE
-        val.attrs <- lapply(which(v.types == "Categorical"), function(i) {
+        val.attrs <- lapply(which(v.types == CATEGORICAL.VARIABLE.TYPE), function(i) {
             attr(var.list, "labels", exact = TRUE)
         })
         for (i in seq_along(v.types))
@@ -1842,7 +1843,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
 {
     val.attr.list <- lapply(var.list, attr, "labels")
 
-    cat.ind <- which(v.types == "Categorical")
+    cat.ind <- which(v.types == CATEGORICAL.VARIABLE.TYPE)
     if (use.names.and.labels.from == "Last data set")
         cat.ind <- rev(cat.ind)
 
@@ -1887,7 +1888,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
 
         if (is.null(v))
             result <- c(result, rep(NA, nrow(data.sets[[i]])))
-        else if (v.types[i] == "Text")
+        else if (v.types[i] == TEXT.VARIABLE.TYPE)
         {
             is.missing <- isMissingValue(v)
             # It is necessary to call as.character to remove potential excess
@@ -1941,7 +1942,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
                 result <- c(result, var.values)
             }
         }
-        else if (v.types[i] == "Numeric")
+        else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
         {
             unique.v <- unique(removeNA(v))
             result <- c(result, v)
@@ -2089,28 +2090,29 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
             v <- var.list[[i]]
             new.vals <- if (is.null(v))
                 parser(rep(NA_character_, nrow(data.sets[[i]])))
-            else if (v.types[i] == "Text")
+            else if (v.types[i] == TEXT.VARIABLE.TYPE)
             {
                 missing.ind <- isMissingValue(v)
                 parsed <- parser(rep(NA_character_, length(v)))
                 parsed[!missing.ind] <- parser(v[!missing.ind])
                 parsed
             }
-            else if (v.types[i] == "Numeric" && parser.name == "AsDateTime")
+            else if (v.types[i] == NUMERIC.VARIABLE.TYPE && parser.name == "AsDateTime")
             {
                 missing.ind <- is.na(v)
                 converted <- parser(rep(NA_character_, length(v)))
                 converted[!missing.ind] <- as_datetime(v[!missing.ind])
                 converted
             }
-            else if (v.types[i] == "Numeric" && parser.name == "AsDate")
+            else if (v.types[i] == NUMERIC.VARIABLE.TYPE && parser.name == "AsDate")
             {
                 missing.ind <- is.na(v)
                 converted <- parser(rep(NA_character_, length(v)))
                 converted[!missing.ind] <- as_date(v[!missing.ind])
                 converted
             }
-            else if (v.types[i] == "Date" && parser.name == "AsDateTime")
+            else if (v.types[i] == DATE.VARIABLE.TYPE &&
+                     parser.name == DATE.TIME.VARIABLE.TYPE)
                 parser(as.character(v))
             else
                 v
@@ -2125,27 +2127,21 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
 
     unique.v.types <- unique(removeNA(v.types))
 
-    if (setequal(unique.v.types, c("Date/Time")) ||
-        setequal(unique.v.types, c("Date/Time", "Text")) ||
-        setequal(unique.v.types, c("Date/Time", "Date")) ||
-        setequal(unique.v.types, c("Date/Time", "Numeric")) ||
-        setequal(unique.v.types, c("Date/Time", "Text", "Date")) ||
-        setequal(unique.v.types, c("Date/Time", "Text", "Numeric")) ||
-        setequal(unique.v.types, c("Date/Time", "Date", "Numeric")) ||
-        setequal(unique.v.types, c("Date/Time", "Text", "Date", "Numeric")))
+    if (DATE.TIME.VARIABLE.TYPE %in% unique.v.types &&
+        all(unique.v.types %in% c(DATE.VARIABLE.TYPE, DATE.TIME.VARIABLE.TYPE,
+                                  NUMERIC.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
         return(.combineVar(AsDateTime))
-    else if (setequal(unique.v.types, c("Date")) ||
-             setequal(unique.v.types, c("Date", "Text")) ||
-             setequal(unique.v.types, c("Date", "Numeric")) ||
-             setequal(unique.v.types, c("Date", "Text", "Numeric")))
+    else if (DATE.VARIABLE.TYPE %in% unique.v.types &&
+             all(unique.v.types %in% c(DATE.VARIABLE.TYPE, NUMERIC.VARIABLE.TYPE,
+                                       TEXT.VARIABLE.TYPE)))
         return(.combineVar(AsDate))
-    else if (setequal(unique.v.types, c("Duration")) ||
-             setequal(unique.v.types, c("Duration", "Text")))
+    else if (DURATION.VARIABLE.TYPE %in% unique.v.types &&
+             all(unique.v.types %in% c(DURATION.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
         return(.combineVar(as.difftime))
-    else if (setequal(unique.v.types, c("Numeric")) ||
-             setequal(unique.v.types, c("Numeric", "Text")))
+    else if (NUMERIC.VARIABLE.TYPE %in% unique.v.types &&
+             all(unique.v.types %in% c(NUMERIC.VARIABLE.TYPE, TEXT.VARIABLE.TYPE)))
     {
-        text.ind <- which(v.types == "Text")
+        text.ind <- which(v.types == TEXT.VARIABLE.TYPE)
         is.parsable <- all(vapply(text.ind, function(j) {
             isParsableAsNumeric(var.list[[j]])
         }, logical(1)))
@@ -2165,16 +2161,16 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
                 v <- var.list[[i]]
                 if (is.null(v))
                     rep(NA, nrow(data.sets[[i]]))
-                else if (v.types[i] == "Numeric")
+                else if (v.types[i] == NUMERIC.VARIABLE.TYPE)
                     as.character(v)
                 else
                     v
             })))
         }
     }
-    else if (setequal(unique.v.types, c("Text")))
+    else if (unique.v.types == TEXT.VARIABLE.TYPE)
         return(.combineVar(function(x) x))
-    else if ("Categorical" %in% unique.v.types)
+    else if (CATEGORICAL.VARIABLE.TYPE %in% unique.v.types)
     {
         # If there are any categorical variables, convert everything into text.
         # This only occurs when categorical is combined with date, date/time or
@@ -2184,7 +2180,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
             v <- var.list[[i]]
             if (is.null(v))
                 rep(NA_character_, nrow(data.sets[[i]]))
-            else if (v.types[i] == "Categorical")
+            else if (v.types[i] == CATEGORICAL.VARIABLE.TYPE)
             {
                 result <- rep(NA_character_, nrow(data.sets[[i]]))
                 val.attr <- attr(var.list[[i]], "labels")

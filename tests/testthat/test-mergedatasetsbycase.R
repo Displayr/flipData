@@ -438,7 +438,7 @@ test_that("Variable type conversion (categorical and numeric to categorical)", {
                                                      findInstDirFile("cola6.sav")),
                                   include.merged.data.set.in.output = TRUE)
     expect_equal(unname(result$merged.data.set.metadata$variable.types["Q2"]),
-                 "Categorical")
+                 CATEGORICAL.VARIABLE.TYPE)
     expect_true(all(result$merged.data.set$Q2[1:327] == result$merged.data.set$Q2[328:654]))
 })
 
@@ -448,7 +448,7 @@ test_that("Variable type conversion (text to date)", {
                                                      findInstDirFile("cola14.sav")),
                                   variables.to.combine = "LastResp_date,LastResp_date_text",
                                   include.merged.data.set.in.output = TRUE)
-    expect_true(class(result$merged.data.set$LastResp_date) == "Date")
+    expect_true(class(result$merged.data.set$LastResp_date) == DATE.VARIABLE.TYPE)
     expect_true(all(!is.na(result$merged.data.set$LastResp_date)))
 })
 
