@@ -138,8 +138,8 @@ MergeDataSetsByCase <- function(data.set.names,
                                      use.names.and.labels.from,
                                      when.multiple.labels.for.one.value,
                                      match.parameters)
-    merged.data.set.name <- cleanMergedDataSetName(merged.data.set.name,
-                                                   data.set.names)
+    merged.data.set.name <- correctDataSetName(merged.data.set.name,
+                                               "Merged data set.sav")
 
     is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
     writeDataSet(merged.data.set, merged.data.set.name, is.saved.to.cloud)
@@ -2302,20 +2302,6 @@ mergeSrc <- function(n.data.set.cases, data.set.names)
                                         .Names = data.set.names)
     class(result) <- c(class(result), "haven_labelled")
     result
-}
-
-cleanMergedDataSetName <- function(merged.data.set.name, data.set.names)
-{
-    if (is.null(merged.data.set.name) || trimws(merged.data.set.name) == "")
-        "Merged data set.sav"
-    else
-    {
-        result <- trimws(merged.data.set.name)
-        if (!grepl(".sav$", merged.data.set.name))
-            result <- paste0(result, ".sav")
-        checkFileNameCharacters(result)
-        result
-    }
 }
 
 # Return a list of names of variables in each data set omitted from the merged
