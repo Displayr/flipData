@@ -2010,8 +2010,14 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
     result
 }
 
-# Extract the value from val.attr given a label, also dealing with the special
-# case where label == ""
+#' @description  Extract the value from val.attr given a label, also dealing
+#'  with the special case where label == "". If it wasn't for this special case
+#'  we could just call unname(val.attr[label]).
+#' @param val.attr A named numeric vector representing value attributes, where
+#'  the value names are the labels.
+#' @param label A character scalar of a label for which a value is to be returned.
+#' @return A numeric scalar of the value corresponding to the label.
+#' @noRd
 labelValue <- function(val.attr, label)
 {
     if (label != "")
@@ -2054,6 +2060,8 @@ labelValue <- function(val.attr, label)
 #'  different values when creating the merged variable.
 #' @param when.multiple.labels.for.one.value See documentation for this in MergeDataSetsByCase
 #' @param match.parameters Parameters used for fuzzy matching of names and labels.
+#' @return Returns a possibly augmented merged.val.attr, with the attribute "map"
+#'  containing the matrix map.
 #' @noRd
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                                 when.multiple.labels.for.one.value,
