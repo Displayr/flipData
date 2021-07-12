@@ -2021,7 +2021,40 @@ labelValue <- function(val.attr, label)
         unname(val.attr[names(val.attr) == ""])
 }
 
-# Merge value attribute (value and label) into merged.val.attr
+#' @description  Merge a value attribute (val and lbl) into merged.val.attr.
+#'  val and lbl come from an input categorical variable and this
+#'  function tries to merge it into merged.val.attr, which will be the value
+#'  attributes for the merged variable. This function is run iteratively
+#'  over each value attribute in each categorical input variable to build
+#'  merged.val.attr and the mapping matrix map.
+#'
+#'  If val and lbl match (or lbl fuzzy matches) those of a value in
+#'  merged.val.attr, then merged.val.attr is unchanged.
+#'  If lbl matches (or fuzzy matches) a label in merged.val.attr but the
+#'  values are different, merged.val.attr is unchanged as well but a row is
+#'  added to map representing a mapping from val to the value in merged.val.attr
+#'  corresponding to the label.
+#'  If val matches a value in merged.val.attr but the labels don't match (or fuzzy
+#'  match), and when.multiple.labels.for.one.value is "Create new values for the labels",
+#'  then a new value is generated and added to merged.val.attr with the label lbl.
+#'  Otherwise if when.multiple.labels.for.one.value is "Use one of the labels",
+#'  then the existing label in merged.val.attr is used (merged.val.attr is unchanged).
+#'  If neither val or lbl matches anything in merged.val.attr, then they are added
+#'  to merged.val.attr.
+#' @param val Numeric scalar of the value to be merged
+#' @param lbl Character scalar of the label to be merged
+#' @param merged.val.attr Named numeric vector of (incomplete) value attributes
+#' (values and labels) of the merged categorical variable. This is iteratively
+#' added to with each call of this function and it starts out empty.
+#' @param map Numeric matrix where each row represents a mapping from one value
+#'  to another. The first column contains the original values and the second column
+#'  contains the new values. The contents of this matrix are not used in the function,
+#'  it is only augmented with a mapping if necessary and returned as an attribute
+#'  of the output object. This matrix is used to map input variable values to
+#'  different values when creating the merged variable.
+#' @param when.multiple.labels.for.one.value See documentation for this in MergeDataSetsByCase
+#' @param match.parameters Parameters used for fuzzy matching of names and labels.
+#' @noRd
 mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
                                 when.multiple.labels.for.one.value,
                                 match.parameters)
@@ -2054,21 +2087,7 @@ mergeValueAttribute <- function(val, lbl, merged.val.attr, map,
         {
             if (when.multiple.labels.for.one.value == "Create new values for the labels")
             {
-                new.value <- if (is.numeric(merged.val.attr)) # create new numeric value for label
-                    ceiling(max(merged.val.attr)) + 1
-                else # is character, create new character value
-                {
-                    j <- 2
-                    repeat
-                    {
-                        if (!(paste0(val, j) %in% merged.val.attr))
-                            break
-                        else
-                            j <- j + 1
-                    }
-                    paste0(val, j)
-                }
-
+                new.value <- ceiling(max(merged.val.attr)) + 1
                 merged.val.attr[lbl] <- new.value
                 map <- rbind(map, c(val, new.value), deparse.level = 0)
             }
