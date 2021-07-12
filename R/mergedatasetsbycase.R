@@ -5,24 +5,29 @@
 #' @param data.set.names A character vector of names of data sets from the
 #'  Displayr cloud drive to merge (if run from Displayr) or file paths of local
 #'  data sets.
-#' @param merged.data.set.name A string of the name of the merged data set in
-#'  the Displayr cloud drive (if run from Displayr) or the local file path of
-#'  the merged data set.
+#' @param merged.data.set.name A character scalar of the name of the merged data
+#'  set in the Displayr cloud drive (if run from Displayr) or the local file
+#'  path of the merged data set.
 #' @param auto.select.what.to.match.by If TRUE, the metadata to match by is
 #'  chosen automatically, whereas if FALSE, the metadata to match by is
 #'  specified by setting the flags \code{match.by.variable.names},
 #'  \code{match.by.variable.labels} and match.by.value.labels.
-#' @param match.by.variable.names Whether to match using variable names.
-#' @param match.by.variable.labels Whether to match using variable names.
-#' @param match.by.value.labels Whether to match using value labels of
-#'  categorical variables.
-#' @param ignore.case Ignore case when matching text.
-#' @param ignore.non.alphanumeric Ignore non-alphanumeric characters when
-#'  matching text except when numeric characters appear both before and after
-#'  non-alphanumeric characters e.g., "24 - 29", in which case the characters
-#'  are still ignored but the separation between the numbers is noted.
-#' @param min.match.percentage A percentage (number from 0 to 100) which
-#'  determines how close matches need to be in order for matches to be accepted.
+#' @param match.by.variable.names Logical scalar indicating whether to match
+#'  using variable names.
+#' @param match.by.variable.labels Logical scalar indicating whether to match
+#'  using variable labels.
+#' @param match.by.value.labels Logical scalar indicating whether to match using
+#'  value labels of categorical variables.
+#' @param ignore.case Logical scalar indicating whether to ignore case when
+#'  matching text (variable names and labels and value labels).
+#' @param ignore.non.alphanumeric Logical scalar indicating whether to ignore
+#'  non-alphanumeric characters when matching text (variable names and labels
+#'  and value labels) except when numeric characters appear both before and
+#'  after non-alphanumeric characters e.g., "24 - 29", in which case the
+#'  characters are still ignored but the separation between the numbers is noted.
+#' @param min.match.percentage A numeric scalar of a percentage (number from 0
+#'  to 100) which determines how close matches need to be in order for matches
+#'  to be accepted. Applies to variable names and labels and value labels.
 #' @param variables.to.combine A character vector of comma-separated
 #'  variable names indicating which variables are to appear together.
 #'  Ranges of variables can be specified by separating variable names by '-'.
@@ -44,44 +49,60 @@
 #'  suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 #'  Ranges of variables can be specified by separating variable names by '-'.
 #'  Wildcard matching of names is supported using the asterisk character '*'.
-#' @param include.merged.data.set.in.output Whether to include the merged data
-#'  set in the output.
-#' @param when.multiple.labels.for.one.value Either "Use one of the labels" or
-#'  "Create new values for the labels". When the former is chosen, the label
-#'  from the earliest/latest data set will be chosen if use.names.and.labels.from
-#'  is "First data set"/"Last data set". If the latter is chosen, new values
-#'  are generated for the extra labels.
-#' @param use.names.and.labels.from Either "First data set" or "Last data set".
-#'  This sets the preference for either the first or last data set when
-#'  choosing which names and labels to use in the merged data set.
+#' @param include.merged.data.set.in.output A logical scalar which controls
+#'  whether to include the merged data set in the output object, which can be
+#'  used for diagnostic purposes in R.
+#' @param when.multiple.labels.for.one.value Character scalar that is either
+#'  "Use one of the labels" or "Create new values for the labels". When the
+#'  former is the case, the label from the earliest/latest data set will be
+#'  chosen if use.names.and.labels.from is "First data set"/"Last data set".
+#'  If the latter is the case, new values are generated for the extra labels.
+#' @param use.names.and.labels.from Character scalar that is either
+#'  "First data set" or "Last data set". This sets the preference for either the
+#'  first or last data set when choosing which names and labels to use in the
+#'  merged data set.
 #' @param data.sets.whose.variables.are.kept An integer vector of indices of
 #'  data sets where merged variables are only included if they contain input
 #'  variables from these data sets.
-#' @param min.value.label.match.percentage The minimum percentage match for
-#'  value labels to be considered the same when combining value attributes
-#'  from different variables.
+#' @param min.value.label.match.percentage Numeric scalar of the minimum
+#'  percentage match for value labels to be considered the same when combining
+#'  value attributes from different variables.
 #'
 #' @return A list with the following elements:
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
 #'   is TRUE, this is a data frame of the merged data set.
 #'   \item \code{input.data.sets.metadata} A list containing metadata on the
-#'     the input data sets such as variable names, labels etc.
+#'     the input data sets such as variable names, labels etc. See the function
+#'     \code{metadataFromDataSets} for more information.
 #'   \item \code{merged.data.set.metadata} A list containing metadata on the
-#'     the merged data set such as variable names, labels etc.
-#'   \item \code{matched.names} A matrix where each row contains the names of
-#'     the variables from the input data sets that have been merged together.
-#'     Each row represents a single output variable.
+#'     the merged data set such as variable names, labels etc. See the function
+#'     \code{metadataFromDataSet} for more information.
+#'   \item \code{matched.names} A character matrix whose rows correspond to the
+#'     variables in the merged data set. The elements in each row correspond to
+#'     the input data sets and contain the names of the variables from the input
+#'     data sets that have been combined together to create a merged variable.
+#'     This matrix also has the attributes "is.fuzzy.match" and "matched.by".
+#'     is.fuzzy.match is a logical matrix of the same size as matched.names
+#'     indicating if an input variable was matched using fuzzy matching.
+#'     matched.by is a character matrix of the same size as matched.names
+#'     containing the strings "Variable name", "Variable label", "Value label"
+#'     and "Manual" indicating what data was used to match an input variable or
+#'     if the variable was matched manually.
 #'   \item \code{merged.names} A character vector containing the names of the
 #'     variables in the merged data set.
-#'   \item \code{omitted.variable.names} A list where each element contains the
-#'     names of variables from an input data set that have been omitted from
-#'     the merged data set.
-#'   \item \code{input.value.attributes} A list containing value attributes
-#'     from the input data sets, which are shown in the value attributes tables
-#'     in the output.
-#'   \item \code{is.saved.to.cloud} Whether the merged data set was saved to
-#'     the Displayr cloud drive.
+#'   \item \code{omitted.variable.names} A list whose elements correspond to the
+#'    input data sets. Each element is a character vector that contains the
+#'    names of variables from an input data set that have been omitted from the
+#'    merged data set.
+#'   \item \code{input.value.attributes} A list whose elements correspond to the
+#'   variables in the merged data set. Each element is another list whose
+#'   elements correspond to the input data sets, which each of these elements
+#'   containing a named numeric vector representing the values and value labels
+#'   of a categorical input variable. This is NULL if the input variable is
+#'   not categorical.
+#'   \item \code{is.saved.to.cloud} Logical scalar that indicates whether the
+#'   merged data set was saved to the Displayr cloud drive.
 #' }
 #' @examples
 #' data.set.names <- c(system.file("examples", "Cola1.sav", package = "flipData"),
@@ -162,9 +183,33 @@ MergeDataSetsByCase <- function(data.set.names,
     result
 }
 
-# Performs matching of variables and returns the matched.names matrix which
-# represents the matching to be done. The rows of the matrix correspond to
-# merged variables and the columns correspond to input data sets.
+# Performs matching of variables and returns the matched.names character matrix
+# which represents the matching to be done. The rows of the matrix correspond to
+# merged variables and the columns correspond to input data sets. Each row of
+# the matrix contains the names of the input variables that will be merged into
+# an output variable.
+#
+# The algorithm starts by constructing the rows of the matched.names matrix from
+# the manually input variables.to.combine and then finding matches for these
+# variables from the remaining input variables using the function findMatchesForRows.
+#
+# Next, the algorithm iterates through each input data set and gets the names
+# of the variables that are to appear in the merged data set. It finds matches
+# for these variables from the remaining input variables in the other data sets
+# using the function findMatchesForRows.
+#
+# The output also has the attributes "is.fuzzy.match", "matched.by" and
+# "match.parameters".
+# is.fuzzy.match is a logical matrix of the same size as matched.names
+# indicating if an input variable was matched using fuzzy matching.
+# matched.by is a character matrix of the same size as matched.names
+# containing the strings "Variable name", "Variable label", "Value label"
+# and "Manual" indicating what data was used to match an input variable or
+# if the variable was matched manually.
+# match.parameters is a list containing the settings used for fuzzy matching
+# (see MergeDataSetsByCase). It is returned because if auto.select.what.to.match.by
+# is TRUE, then the properties that are matched by (variable name, label or
+# value label) are set in match.parameters and this information is passed on.
 matchVariables <- function(input.data.sets.metadata, match.parameters,
                            variables.to.combine, variables.to.not.combine,
                            variables.to.keep, variables.to.omit, data.sets,
@@ -296,9 +341,14 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
     matched.names
 }
 
-# Find matches to the names in the rows specified by row.indices
-# and columns specified by data.set.indices in matched.names,
-# which is updated with the matching names when returned.
+# For each row in the matched.names matrix that is in row.indices, find matches
+# to the variables in the row from the remaining variables. The matched.names
+# matrix is updated with the matches and returned in a list along with the
+# objects is.fuzzy.match, matched.by and remaining.ind.
+# See matchVariables for documentation on the first two.
+# remaining.ind is a list whose elements correspond to the input data sets. Each
+# element is an integer vector that contains the indices of variables in a data
+# set that are still available for matching.
 findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                                input.data.sets.metadata,
                                remaining.ind,

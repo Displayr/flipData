@@ -30,31 +30,36 @@ MergeDataSetsByCase(
 Displayr cloud drive to merge (if run from Displayr) or file paths of local
 data sets.}
 
-\item{merged.data.set.name}{A string of the name of the merged data set in
-the Displayr cloud drive (if run from Displayr) or the local file path of
-the merged data set.}
+\item{merged.data.set.name}{A character scalar of the name of the merged data
+set in the Displayr cloud drive (if run from Displayr) or the local file
+path of the merged data set.}
 
 \item{auto.select.what.to.match.by}{If TRUE, the metadata to match by is
 chosen automatically, whereas if FALSE, the metadata to match by is
 specified by setting the flags \code{match.by.variable.names},
 \code{match.by.variable.labels} and match.by.value.labels.}
 
-\item{match.by.variable.names}{Whether to match using variable names.}
+\item{match.by.variable.names}{Logical scalar indicating whether to match
+using variable names.}
 
-\item{match.by.variable.labels}{Whether to match using variable names.}
+\item{match.by.variable.labels}{Logical scalar indicating whether to match
+using variable labels.}
 
-\item{match.by.value.labels}{Whether to match using value labels of
-categorical variables.}
+\item{match.by.value.labels}{Logical scalar indicating whether to match using
+value labels of categorical variables.}
 
-\item{ignore.case}{Ignore case when matching text.}
+\item{ignore.case}{Logical scalar indicating whether to ignore case when
+matching text (variable names and labels and value labels).}
 
-\item{ignore.non.alphanumeric}{Ignore non-alphanumeric characters when
-matching text except when numeric characters appear both before and after
-non-alphanumeric characters e.g., "24 - 29", in which case the characters
-are still ignored but the separation between the numbers is noted.}
+\item{ignore.non.alphanumeric}{Logical scalar indicating whether to ignore
+non-alphanumeric characters when matching text (variable names and labels
+and value labels) except when numeric characters appear both before and
+after non-alphanumeric characters e.g., "24 - 29", in which case the
+characters are still ignored but the separation between the numbers is noted.}
 
-\item{min.match.percentage}{A percentage (number from 0 to 100) which
-determines how close matches need to be in order for matches to be accepted.}
+\item{min.match.percentage}{A numeric scalar of a percentage (number from 0
+to 100) which determines how close matches need to be in order for matches
+to be accepted. Applies to variable names and labels and value labels.}
 
 \item{variables.to.combine}{A character vector of comma-separated
 variable names indicating which variables are to appear together.
@@ -81,26 +86,28 @@ suffix the name with the data set index in parentheses, e.g., 'Q2(3)'.
 Ranges of variables can be specified by separating variable names by '-'.
 Wildcard matching of names is supported using the asterisk character '*'.}
 
-\item{include.merged.data.set.in.output}{Whether to include the merged data
-set in the output.}
+\item{include.merged.data.set.in.output}{A logical scalar which controls
+whether to include the merged data set in the output object, which can be
+used for diagnostic purposes in R.}
 
-\item{when.multiple.labels.for.one.value}{Either "Use one of the labels" or
-"Create new values for the labels". When the former is chosen, the label
-from the earliest/latest data set will be chosen if use.names.and.labels.from
-is "First data set"/"Last data set". If the latter is chosen, new values
-are generated for the extra labels.}
+\item{when.multiple.labels.for.one.value}{Character scalar that is either
+"Use one of the labels" or "Create new values for the labels". When the
+former is the case, the label from the earliest/latest data set will be
+chosen if use.names.and.labels.from is "First data set"/"Last data set".
+If the latter is the case, new values are generated for the extra labels.}
 
-\item{use.names.and.labels.from}{Either "First data set" or "Last data set".
-This sets the preference for either the first or last data set when
-choosing which names and labels to use in the merged data set.}
+\item{use.names.and.labels.from}{Character scalar that is either
+"First data set" or "Last data set". This sets the preference for either the
+first or last data set when choosing which names and labels to use in the
+merged data set.}
 
 \item{data.sets.whose.variables.are.kept}{An integer vector of indices of
 data sets where merged variables are only included if they contain input
 variables from these data sets.}
 
-\item{min.value.label.match.percentage}{The minimum percentage match for
-value labels to be considered the same when combining value attributes
-from different variables.}
+\item{min.value.label.match.percentage}{Numeric scalar of the minimum
+percentage match for value labels to be considered the same when combining
+value attributes from different variables.}
 }
 \value{
 A list with the following elements:
@@ -108,22 +115,28 @@ A list with the following elements:
   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
   is TRUE, this is a data frame of the merged data set.
   \item \code{input.data.sets.metadata} A list containing metadata on the
-    the input data sets such as variable names, labels etc.
+    the input data sets such as variable names, labels etc. See the function
+    \code{metadataFromDataSets} for more information.
   \item \code{merged.data.set.metadata} A list containing metadata on the
-    the merged data set such as variable names, labels etc.
-  \item \code{matched.names} A matrix where each row contains the names of
-    the variables from the input data sets that have been merged together.
-    Each row represents a single output variable.
+    the merged data set such as variable names, labels etc. See the function
+    \code{metadataFromDataSet} for more information.
+  \item \code{matched.names} A character matrix where each row contains the
+    names of the variables from the input data sets that have been merged
+    together. Each row represents a single output variable.
   \item \code{merged.names} A character vector containing the names of the
     variables in the merged data set.
-  \item \code{omitted.variable.names} A list where each element contains the
-    names of variables from an input data set that have been omitted from
-    the merged data set.
-  \item \code{input.value.attributes} A list containing value attributes
-    from the input data sets, which are shown in the value attributes tables
-    in the output.
-  \item \code{is.saved.to.cloud} Whether the merged data set was saved to
-    the Displayr cloud drive.
+  \item \code{omitted.variable.names} A list whose elements correspond to the
+   input data sets. Each element is a character vector that contains the
+   names of variables from an input data set that have been omitted from the
+   merged data set.
+  \item \code{input.value.attributes} A list whose elements correspond to the
+  variables in the merged data set. Each element is another list whose
+  elements correspond to the input data sets, which each of these elements
+  containing a named numeric vector representing the values and value labels
+  of a categorical input variable. This is NULL if the input variable is
+  not categorical.
+  \item \code{is.saved.to.cloud} Logical scalar that indicates whether the
+  merged data set was saved to the Displayr cloud drive.
 }
 }
 \description{
