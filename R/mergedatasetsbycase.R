@@ -1779,7 +1779,11 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 }
 
 # Combine variables from different data sets (end-to-end) to create a
-# composite variable
+# composite variable.
+# matched.names.row is an integer vector with elements corresponding to the
+# input data sets. Each element is a variable index in an input data set.
+# The variables in these indices are to be combined into one variable.
+# The vector is a row from the matched.names matrix.
 compositeVariable <- function(matched.names.row, data.sets,
                               use.names.and.labels.from,
                               when.multiple.labels.for.one.value,
@@ -1836,6 +1840,10 @@ isCombinedAsCategoricalVariable <- function(var.list, v.types)
 }
 
 # Combine variables in var.list as a categorical variable
+# matched.names.row is an integer vector with elements corresponding to the
+# input data sets. Each element is a variable index in an input data set.
+# The variables in these indices are to be combined into one variable.
+# The vector is a row from the matched.names matrix.
 combineAsCategoricalVariable <- function(var.list, data.sets,
                                          use.names.and.labels.from, v.types,
                                          when.multiple.labels.for.one.value,
