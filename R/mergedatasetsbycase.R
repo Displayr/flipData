@@ -377,22 +377,22 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
     if (is.null(not.used.for.name.matching))
         not.used.for.name.matching <- matrix(FALSE, nrow = n.rows, ncol = n.data.sets)
 
-    for (i in row.indices)
+    for (row.i in row.indices)
     {
-        missing.indices <- data.set.indices[is.na(matched.names[i, data.set.indices])]
+        missing.indices <- data.set.indices[is.na(matched.names[row.i, data.set.indices])]
         for (j in missing.indices)
         {
             if (length(remaining.indices.list[[j]]) == 0)
                 next
 
-            nms <- unique(removeNA(matched.names[i, !not.used.for.name.matching[i, ]]))
-            non.missing.indices <- which(!is.na(matched.names[i, ]))
+            nms <- unique(removeNA(matched.names[row.i, !not.used.for.name.matching[row.i, ]]))
+            non.missing.indices <- which(!is.na(matched.names[row.i, ]))
             lbls <- character(length(non.missing.indices))
             val.attrs <- vector(mode = "list", length = length(non.missing.indices))
             for (k in seq_along(non.missing.indices))
             {
                 ind <- non.missing.indices[k]
-                name.ind <- match(matched.names[i, ind], v.names[[ind]])
+                name.ind <- match(matched.names[row.i, ind], v.names[[ind]])
                 lbls[k] <- v.labels[[ind]][name.ind]
                 val.attrs[[k]] <- v.val.attrs[[ind]][[name.ind]]
             }
@@ -409,7 +409,7 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
             remaining.names <- v.names[[j]][remaining.indices.list[[j]]]
             is.combinable <- vapply(remaining.names,
                                     isVariableCombinableIntoRow,
-                                    logical(1), j, matched.names[i, ],
+                                    logical(1), j, matched.names[row.i, ],
                                     v.names.to.not.combine)
             if (sum(is.combinable) == 0)
                 next
@@ -427,38 +427,38 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
                 next
 
             is.compatible <- isVariableTypeCompatible(matching.name, j,
-                                                      matched.names[i, ],
+                                                      matched.names[row.i, ],
                                                       input.data.sets.metadata,
                                                       data.sets)
             if (!is.compatible)
                 next
 
-            matching.names[i, j] <- matching.name
-            matching.names.percentage[i, j] <- attr(matching.name,
+            matching.names[row.i, j] <- matching.name
+            matching.names.percentage[row.i, j] <- attr(matching.name,
                                                     "match.percentage")
-            matching.names.is.fuzzy[i, j] <- attr(matching.name,
+            matching.names.is.fuzzy[row.i, j] <- attr(matching.name,
                                                   "is.fuzzy.match")
-            matching.names.matched.by[i, j] <- attr(matching.name,
+            matching.names.matched.by[row.i, j] <- attr(matching.name,
                                                     "matched.by")
         }
     }
 
-    for (i in data.set.indices)
+    for (data.set.i in data.set.indices)
     {
-        unique.names <- unique(removeNA(matching.names[, i]))
+        unique.names <- unique(removeNA(matching.names[, data.set.i]))
         matched.indices <- c()
         for (nm in unique.names)
         {
-            match.indices <- which(matching.names[, i] == nm)
-            max.ind <- match.indices[which.max(matching.names.percentage[match.indices, i])]
-            matched.names[max.ind, i] <- nm
+            match.indices <- which(matching.names[, data.set.i] == nm)
+            max.ind <- match.indices[which.max(matching.names.percentage[match.indices, data.set.i])]
+            matched.names[max.ind, data.set.i] <- nm
             matched.indices <- c(matched.indices,
-                                 match(nm, v.names[[i]][remaining.indices.list[[i]]]))
-            is.fuzzy.match[max.ind, i] <- matching.names.is.fuzzy[max.ind, i]
-            matched.by[max.ind, i] <- matching.names.matched.by[max.ind, i]
+                                 match(nm, v.names[[data.set.i]][remaining.indices.list[[data.set.i]]]))
+            is.fuzzy.match[max.ind, data.set.i] <- matching.names.is.fuzzy[max.ind, data.set.i]
+            matched.by[max.ind, data.set.i] <- matching.names.matched.by[max.ind, data.set.i]
         }
         if (!is.null(matched.indices))
-            remaining.indices.list[[i]] <- remaining.indices.list[[i]][-matched.indices]
+            remaining.indices.list[[data.set.i]] <- remaining.indices.list[[data.set.i]][-matched.indices]
     }
 
     list(matched.names = matched.names,
@@ -881,9 +881,9 @@ parseInputTextForInteractingVariables <- function(input.text,
 
     result <- NULL
     is.data.set.specified.vector <- NULL
-    for (i in seq_along(split.text))
+    for (t in split.text)
     {
-        v.names.matrix <- parseInputTextIntoVariableNamesMatrix(split.text[i],
+        v.names.matrix <- parseInputTextIntoVariableNamesMatrix(t,
                                                                 input.data.sets.metadata,
                                                                 allow.wildcards = FALSE,
                                                                 input.purpose)
