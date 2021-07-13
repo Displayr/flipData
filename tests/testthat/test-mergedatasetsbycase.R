@@ -757,91 +757,91 @@ test_that("parseInputTextIntoVariableNamesMatrix (error as variables in range no
                         "correctly specified."))
 })
 
-test_that("parseInputTextForVariableInteraction (variable names supplied)", {
+test_that("parseInputTextForInteractingVariables (variable names supplied)", {
     input.text <- "Q1A, Q1B"
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")),
                                      n.data.sets = 3)
-    v.name.matrix <- parseInputTextForVariableInteraction(input.text = input.text,
-                                                          input.data.sets.metadata = input.data.sets.metadata,
-                                                          input.purpose = "Variables to manually combine")
+    v.name.matrix <- parseInputTextForInteractingVariables(input.text = input.text,
+                                                           input.data.sets.metadata = input.data.sets.metadata,
+                                                           input.purpose = "Variables to manually combine")
     expect_equal(v.name.matrix,
                  structure(c("Q1A", NA, "Q1B"), .Dim = c(1L, 3L),
                            is.data.set.specified.vector = c(FALSE, FALSE, FALSE)))
 })
 
-test_that("parseInputTextForVariableInteraction (variable names with data set indices supplied)", {
+test_that("parseInputTextForInteractingVariables (variable names with data set indices supplied)", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")), n.data.sets = 3)
 
     # Data set indices specified
     input.text <- "Q3(2),Q3(3)"
-    v.name.matrix <- parseInputTextForVariableInteraction(input.text = input.text,
-                                                          input.data.sets.metadata = input.data.sets.metadata,
-                                                          input.purpose = "Variables to manually combine")
+    v.name.matrix <- parseInputTextForInteractingVariables(input.text = input.text,
+                                                           input.data.sets.metadata = input.data.sets.metadata,
+                                                           input.purpose = "Variables to manually combine")
     expect_equal(v.name.matrix,
                  structure(c(NA, "Q3", "Q3"), .Dim = c(1L, 3L),
                            is.data.set.specified.vector = c(FALSE, TRUE, TRUE)))
 })
 
-test_that("parseInputTextForVariableInteraction (variable range supplied)", {
+test_that("parseInputTextForInteractingVariables (variable range supplied)", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")), n.data.sets = 3)
 
     # Variable range
     input.text <- "Q2-Q4"
-    v.name.matrix <- parseInputTextForVariableInteraction(input.text = input.text,
-                                                          input.data.sets.metadata = input.data.sets.metadata,
-                                                          input.purpose = "Variables to manually combine")
+    v.name.matrix <- parseInputTextForInteractingVariables(input.text = input.text,
+                                                           input.data.sets.metadata = input.data.sets.metadata,
+                                                           input.purpose = "Variables to manually combine")
     expect_equal(v.name.matrix,
                  structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
                            .Dim = c(3L, 3L), is.data.set.specified.vector = c(FALSE, FALSE, FALSE)))
 })
 
-test_that("parseInputTextForVariableInteraction (variable range with data set indices supplied)", {
+test_that("parseInputTextForInteractingVariables (variable range with data set indices supplied)", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")), n.data.sets = 3)
 
     # Variable range with data set index
     input.text <- "Q2(1)-Q4(1),Q2(2)-Q4(2)"
-    v.name.matrix <- parseInputTextForVariableInteraction(input.text = input.text,
-                                                          input.data.sets.metadata = input.data.sets.metadata,
-                                                          input.purpose = "Variables to manually combine")
+    v.name.matrix <- parseInputTextForInteractingVariables(input.text = input.text,
+                                                           input.data.sets.metadata = input.data.sets.metadata,
+                                                           input.purpose = "Variables to manually combine")
     expect_equal(v.name.matrix,
                  structure(c("Q2", "Q3", "Q4", "Q2", "Q3", "Q4", NA, NA, NA),
                            .Dim = c(3L, 3L), is.data.set.specified.vector = c(TRUE, TRUE, FALSE)))
 })
 
-test_that("parseInputTextForVariableInteraction (error as only one variable supplied)", {
+test_that("parseInputTextForInteractingVariables (error as only one variable supplied)", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")), n.data.sets = 3)
 
     # Variables from only one data set error
     input.text <- "Q2(1)"
-    expect_error(parseInputTextForVariableInteraction(input.text = input.text,
-                                                      input.data.sets.metadata = input.data.sets.metadata,
-                                                      input.purpose = "Variables to manually combine"),
+    expect_error(parseInputTextForInteractingVariables(input.text = input.text,
+                                                       input.data.sets.metadata = input.data.sets.metadata,
+                                                       input.purpose = "Variables to manually combine"),
                  paste0("The input 'Q2(1)' for 'Variables to manually combine' ",
                         "only specifies variables from one data set. ",
                         "It needs to specify variables from two or more data sets."),
                  fixed = TRUE)
 })
 
-test_that("parseInputTextForVariableInteraction (error as ranges with differing numbers of variables supplied)", {
+test_that("parseInputTextForInteractingVariables (error as ranges with differing numbers of variables supplied)", {
     input.data.sets.metadata <- list(variable.names = list(c("Q1A", "Q2", "Q3", "Q4"),
                                                            c("Q2", "Q3", "Q4"),
                                                            c("Q1B", "Q3")), n.data.sets = 3)
 
     # Ranges with differing lengths error
     input.text <- "Q2(1)-Q3(1),Q2(2)-Q4(2)"
-    expect_error(parseInputTextForVariableInteraction(input.text = input.text,
-                                                      input.data.sets.metadata = input.data.sets.metadata,
-                                                      input.purpose = "Variables to manually combine"),
+    expect_error(parseInputTextForInteractingVariables(input.text = input.text,
+                                                       input.data.sets.metadata = input.data.sets.metadata,
+                                                       input.purpose = "Variables to manually combine"),
                  paste0("The input 'Q2(1)-Q3(1),Q2(2)-Q4(2)' contains ",
                         "variable ranges with differing numbers of variables. ",
                         "Ensure that the ranges have been correctly specified ",
@@ -1022,6 +1022,8 @@ test_that("removeNonAlphaNumericCharacters", {
 test_that("isNumbersPreserved", {
     expect_false(isNumbersPreserved(string.1 = "Q23_4", string.2 = "Q234"))
     expect_true(isNumbersPreserved(string.1 = "Q23_4", string.2 = "Q__23__4"))
+    expect_true(isNumbersPreserved(string.1 = "Q23_4_1", string.2 = "Q23__4")) # the excess 1 at the end is allowed
+    expect_false(isNumbersPreserved(string.1 = "Q1_23_4", string.2 = "Q23__4"))
 })
 
 test_that("isVariableCombinableIntoRow (variable not able to be combined)", {
@@ -1133,7 +1135,7 @@ test_that("mergeIndicesList (indices to keep together specified)", {
                                                            c(3L, 5L, 6L, 8L),
                                                            c(2L, 3L, 4L, 5L)),
                                        prefer.first.element = TRUE,
-                                       indices.to.keep.togther = list(c(1L, 8L),
+                                       indices.to.keep.together = list(c(1L, 8L),
                                                                       c(2L, 7L)))
     expect_equal(merged.indices, c(1L, 8L, 2L, 7L, 3L:6L))
 })
