@@ -1948,7 +1948,10 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
         v <- var.list[[i]]
 
         if (is.null(v))
+        {
             result <- c(result, rep(NA, nrow(data.sets[[i]])))
+            input.val.attr.list[[i]] <- rep(NA_real_, length(merged.val.attr))
+        }
         else
         {
             if (v.types[i] == TEXT.VARIABLE.TYPE)
