@@ -13,7 +13,7 @@ LazyData: TRUE
 Depends: R (>= 4.0.0)
 Imports: CVXR (>= 1.0.0),
  flipAPI (>= 1.2.3),
- flipFormat (>= 1.10.0),
+ flipFormat (>= 1.10.1),
  flipImputation,
  flipTime,
  flipTransformations (>= 1.4.0),
@@ -22,6 +22,7 @@ Imports: CVXR (>= 1.0.0),
  icarus,
  lubridate,
  stats,
+ stringdist,
  stringr,
  survey,
  verbs

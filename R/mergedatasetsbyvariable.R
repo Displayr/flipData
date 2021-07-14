@@ -47,9 +47,9 @@
 #'   input data set from which the variable originated. The data set index
 #'   for the ID variable will be 1 even though ID variables are present in all
 #'   data sets when ID variables are specified.
-#'   \item \code{omitted.variable.names} A list whose elements correspond to the
-#'   input data sets. Each element contains the names of variables from a data
-#'   set that were omitted from the merged data set.
+#'   \item \code{omitted.variable.names.list} A list whose elements correspond
+#'   to the input data sets. Each element contains the names of variables from a
+#'   data set that were omitted from the merged data set.
 #'   \item \code{merged.id.variable.name} A character scalar of the name of the
 #'   ID variable in the merged data set. It is NULL if there is no ID variable.
 #'   \item \code{id.variable.names} A character vector corresponding to the

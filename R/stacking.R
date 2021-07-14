@@ -1036,6 +1036,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
 
     stacked.data.set <- list()
+    data.set.size <- 0
     for (i in seq_along(input.v.names))
     {
         ind <- match(i, first.ind)
@@ -1074,6 +1075,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             }
 
             stacked.data.set[[nm]] <- v
+            data.set.size <- data.set.size + object.size(v)
         }
         else if (input.v.names[i] %in% included.variable.names)
         {
@@ -1098,6 +1100,18 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             }
             nm <- uniqueName(input.v.names[i], names(stacked.data.set))
             stacked.data.set[[nm]] <- v
+            data.set.size <- data.set.size + object.size(v)
+        }
+
+        if (data.set.size > DATA.SET.SIZE.LIMIT)
+        {
+            msg <- paste0("The stacked data set is too large to create. ",
+                          "Consider reducing the number of variables in the stacked data set.")
+            if (!is.null(common.labels.list))
+                msg <- paste0(msg, " Also ensure that the common labels are ",
+                              "appropriate: ",
+                              paste0(unlist(common.labels.list), collapse = ", "), ".")
+            stop(msg)
         }
     }
 
@@ -1134,39 +1148,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     }
 
     data.frame(stacked.data.set)
-}
-
-#' @importFrom utils object.size
-checkStackedDataSetSize <- function(input.data.set, stacking.groups,
-                                    stacked.v.ind.in.stacked.data.set,
-                                    stacked.data.set.v.names,
-                                    common.labels.list)
-{
-    n.stacked <- ncol(stacking.groups)
-
-    v.sizes <- vapply(seq_along(stacked.data.set.v.names), function(i) {
-        ind <- match(i, stacked.v.ind.in.stacked.data.set)
-        if (!is.na(ind)) # Stacked variable
-        {
-            j <- removeNA(stacking.groups[ind, ])[1]
-            object.size(input.data.set[[j]]) * n.stacked
-        }
-        else # Not stacked variable
-            object.size(input.data.set[[stacked.data.set.v.names[i]]]) * n.stacked
-    }, numeric(1))
-
-    # Set to 4GB as I found that memory issues start to occur around here.
-    # May have to lower this if we find that users still get memory errors.
-    if (sum(v.sizes) > 4 * 1e9)
-    {
-        msg <- paste0("The stacked data set is too large to create. ",
-                      "Consider reducing the number of variables in the stacked data set.")
-        if (!is.null(common.labels.list))
-            msg <- paste0(msg, " Also ensure that the common labels are ",
-                          "appropriate: ",
-                          paste0(unlist(common.labels.list), collapse = ", "), ".")
-        stop(msg)
-    }
 }
 
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
@@ -1426,13 +1407,6 @@ metadataFromStackedDataSet <- function(stacked.data.set, stacked.data.set.name)
                                                     "stacking.input.variable.labels")
     result
 }
-
-# Split string by comma separators, removing whitespace and empty strings
-# splitByComma <- function(input.text)
-# {
-#     split.text <- trimws(strsplit(input.text, ",")[[1]])
-#     split.text[split.text != ""]
-# }
 
 #' @importFrom flipFormat StackingWidget
 #' @export
