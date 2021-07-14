@@ -120,16 +120,24 @@ A list with the following elements:
   \item \code{merged.data.set.metadata} A list containing metadata on the
     the merged data set such as variable names, labels etc. See the function
     \code{metadataFromDataSet} for more information.
-  \item \code{matched.names} A character matrix where each row contains the
-    names of the variables from the input data sets that have been merged
-    together. Each row represents a single output variable.
+  \item \code{matched.names} A character matrix whose rows correspond to the
+    variables in the merged data set. The elements in each row correspond to
+    the input data sets and contain the names of the variables from the input
+    data sets that have been combined together to create a merged variable.
+    This matrix also has the attributes "is.fuzzy.match" and "matched.by".
+    is.fuzzy.match is a logical matrix of the same size as matched.names
+    indicating if an input variable was matched using fuzzy matching.
+    matched.by is a character matrix of the same size as matched.names
+    containing the strings "Variable name", "Variable label", "Value label"
+    and "Manual" indicating what data was used to match an input variable or
+    if the variable was matched manually.
   \item \code{merged.names} A character vector containing the names of the
     variables in the merged data set.
-  \item \code{omitted.variable.names} A list whose elements correspond to the
+  \item \code{omitted.variable.names.list} A list whose elements correspond to the
    input data sets. Each element is a character vector that contains the
    names of variables from an input data set that have been omitted from the
    merged data set.
-  \item \code{input.value.attributes} A list whose elements correspond to the
+  \item \code{input.value.attributes.list} A list whose elements correspond to the
   variables in the merged data set. Each element is another list whose
   elements correspond to the input data sets, which each of these elements
   containing a named numeric vector representing the values and value labels
@@ -145,10 +153,10 @@ Merges multiple data sets by case where the data sets contain
  periods.
 }
 \examples{
-data.set.names <- c(system.file("examples", "Cola1.sav", package = "flipData"),
-                    system.file("examples", "Cola2.sav", package = "flipData"),
-                    system.file("examples", "Cola5.sav", package = "flipData"),
-                    system.file("examples", "Cola8.sav", package = "flipData"))
+data.set.names <- c(system.file("examples", "cola1.sav", package = "flipData"),
+                    system.file("examples", "cola2.sav", package = "flipData"),
+                    system.file("examples", "cola5.sav", package = "flipData"),
+                    system.file("examples", "cola8.sav", package = "flipData"))
 
 print(MergeDataSetsByCase(data.set.names = data.set.names,
                           data.sets.whose.variables.are.kept = 1,
