@@ -105,10 +105,10 @@
 #'   merged data set was saved to the Displayr cloud drive.
 #' }
 #' @examples
-#' data.set.names <- c(system.file("examples", "Cola1.sav", package = "flipData"),
-#'                     system.file("examples", "Cola2.sav", package = "flipData"),
-#'                     system.file("examples", "Cola5.sav", package = "flipData"),
-#'                     system.file("examples", "Cola8.sav", package = "flipData"))
+#' data.set.names <- c(system.file("examples", "cola1.sav", package = "flipData"),
+#'                     system.file("examples", "cola2.sav", package = "flipData"),
+#'                     system.file("examples", "cola5.sav", package = "flipData"),
+#'                     system.file("examples", "cola8.sav", package = "flipData"))
 #'
 #' print(MergeDataSetsByCase(data.set.names = data.set.names,
 #'                           data.sets.whose.variables.are.kept = 1,
