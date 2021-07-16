@@ -1970,7 +1970,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
         }
     }
 
-    if (isIntegerValued(result))
+    if (isIntegerValued(result) && all(abs(result) <= .Machine$integer.max, na.rm = TRUE))
     {
         result <- as.integer(result)
         nms <- names(merged.val.attr)
@@ -2357,7 +2357,7 @@ combineAsNumericVariable <- function(var.list, data.sets, v.types)
             v
     }))
 
-    if (isIntegerValued(result))
+    if (isIntegerValued(result) && all(abs(result) <= .Machine$integer.max, na.rm = TRUE))
         result <- as.integer(result)
 
     return(result)
