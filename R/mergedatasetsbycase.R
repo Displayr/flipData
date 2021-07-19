@@ -318,7 +318,7 @@ matchVariables <- function(input.data.sets.metadata, match.parameters,
                                                nrow = nrow(new.rows),
                                                ncol = n.data.sets))
 
-        other.data.set.indices <- data.set.indices[-data.set.i]
+        other.data.set.indices <- data.set.indices[!(data.set.indices == data.set.i)]
 
         output <- findMatchesForRows(matched.names, row.indices,
                                      other.data.set.indices,
