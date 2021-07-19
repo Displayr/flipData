@@ -368,6 +368,11 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
 
     n.data.sets <- length(data.sets)
     n.rows <- nrow(matched.names)
+
+    # matching.names is a matrix of the same size as matched.names and it
+    # contains the names of suggested variable additions to matched.names.
+    # The same variable may occur for multiple rows and the row that it is
+    # actually added to is chosen by maximising the match percentage.
     matching.names <- matrix(NA_character_, nrow = n.rows, ncol = n.data.sets)
     matching.names.percentage <- matrix(NA_real_, nrow = n.rows,
                                         ncol = n.data.sets)
@@ -450,12 +455,22 @@ findMatchesForRows <- function(matched.names, row.indices, data.set.indices,
         for (nm in unique.names)
         {
             match.indices <- which(matching.names[, data.set.i] == nm)
-            max.ind <- match.indices[which.max(matching.names.percentage[match.indices, data.set.i])]
-            matched.names[max.ind, data.set.i] <- nm
-            matched.indices <- c(matched.indices,
-                                 match(nm, v.names[[data.set.i]][remaining.indices.list[[data.set.i]]]))
-            is.fuzzy.match[max.ind, data.set.i] <- matching.names.is.fuzzy[max.ind, data.set.i]
-            matched.by[max.ind, data.set.i] <- matching.names.matched.by[max.ind, data.set.i]
+            ordered.match.indices <- match.indices[order(matching.names.percentage[match.indices, data.set.i],
+                                                         decreasing = TRUE)]
+            for (ind in ordered.match.indices)
+            {
+                is.combinable <- isVariableCombinableIntoRow(nm, data.set.i,
+                                                             matched.names[ind, ],
+                                                             v.names.to.not.combine)
+                if (!is.combinable)
+                    next
+
+                matched.names[ind, data.set.i] <- nm
+                matched.indices <- c(matched.indices,
+                                     match(nm, v.names[[data.set.i]][remaining.indices.list[[data.set.i]]]))
+                is.fuzzy.match[ind, data.set.i] <- matching.names.is.fuzzy[ind, data.set.i]
+                matched.by[ind, data.set.i] <- matching.names.matched.by[ind, data.set.i]
+            }
         }
         if (!is.null(matched.indices))
             remaining.indices.list[[data.set.i]] <- remaining.indices.list[[data.set.i]][-matched.indices]
