@@ -91,9 +91,9 @@ whether to include the merged data set in the output object, which can be
 used for diagnostic purposes in R.}
 
 \item{when.multiple.labels.for.one.value}{Character scalar that is either
-"Use one of the labels" or "Create new values for the labels". When the
-former is the case, the label from the earliest/latest data set will be
-chosen if use.names.and.labels.from is "First data set"/"Last data set".
+"Use label from preferred data set"" or "Create new values for the labels".
+When the former is the case, the label from the earliest/latest data set
+will be chosen if use.names.and.labels.from is "First data set"/"Last data set".
 If the latter is the case, new values are generated for the extra labels.}
 
 \item{use.names.and.labels.from}{Character scalar that is either

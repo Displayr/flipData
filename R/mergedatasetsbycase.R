@@ -53,9 +53,9 @@
 #'  whether to include the merged data set in the output object, which can be
 #'  used for diagnostic purposes in R.
 #' @param when.multiple.labels.for.one.value Character scalar that is either
-#'  "Use one of the labels" or "Create new values for the labels". When the
-#'  former is the case, the label from the earliest/latest data set will be
-#'  chosen if use.names.and.labels.from is "First data set"/"Last data set".
+#'  "Use label from preferred data set"" or "Create new values for the labels".
+#'  When the former is the case, the label from the earliest/latest data set
+#'  will be chosen if use.names.and.labels.from is "First data set"/"Last data set".
 #'  If the latter is the case, new values are generated for the extra labels.
 #' @param use.names.and.labels.from Character scalar that is either
 #'  "First data set" or "Last data set". This sets the preference for either the
@@ -2068,7 +2068,7 @@ mergeValueAttributes <- function(value.attributes.list,
 #'  If val matches a value in merged.val.attr but the labels don't match (or fuzzy
 #'  match), and when.multiple.labels.for.one.value is "Create new values for the labels",
 #'  then a new value is generated and added to merged.val.attr with the label lbl.
-#'  Otherwise if when.multiple.labels.for.one.value is "Use one of the labels",
+#'  Otherwise if when.multiple.labels.for.one.value is "Use label from preferred data set"",
 #'  then the existing label in merged.val.attr is used (merged.val.attr is unchanged).
 #'  If neither val or lbl matches anything in merged.val.attr, then they are added
 #'  to merged.val.attr.
@@ -2129,7 +2129,7 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr, map
                 merged.val.attr[lbl] <- new.value
                 map <- rbind(map, c(val, new.value), deparse.level = 0)
             }
-            # else "Use one of the labels", no action required as it is already in merged.val.attr
+            # else "Use label from preferred data set", no action required as it is already in merged.val.attr
         }
         else # value and label not in merged.val.attr
             merged.val.attr[lbl] <- val # create new value in merged.val.attr
