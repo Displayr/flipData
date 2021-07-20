@@ -127,7 +127,7 @@ MergeDataSetsByVariable <- function(data.set.names,
                                          merged.data.set.var.names,
                                          input.data.sets.metadata)
     merged.data.set.name <- correctDataSetName(merged.data.set.name,
-                                               "Merged data set.sav")
+                                               "Combined data set.sav")
     is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
     writeDataSet(merged.data.set, merged.data.set.name,
                  is.saved.to.cloud = is.saved.to.cloud)
@@ -234,7 +234,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
 
         # Check that there are no IDs that are duplicated in more than one data set
         if (sum(id.frequency > 1) > 1)
-            stop("The data sets cannot be merged by the specified ID variables as the ID '",
+            stop("The data sets cannot be combined by the specified ID variables as the ID '",
                  unique.id, "' is duplicated in multiple data sets.")
 
         merged.id.variable <- c(merged.id.variable,
@@ -260,7 +260,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     {
         is.incomplete.case <- rowSums(is.na(result)) > 0
         if (all(is.incomplete.case))
-            stop("The merged data set has no cases as there are no IDs that appear in all data sets. ",
+            stop("The combined data set has no cases as there are no IDs that appear in all data sets. ",
                  "Ensure that the ID variable names have been correctly specified.")
         result <- result[!is.incomplete.case, , drop = FALSE]
         merged.id.variable <- merged.id.variable[!is.incomplete.case]
@@ -577,8 +577,8 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
 
             merged.data.set.size <- merged.data.set.size + object.size(merged.var)
             if (merged.data.set.size > DATA.SET.SIZE.LIMIT)
-                stop("The merged data set is too large to create. ",
-                     "Consider omitting variables or only keeping merged variables that contain input variables from a few data sets.")
+                stop("The combined data set is too large to create. ",
+                     "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
 
             merged.data.set.variables[[j]] <- merged.var
             j <- j + 1

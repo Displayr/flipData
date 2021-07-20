@@ -160,7 +160,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                      when.multiple.labels.for.one.value,
                                      match.parameters)
     merged.data.set.name <- correctDataSetName(merged.data.set.name,
-                                               "Merged data set.sav")
+                                               "Combined data set.sav")
 
     is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
     writeDataSet(merged.data.set, merged.data.set.name, is.saved.to.cloud)
@@ -1855,8 +1855,8 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
                                match.parameters)
         data.set.size <- data.set.size + object.size(v)
         if (data.set.size > DATA.SET.SIZE.LIMIT)
-            stop("The merged data set is too large to create. ",
-                 "Consider omitting variables or only keeping merged variables that contain input variables from a few data sets.")
+            stop("The combined data set is too large to create. ",
+                 "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
         merged.data.set[[i]] <- v
     }
     merged.data.set <- data.frame(merged.data.set)
