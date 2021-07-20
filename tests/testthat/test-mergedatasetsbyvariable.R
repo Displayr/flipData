@@ -106,7 +106,7 @@ test_that("Error when matching by ID variables and an ID is duplicated in multip
                                                             findInstDirFile("cola16.sav")),
                                          id.variables = c("Q3","Q3"),
                                          include.merged.data.set.in.output = TRUE),
-                 paste0("The data sets cannot be merged by the specified ID ",
+                 paste0("The data sets cannot be combined by the specified ID ",
                         "variables as the ID '3' is duplicated in multiple ",
                         "data sets."))
 })
