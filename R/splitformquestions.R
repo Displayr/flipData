@@ -18,7 +18,7 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
     .checkForDuplicateNames <- function(dat, new.name)
     {
         if (new.name %in% names(dat))
-            stop("The data cannot have two colummns with same name: '",
+            stop("The data cannot have two columns with same name: '",
                  new.name, "'. Modify the inputs to avoid this.")
     }
 
