@@ -210,6 +210,6 @@ test_that("Throw error with duplicate names",
     fd <- form.data
     attr(fd[[2]], "label") <- "Coffee"
     expect_error(SplitFormQuestions(fd),
-                paste0("The data cannot have two colummns with same name: ",
+                paste0("The data cannot have two columns with same name: ",
                        "'Coffee'. Modify the inputs to avoid this."))
 })
