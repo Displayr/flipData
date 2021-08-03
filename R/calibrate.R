@@ -195,7 +195,7 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets, subse
         if (max(numvar) < tgt)
             stop("The target for ", varname, " of ", tgt, " is higher than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
         if (min(numvar) > tgt)
-            stop("The target for ", varname, " of ", tgt, " is lower than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
+            stop("The target for ", varname, " of ", tgt, " is lower than the minimum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
     }
     targets
 }
