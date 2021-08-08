@@ -92,10 +92,8 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
     if (lower == "" & upper == "" & !has.numerics)
         stop("This should be processed via the existing Q algorithm and this code should not have been called.")
     # Bounds
-    if (lower == "")
-        lower = 0
-    if (upper == "")
-        upper = Inf
+    lower = if (lower == "") lower = 0 else as.numeric(lower)
+    upper = if (upper == "") upper = Inf else as.numeric(upper)
     if (calfun == "logit")
     {
         upper = min(1000, upper)# Avoiding having a denominator if Inf in Phi_R

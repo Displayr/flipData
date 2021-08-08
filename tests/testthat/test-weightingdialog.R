@@ -142,7 +142,7 @@ test_that("Totals for a categorical adjustment variable",
                                         structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),                                        numeric.variables = data.frame(x),
                                         numeric.targets = target.x, calfun = calfun)
                   expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
-                  expect_equal(sum(prop.table(wgt)[y == "a"]), 38/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "a"]), 38/118, tol = 0.0001, lower = "0.9")
                   expect_equal(sum(prop.table(wgt)[y == "b"]), 41/118, tol = 0.0001, lower = 0.9)
                   expect_equal(sum(prop.table(wgt)[y == "c"]), 39/118, tol = 0.0001, lower = 0.9)
                   expect_equal(sum(wgt), length(x))

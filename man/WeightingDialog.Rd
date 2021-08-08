@@ -12,6 +12,7 @@ WeightingDialog(
   lower = "",
   upper = "",
   calfun = c("Raking", "Linear", "Logit")[1],
+  force.to.n = TRUE,
   input.weight = NULL
 )
 }
@@ -29,6 +30,8 @@ WeightingDialog(
 \item{upper}{An upper bound weight value (not guaranteed to be achieved).}
 
 \item{calfun}{The calibration function: Raking (Default), Linear, Quadratic.}
+
+\item{force.to.n}{Force the sum of weights to equal the sample size.}
 
 \item{input.weight}{An optional weight variable; if supplied, the created weight is created to be as close
 to this input.weight as possible}
