@@ -97,6 +97,7 @@ test_that("Calmar examples: http://vesselinov.com/CalmarEngDoc.pdf",
                                         numeric.targets = target.x, calfun = calfun)
                   expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
               }
+              # Adding a constraint
               for (calfun in c("Raking", "Linear", "Logit"))
               {
                   wgt = WeightingDialog(numeric.variables = data.frame(x),
@@ -130,3 +131,96 @@ test_that("Calmar examples: http://vesselinov.com/CalmarEngDoc.pdf",
           })
 
 
+test_that("Totals for a categorical adjustment variable",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              y = factor(c("a","a","b","b","c","a","c","c","b","a","a","b","c","c","b"))
+              target.x = mean(x) * 1400 / 1200
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(data.frame(y),
+                                        structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),                                        numeric.variables = data.frame(x),
+                                        numeric.targets = target.x, calfun = calfun)
+                  expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
+                  expect_equal(sum(prop.table(wgt)[y == "a"]), 38/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "b"]), 41/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "c"]), 39/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), length(x))
+              }
+          })
+
+test_that("Grossing + Totals for a categorical adjustment variable",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              y = factor(c("a","a","b","b","c","a","c","c","b","a","a","b","c","c","b"))
+              target.x = mean(x) * 1400 / 1200
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(data.frame(y),
+                                        structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),                                        numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt), 1400 , tol = 0.1)
+                  expect_equal(sum(wgt[y == "a"]), 38, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "b"]), 41, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "c"]), 39, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), 118)
+              }
+          })
+
+
+test_that("Grossing + Totals for two categorical adjustment variables",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              y = factor(c("a","a","b","b","c","a","c","c","b","a","a","b","c","c","b"))
+              target.x = mean(x) * 1400 / 1200
+              # The same variable in twice
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(data.frame(y1 = y, y2 = y),
+                                        list(structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),
+                                             structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L))),
+                                             numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt), 1400 , tol = 0.1)
+                  expect_equal(sum(wgt[y == "a"]), 38, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "b"]), 41, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "c"]), 39, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), 118)
+              }
+              # The same variable in twice - counts first, then percent
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(data.frame(y1 = y, y2 = y),
+                                        list(structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),
+                                             structure(c("a", "b", "c", prop.table(c(38, 41, 39))), .Dim = c(3L, 2L))),
+                                        numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt), 1400 , tol = 0.1)
+                  expect_equal(sum(wgt[y == "a"]), 38, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "b"]), 41, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt[y == "c"]), 39, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), 118)
+              }
+              # The same variable in twice - percent first, then count
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(data.frame(y1 = y, y2 = y),
+                                        list(structure(c("a", "b", "c", prop.table(c(38, 41, 39))), .Dim = c(3L, 2L)),
+                                             structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L))),
+                                        numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt) , 11.6667 , tol = 0.1)
+                  expect_equal(sum(prop.table(wgt)[y == "a"]), 38/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "b"]), 41/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "c"]), 39/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), 1)
+              }
+          })

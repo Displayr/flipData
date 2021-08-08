@@ -9,8 +9,9 @@
 #' @param calfun The calibration function: Raking (Default), Linear, Quadratic.
 #' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
 #' to this input.weight as possible
+#' @param force.to.n Force the sum of weights to equal the sample size.
+#'
 #' @return numeric A vector of weights
-#' @importFrom icarus calibration
 #' @export
 
 
@@ -21,6 +22,7 @@ WeightingDialog <- function(categorical.variables = NULL,
                       lower = "",
                       upper = "",
                       calfun = c("Raking", "Linear", "Logit")[1],
+                      force.to.n = TRUE,
                       input.weight = NULL)
 {
 
@@ -34,13 +36,20 @@ WeightingDialog <- function(categorical.variables = NULL,
     }
 
     # Categorical inputs
-    if (!is.null(categorical.variables))
+    n.categorical = if(is.null(categorical.variables)) 0 else NCOL(categorical.variables)
+    if (n.categorical > 0 )
     {
         adjustment.variables = convertToDataFrame(categorical.variables)
         categorical.targets = if (is.null(categorical.targets) || is.list(categorical.targets)) categorical.targets else list(categorical.targets)
+        gross <- rep(NA, n.categorical)
+        for (i in 1:n.categorical)
+        {
+            nm <- as.numeric(categorical.targets[[i]][, 2])
+            gross[i] <- sum(nm)
+            categorical.targets[[i]][,2] <- prop.table(nm)
+        }
         targets = categoricalTargets(adjustment.variables, categorical.targets)
     }
-    n.categorical = length(targets)
 
     # Numeric inputs
     has.numerics <- !is.null(numeric.variables)
@@ -51,7 +60,7 @@ WeightingDialog <- function(categorical.variables = NULL,
         targets = numericTargets(targets, adjustment.variables, numeric.targets)
     }
 
-    # Adding input.weight or a proxy (and normalizing to a mean of 1)
+    # Adding input.weight or a proxy (and normalizing to a mean of Total / n)
     n = NROW(adjustment.variables)
     weight = if (is.null(input.weight)) rep(1, n) else input.weight / mean(input.weight)
 
@@ -65,6 +74,8 @@ WeightingDialog <- function(categorical.variables = NULL,
     # Calculating/updating the weight
     wgt = computeWeightsDialog(adjustment.variables, has.numerics, marg, weight, lower, upper, calfun)
     wgt / mean(wgt)
+    if (!force.to.n)
+        wgt <- wgt * gross[[1]] / n
     class(wgt) <- "Calibrate"
     wgt
 }
