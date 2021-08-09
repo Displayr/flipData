@@ -175,7 +175,7 @@ CheckPredictionVariables <- function(object, newdata)
                     {
                         in.training <- new.levels %in% training[[train.factor]]
                         in.estimation <- new.levels %in% object$estimation.data[[train.factor]]
-                        warning.due.to.outlier.removal <- in.estimation && !in.training
+                        warning.due.to.outlier.removal <- all(in.estimation & !in.training)
                         warning.msg <- checkPredictionWarningMessage(factor.label, level.counts, warning.due.to.outlier.removal)
                     } else
                         warning.msg <- checkPredictionWarningMessage(factor.label, level.counts)

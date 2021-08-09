@@ -99,3 +99,6 @@ test_that("parseVariableWildcardForMerging", {
                  paste0("No variables were found in data set 1 matching the ",
                         "wildcard input 'Pepsi*'."), fixed = TRUE)
 })
+
+if (file.exists("Combined data set.sav"))
+    file.remove("Combined data set.sav")
