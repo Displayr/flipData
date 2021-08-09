@@ -173,8 +173,8 @@ CheckPredictionVariables <- function(object, newdata)
                     factor.label <- Labels(object$model, names.to.lookup = train.factor)
                     if (outliers.removed) # Check if all occurences of new.levels were removed as outliers
                     {
-                        in.training <- new.levels %in% training[[train.factor]]
-                        in.estimation <- new.levels %in% object$estimation.data[[train.factor]]
+                        in.training <- any(new.levels %in% training[[train.factor]])
+                        in.estimation <- any(new.levels %in% object$estimation.data[[train.factor]])
                         warning.due.to.outlier.removal <- in.estimation && !in.training
                         warning.msg <- checkPredictionWarningMessage(factor.label, level.counts, warning.due.to.outlier.removal)
                     } else
