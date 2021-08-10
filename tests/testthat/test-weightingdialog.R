@@ -40,7 +40,7 @@ test_that("Single Categorical adjustment variable", {
     expect_error(WeightingDialog(list(Age = input.age), variable.targets.age),
                  "This should be processed via the existing Q algorithm and this code should not have been called.")
 
-    # Raking with trvial lower and upper values
+    # Raking with trivial lower and upper values
     wgt.calibrate = Calibrate(list(Age = input.age), variable.targets.age, package = "icarus", always.calibrate = TRUE)
     wgt.dialog = WeightingDialog(list(Age = input.age), variable.targets.age, lower = 0, upper = 1000)
     expect_equivalent(cor(wgt.calibrate, wgt.dialog), 1)

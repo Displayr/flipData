@@ -29,7 +29,7 @@ WeightingDialog(
 
 \item{upper}{An upper bound weight value (not guaranteed to be achieved).}
 
-\item{calfun}{The calibration function: Raking (Default), Linear, Quadratic.}
+\item{calfun}{The calibration function: \code{"Raking"} (Default), \code{"Linear"}, or \code{"Logit"}.}
 
 \item{force.to.n}{Force the sum of weights to equal the sample size.}
 

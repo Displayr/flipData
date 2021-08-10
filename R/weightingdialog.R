@@ -6,15 +6,12 @@
 #' @param numeric.targets the target mean for each numeric variable in numeric.variables
 #' @param lower A lower bound weight value (not guaranteed to be achieved).
 #' @param upper An upper bound weight value (not guaranteed to be achieved).
-#' @param calfun The calibration function: Raking (Default), Linear, Quadratic.
+#' @param calfun The calibration function: \code{"Raking"} (Default), \code{"Linear"}, or \code{"Logit"}.
 #' @param input.weight An optional weight variable; if supplied, the created weight is created to be as close
 #' to this input.weight as possible
 #' @param force.to.n Force the sum of weights to equal the sample size.
-#'
 #' @return numeric A vector of weights
 #' @export
-
-
 WeightingDialog <- function(categorical.variables = NULL,
                       categorical.targets = NULL,
                       numeric.variables = NULL,
