@@ -8,9 +8,9 @@
 #' @param lower A lower bound weight value (not guaranteed to be achieved).
 #' @param upper An upper bound weight value (not guaranteed to be achieved).
 #' @param trim.iterations The number of times to run the trim loop over the final weightings
-#' @param always.calibrate If \code{FALSE}, whcih is the default,
+#' @param always.calibrate If \code{FALSE}, which is the default,
 #' problems with only categorical adjustment variables are solved via
-#' iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.
+#' iterative-proportional fitting (raking). Otherwise, they are solved via calibration.
 #' @param package The R package used to calibrate the model when raking is not conducted.
 #' Defaults to \code{CVXR} (see https://cvxr.rbind.io/cvxr_examples/cvxr_survey_calibration/). Other options
 #' are \code{icarus} and \code{survey}. .
@@ -124,6 +124,8 @@ convertToDataFrame <- function(x)
 categoricalTargets <- function(adjustment.variables, categorical.targets, subset)
 {
     targets = list()
+    if (missing(subset))
+        subset <- rep(TRUE, nrow(adjustment.variables))
     n.categorical = length(adjustment.variables)
     if (n.categorical != length(categorical.targets)) {
         stop("The number of categorical adjustment variables needs to be the same as the number of sets of targets (it isn't)")
@@ -175,6 +177,8 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets, subse
 {
     n.categorical = length(targets)
     n = NROW(adjustment.variables)
+    if (missing(subset))
+        subset <- rep(TRUE, n)
     if (length(adjustment.variables) - n.categorical != length(numeric.targets))
     {
         stop("The number of numeric adjustment variables needs to be the same as the number of sets of targets (it isn't)")
@@ -358,7 +362,7 @@ print.Calibrate <- function (x, ...)
     if (!is.null(product))
         instruction.for.getting.variable <- "\n\nTo save the variable, click SAVE VARIABLE(S) > Save Weight Variable from Configuration"
     ess = EffectiveSampleSize(x)
-    ess.percent = round(ess / length(x) * 100)
+    ess.percent = round(ess / length(x) * 100, 1)
     n = length(x)
     rng = range(x)
 
@@ -368,6 +372,6 @@ print.Calibrate <- function (x, ...)
               FormatAsReal(ess, decimals = 0),
               " (",  ess.percent, "%)\n",
               "Smallest weight is ", FormatAsReal(rng[1], decimals = 3), "\n",
-              "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 1), " times the smallest weight)",
+              "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 3), " times the smallest weight)",
               instruction.for.getting.variable))
 }

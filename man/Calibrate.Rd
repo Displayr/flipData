@@ -38,9 +38,9 @@ Defaults to \code{CVXR} (see https://cvxr.rbind.io/cvxr_examples/cvxr_survey_cal
 are \code{icarus} and \code{survey}. .
 Use icarus with care, as sometimes target categories can be switched around}
 
-\item{always.calibrate}{If \code{FALSE}, whcih is the default,
+\item{always.calibrate}{If \code{FALSE}, which is the default,
 problems with only categorical adjustment variables are solved via
-iterative-proprtional fitting (raking). Otherwise, they are solved via calibration.}
+iterative-proportional fitting (raking). Otherwise, they are solved via calibration.}
 
 \item{subset}{A logical vector indicating which subset of cases should be used to create the weight}
 
