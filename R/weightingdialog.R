@@ -91,7 +91,7 @@ WeightingDialog <- function(categorical.variables = NULL,
 #' @importFrom verbs Sum
 computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, input.weight, lower, upper, calfun)
 {
-    if (lower == "" & upper == "" & !has.numerics)
+    if (lower == "" & upper == "" & !has.numerics & is.null(input.weight))
         stop("This should be processed via the existing Q algorithm and this code should not have been called.")
     # Bounds
     lower = if (lower == "") lower = 0 else as.numeric(lower)
