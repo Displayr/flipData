@@ -33,6 +33,7 @@ WeightingDialog <- function(categorical.variables = NULL,
     }
 
     # Categorical inputs
+    gross <- NULL
     n.categorical = if(is.null(categorical.variables)) 0 else NCOL(categorical.variables)
     if (n.categorical > 0 )
     {
@@ -70,9 +71,13 @@ WeightingDialog <- function(categorical.variables = NULL,
     marg = createMargins(targets, adjustment.variables, n.categorical, FALSE, "survey")
     # Calculating/updating the weight
     wgt = computeWeightsDialog(adjustment.variables, has.numerics, marg, weight, lower, upper, calfun)
-    wgt / mean(wgt)
-    if (!force.to.n)
-        wgt <- wgt * gross[[1]] / n
+    wgt = if (force.to.n) wgt / mean(wgt) else
+    {
+        if (!is.null(gross))
+            wgt * (gross[[1]] / n / mean(wgt))
+        else # We don't have enough information to gross, so just return the weight "as is"
+            wgt
+    }
     class(wgt) <- "Calibrate"
     wgt
 }
