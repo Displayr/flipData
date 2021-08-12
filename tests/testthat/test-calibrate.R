@@ -296,3 +296,13 @@ test_that("Output contains the right class for extension buttons", {
 
     expect_true(inherits(wgt, "Calibrate"))
 })
+
+test_that("DS-3458: Catch CVXR solver errors from bad input data",
+{
+    numeric.vars <- list(Coke = c(10, 5, 0),
+                         Pepsi = c(0, 5, 2))
+    targets <- c(.5, .5)
+    expect_error(Calibrate(numeric.variables = numeric.vars,
+                           numeric.targets = targets),
+                 "check that the supplied targets are appropriate for your data.")
+})
