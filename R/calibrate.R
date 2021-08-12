@@ -299,6 +299,7 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
                       p = Problem(Phi_R, constraints)
                       res = solve(p)
+                      checkSolverStatus(res)
                       as.numeric(input.weight * res$getValue(g))
                       }
                   )
@@ -374,4 +375,18 @@ print.Calibrate <- function (x, ...)
               "Smallest weight is ", FormatAsReal(rng[1], decimals = 3), "\n",
               "Largest weight is ", FormatAsReal(rng[2], decimals = 3), " (", FormatAsReal(rng[2] / rng[1], decimals = 3), " times the smallest weight)",
               instruction.for.getting.variable))
+}
+
+#' Check for errors from running CVXR::solve
+#' @noRd
+checkSolverStatus <- function(solve.output)
+{
+    if (is.list(solve.output) && is.character(solve.output[["status"]]))
+    {
+        status <- solve.output[["status"]]
+        if (status == "solver_error" || status == "infeasible")
+            stop("Calibration could not be performed for the given input data. ",
+                 "Please check that the supplied targets are appropriate for your data.")
+    }
+    return(invisible())
 }
