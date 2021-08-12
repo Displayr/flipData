@@ -60,7 +60,7 @@ WeightingDialog <- function(categorical.variables = NULL,
 
     # Adding input.weight or a proxy (and normalizing to a mean of Total / n)
     n = NROW(adjustment.variables)
-    weight = if (is.null(input.weight)) rep(1, n) else input.weight / mean(input.weight)
+    weight = if (is.null(input.weight)) NULL else input.weight / mean(input.weight)
 
     # Removing empty factor levels
     if (n.categorical > 0)
@@ -93,6 +93,8 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
 {
     if (lower == "" & upper == "" & !has.numerics & is.null(input.weight))
         stop("This should be processed via the existing Q algorithm and this code should not have been called.")
+    if (is.null(input.weight))
+        input.weight <- rep(1, NROW(adjustment.variables))
     # Bounds
     lower = if (lower == "") lower = 0 else as.numeric(lower)
     upper = if (upper == "") upper = Inf else as.numeric(upper)
