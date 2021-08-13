@@ -130,6 +130,53 @@ test_that("Calmar examples: http://vesselinov.com/CalmarEngDoc.pdf",
               }
           })
 
+test_that("Grossing for a numeric variable (does nothing)",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              target.x = mean(x) * 1400 / 1200
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
+              }
+          })
+
+
+
+test_that("A numeric variable with a design weight",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              set.seed(1223)
+              d.weight <- runif(length(x)) * 100
+              target.x = mean(x) * 1400 / 1200
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        input.weight = d.weight)
+                  expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
+              }
+          })
+test_that("Grossing for a numeric variable (does nothing) with a design weight",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              set.seed(1223)
+              d.weight <- runif(length(x)) * 100
+              target.x = mean(x) * 1400 / 1200
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt = WeightingDialog(numeric.variables = data.frame(x),
+                                        numeric.targets = target.x,
+                                        calfun = calfun,
+                                        input.weight = d.weight,
+                                        force.to.n = FALSE)
+                  expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
+              }
+          })
 
 test_that("Totals for a categorical adjustment variable",
           {
@@ -148,6 +195,8 @@ test_that("Totals for a categorical adjustment variable",
                   expect_equal(sum(wgt), length(x))
               }
           })
+
+
 
 test_that("Grossing + Totals for a categorical adjustment variable",
           {
@@ -222,5 +271,43 @@ test_that("Grossing + Totals for two categorical adjustment variables",
                   expect_equal(sum(prop.table(wgt)[y == "b"]), 41/118, tol = 0.0001, lower = 0.9)
                   expect_equal(sum(prop.table(wgt)[y == "c"]), 39/118, tol = 0.0001, lower = 0.9)
                   expect_equal(sum(wgt), 1)
+              }
+          })
+
+
+
+test_that("Totals for two categorical adjustment variables with a design weight",
+          {
+              x = c(1,1,1,2,2,4,6,7,8,11,12,10,15,20,50)
+              y = factor(c("a","a","b","b","c","a","c","c","b","a","a","b","c","c","b"))
+              set.seed(1223)
+              d.weight <- runif(length(x)) * 100
+              target.x = mean(x) * 1400 / 1200
+              # The same variable in twice
+              for (calfun in c("Raking", "Linear", "Logit"))
+              {
+                  wgt.no.design = WeightingDialog(data.frame(y1 = y, y2 = y),
+                                          list(structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),
+                                               structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L))),
+                                          numeric.variables = data.frame(x),
+                                          numeric.targets = target.x,
+                                          calfun = calfun,
+                                          force.to.n = TRUE)
+                  wgt = WeightingDialog(data.frame(y1 = y, y2 = y),
+                                          list(structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L)),
+                                               structure(c("a", "b", "c", c(38, 41, 39)), .Dim = c(3L, 2L))),
+                                          numeric.variables = data.frame(x),
+                                          numeric.targets = target.x,
+                                          calfun = calfun,
+                                          force.to.n = TRUE,
+                                          input.weight = d.weight)
+                  # The design weight should cause the weight to be different
+                  expect_true(cor(wgt,wgt.no.design ) < 1)
+                  # But its results should be the same
+                  expect_equal(sum(x * wgt) * 8, 1400 , tol = 0.1)
+                  expect_equal(sum(prop.table(wgt)[y == "a"]), 38/118, tol = 0.0001, lower = "0.9")
+                  expect_equal(sum(prop.table(wgt)[y == "b"]), 41/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(prop.table(wgt)[y == "c"]), 39/118, tol = 0.0001, lower = 0.9)
+                  expect_equal(sum(wgt), length(x))
               }
           })

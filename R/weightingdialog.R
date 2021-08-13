@@ -33,6 +33,7 @@ WeightingDialog <- function(categorical.variables = NULL,
     }
 
     # Categorical inputs
+    gross <- NULL
     n.categorical = if(is.null(categorical.variables)) 0 else NCOL(categorical.variables)
     if (n.categorical > 0 )
     {
@@ -59,7 +60,7 @@ WeightingDialog <- function(categorical.variables = NULL,
 
     # Adding input.weight or a proxy (and normalizing to a mean of Total / n)
     n = NROW(adjustment.variables)
-    weight = if (is.null(input.weight)) rep(1, n) else input.weight / mean(input.weight)
+    weight = if (is.null(input.weight)) NULL else input.weight / mean(input.weight)
 
     # Removing empty factor levels
     if (n.categorical > 0)
@@ -70,9 +71,13 @@ WeightingDialog <- function(categorical.variables = NULL,
     marg = createMargins(targets, adjustment.variables, n.categorical, FALSE, "survey")
     # Calculating/updating the weight
     wgt = computeWeightsDialog(adjustment.variables, has.numerics, marg, weight, lower, upper, calfun)
-    wgt / mean(wgt)
-    if (!force.to.n)
-        wgt <- wgt * gross[[1]] / n
+    wgt = if (force.to.n) wgt / mean(wgt) else
+    {
+        if (!is.null(gross))
+            wgt * (gross[[1]] / n / mean(wgt))
+        else # We don't have enough information to gross, so just return the weight "as is"
+            wgt
+    }
     class(wgt) <- "Calibrate"
     wgt
 }
@@ -86,8 +91,10 @@ WeightingDialog <- function(categorical.variables = NULL,
 #' @importFrom verbs Sum
 computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, input.weight, lower, upper, calfun)
 {
-    if (lower == "" & upper == "" & !has.numerics)
+    if (lower == "" & upper == "" & !has.numerics & is.null(input.weight))
         stop("This should be processed via the existing Q algorithm and this code should not have been called.")
+    if (is.null(input.weight))
+        input.weight <- rep(1, NROW(adjustment.variables))
     # Bounds
     lower = if (lower == "") lower = 0 else as.numeric(lower)
     upper = if (upper == "") upper = Inf else as.numeric(upper)
@@ -109,6 +116,7 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
             Phi_R = Minimize(sum(input.weight * (-entr((g - lower) / (upper - lower)) - (entr((upper - g) / (upper - lower))))))
             p = Problem(Phi_R, constraints)
             res = solve(p)
+            checkSolverStatus(res)
             as.numeric(input.weight * res$getValue(g))
     } else {
         weights(calibrate(svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables),
