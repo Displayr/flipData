@@ -116,6 +116,7 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
             Phi_R = Minimize(sum(input.weight * (-entr((g - lower) / (upper - lower)) - (entr((upper - g) / (upper - lower))))))
             p = Problem(Phi_R, constraints)
             res = solve(p)
+            checkSolverStatus(res)
             as.numeric(input.weight * res$getValue(g))
     } else {
         weights(calibrate(svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables),
