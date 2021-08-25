@@ -37,8 +37,9 @@ test_that("CheckForUniqueVariableNames",
 data(hbatwithsplits, package = "flipExampleData")
 test_that("CheckPredictionVariables",
 {
-    data <- GetData(x3 ~ x1 + x2 + x6, hbatwithsplits, auxiliary.data = NULL)
-    z <- list(model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year")) # remove a level
+    test.formula <- x3 ~ x1 + x2 + x6
+    data <- GetData(test.formula, hbatwithsplits, auxiliary.data = NULL)
+    z <- list(formula = test.formula, model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year")) # remove a level
 
     # Predicting based on fewer variables than used to fit model
     expect_error(CheckPredictionVariables(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attempting to predict*")
@@ -97,8 +98,9 @@ test_that("CheckPredictionVariables",
 
 
 test_that("DS-2704 Automated outlier removal scenario catches missing levels", {
-    data <- GetData(x3 ~ x1 + x2 + x6, hbatwithsplits, auxiliary.data = NULL)
-    z <- list(model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year"))
+    test.formula <- x3 ~ x1 + x2 + x6
+    data <- GetData(test.formula, hbatwithsplits, auxiliary.data = NULL)
+    z <- list(formula = test.formula, model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year"))
     # Make scenario where outliers have removed all instances of a level in a factor
     z$estimation.data <- z$model[z$subset, ]
     z$estimation.data$x1[1] <- "Less than 1 year"
@@ -141,3 +143,24 @@ test_that("DS-2704 Automated outlier removal scenario catches missing levels", {
                    fixed = TRUE)
 })
 
+test_that("DS-3488 Check dummy variable adjustment handled with and without outlier removal", {
+    missing.all.predictors <- data.frame(Y = c(1:20, 100),
+                                         X1 = c(NA, 1:5, NA, 7:20),
+                                         X2 = c(NA, runif(20)))
+    dummy.adj.model <- AddDummyVariablesForNAs(missing.all.predictors, "Y", checks = FALSE)
+    estimation.data <- EstimationData(Y ~ X1 + X2, data = missing.all.predictors,
+                                      missing = "Dummy variable adjustment")$estimation.data
+    output <- structure(list(formula = Y ~ X1 + X2 + X1.dummy.var_GQ9KqD7YOf,
+                             estimation.data = estimation.data,
+                             model = dummy.adj.model,
+                             subset = TRUE,
+                             outcome.name = "Y"),
+                   class = "Regression")
+    expected.output <- dummy.adj.model[, c("X1", "X2", "X1.dummy.var_GQ9KqD7YOf")]
+    expect_equal(CheckPredictionVariables(output, newdata = dummy.adj.model),
+                 expected.output)
+    output[["non.outlier.data"]] <- rep(c(TRUE, FALSE), c(19, 1))
+
+    expect_equal(CheckPredictionVariables(output, newdata = dummy.adj.model),
+                 expected.output)
+})

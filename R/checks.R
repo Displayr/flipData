@@ -119,13 +119,23 @@ CheckForUniqueVariableNames <- function(formula)
 #'
 #' @param object A model object for which prediction is desired.
 #' @param newdata A \code{data.frame} including the variables used to fit the model.
-#' @importFrom flipU CopyAttributes
+#' @importFrom flipU CopyAttributes AllVariablesNames OutcomeName
 #' @importFrom flipFormat Labels
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
     regression.model <- inherits(object, "Regression")
-    relevant.cols <- names(object$model)[names(object$model) != object$outcome.name]
+    # Deduce the predictor names from the formula and model data available
+    dummy.adjusted.importance <- regression.model &&
+        object$missing == "Dummy variable adjustment" &&
+        !is.null(object$importance.type)
+    if ("formula" %in% names(object) && !dummy.adjusted.importance && !inherits(object, "LDA"))
+    {
+        training.model.variables <- AllVariablesNames(object[["formula"]], data = object[["model"]])
+        training.outcome.name    <- OutcomeName(object[["formula"]], data = object[["model"]])
+        relevant.cols <- training.model.variables[training.model.variables != training.outcome.name]
+    } else # Relevant for older CART which don't have a formula (see DS-2488)
+        relevant.cols <- names(object[["model"]])[names(object[["model"]]) != object[["outcome.name"]]]
     # Check if a regression object is being processed and the outlier removal has been implemented.
     outliers.removed <- (regression.model && !all(non.outliers <- object$non.outlier.data))
     if (outliers.removed)
@@ -135,7 +145,8 @@ CheckPredictionVariables <- function(object, newdata)
 
     if (ncol(training) == 0)
         return(newdata)
-    if (!identical(setdiff(names(training), names(newdata)), character(0)))
+
+    if (!identical(setdiff(relevant.cols, names(newdata)), character(0)))
         stop("Attempting to predict based on fewer variables than those used to train the model.")
 
     # Identify training factors
