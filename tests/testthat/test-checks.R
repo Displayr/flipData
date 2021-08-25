@@ -163,4 +163,11 @@ test_that("DS-3488 Check dummy variable adjustment handled with and without outl
 
     expect_equal(CheckPredictionVariables(output, newdata = dummy.adj.model),
                  expected.output)
+    # Check method still works when formula not available
+    output[["formula"]] <- NULL
+    output[["outcome.name"]] <- "Y"
+    output[["model"]] <- missing.all.predictors
+    expected.output <- missing.all.predictors[-1, -1]
+    expect_equal(CheckPredictionVariables(output, newdata = dummy.adj.model),
+                 dummy.adj.model[, c("X1", "X2")])
 })
