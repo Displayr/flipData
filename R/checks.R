@@ -129,6 +129,7 @@ CheckPredictionVariables <- function(object, newdata)
     dummy.adjusted.importance <- regression.model &&
         object$missing == "Dummy variable adjustment" &&
         !is.null(object$importance.type)
+    # LDA transforms the model data into a model matrix (dummy variable encoding), so is not appropriate
     if ("formula" %in% names(object) && !dummy.adjusted.importance && !inherits(object, "LDA"))
     {
         training.model.variables <- AllVariablesNames(object[["formula"]], data = object[["model"]])
