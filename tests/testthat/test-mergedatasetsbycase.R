@@ -42,7 +42,9 @@ test_that("Example used for widget test in flipFormat", {
                                                                                  findInstDirFile("cola5.sav"),
                                                                                  findInstDirFile("cola8.sav")),
                                                               data.sets.whose.variables.are.kept = 1,
-                                                              variables.to.combine = "Q4_A_3,Q4_A_3_new"), NA)
+                                                              variables.to.combine = "Q4_A_3,Q4_A_3_new",
+                                                              auto.select.what.to.match.by = FALSE,
+                                                              match.by.variable.labels = FALSE), NA)
 })
 
 test_that("MergeDataSetsByCase using default settings", {
