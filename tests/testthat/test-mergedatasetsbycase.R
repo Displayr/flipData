@@ -1141,3 +1141,36 @@ test_that("mergeIndicesList (indices to keep together specified)", {
                                                                       c(2L, 7L)))
     expect_equal(merged.indices, c(1L, 8L, 2L, 7L, 3L:6L))
 })
+
+test_that("RS-9210: check that values merge correctly", {
+    var.list.val.attr <- list(c(`I've heard only positive things` = 1,
+                                `I've heard mainly positive things` = 2,
+                                `I've heard a few positive and a few negative things` = 3,
+                                `I've heard mainly negative things` = 4,
+                                `I've heard only negative things` = 5),
+                              c(`I've heard only positive things` = 1,
+                                `I've heard mainly positive things` = 2,
+                                `I've heard a few positive and a few negative things` = 3,
+                                `I've heard mainly negative things` = 4,
+                                `I've heard only negative things` = 5))
+    when.multiple.labels.for.one.value <- "Create new values for the labels"
+    match.parameters <- list(auto.select.what.to.match.by = TRUE,
+                            match.by.variable.names = TRUE,
+                            match.by.variable.labels = TRUE,
+                            match.by.value.labels = TRUE,
+                            ignore.case = TRUE,
+                            ignore.non.alphanumeric = TRUE,
+                            min.match.percentage = 90,
+                            min.value.label.match.percentage = 90)
+
+    result <- mergeValueAttributes(var.list.val.attr,
+                                   when.multiple.labels.for.one.value,
+                                   match.parameters)
+    expect_equal(result$merged.value.attributes,
+                 c(`I've heard only positive things` = 1,
+                   `I've heard mainly positive things` = 2,
+                   `I've heard a few positive and a few negative things` = 3,
+                   `I've heard mainly negative things` = 4,
+                   `I've heard only negative things` = 5))
+    expect_equal(result$value.map.list, list(NULL, NULL))
+})

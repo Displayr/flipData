@@ -2024,6 +2024,7 @@ mergeValueAttributes <- function(value.attributes.list,
                                  match.parameters)
 {
     merged.val.attr <- numeric(0)
+    original.val.attr <- numeric(0)
     value.map.list <- vector("list", length = length(value.attributes.list))
     for (i in seq_along(value.attributes.list))
     {
@@ -2038,6 +2039,7 @@ mergeValueAttributes <- function(value.attributes.list,
             val <- labelValue(val.attr, lbl)
             merged.val.attr <- mergeValueAndLabelIntoValueAttributes(val, lbl,
                                                                      merged.val.attr,
+                                                                     original.val.attr,
                                                                      map,
                                                                      when.multiple.labels.for.one.value,
                                                                      match.parameters)
@@ -2045,6 +2047,7 @@ mergeValueAttributes <- function(value.attributes.list,
         }
         if (nrow(map) > 0)
             value.map.list[[i]] <- map
+        original.val.attr <- merged.val.attr
     }
     attr(merged.val.attr, "map") <- NULL
 
@@ -2077,6 +2080,10 @@ mergeValueAttributes <- function(value.attributes.list,
 #' @param merged.val.attr Named numeric vector of (incomplete) value attributes
 #' (values and labels) of the merged categorical variable. This is iteratively
 #' added to with each call of this function and it starts out empty.
+#' @param original.val.attr Named numeric vector of (incomplete) value attributes
+#' (values and labels) of the merged categorical variable. This is the state of
+#' the merged value attributes before the value attributes of the variable from
+#' which val and lbl originate are merged in.
 #' @param map Numeric matrix where each row represents a mapping from one value
 #'  to another. The first column contains the original values and the second column
 #'  contains the new values. The contents of this matrix are not used in the function,
@@ -2088,7 +2095,8 @@ mergeValueAttributes <- function(value.attributes.list,
 #' @return Returns a possibly augmented merged.val.attr, with the attribute "map"
 #'  containing the matrix map.
 #' @noRd
-mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr, map,
+mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
+                                                  original.val.attr, map,
                                                   when.multiple.labels.for.one.value,
                                                   match.parameters)
 {
@@ -2105,18 +2113,24 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr, map
     }
     else
     {
-        lbls.to.compare.against <- names(merged.val.attr)
-        match.percentages <- matchPercentagesForValueLabels(lbl = lbl,
-                                                            lbls.to.compare.against = lbls.to.compare.against,
-                                                            match.parameters = match.parameters)
-        is.fuzzy.match <- max(match.percentages) >= match.parameters$min.value.label.match.percentage &&
-                          isNumbersPreserved(lbl, lbls.to.compare.against[which.max(match.percentages)])
+        if (length(original.val.attr) > 0)
+        {
+            lbls.to.compare.against <- names(original.val.attr)
+            match.percentages <- matchPercentagesForValueLabels(lbl = lbl,
+                                                                lbls.to.compare.against = lbls.to.compare.against,
+                                                                match.parameters = match.parameters)
+            is.fuzzy.match <- max(match.percentages) >= match.parameters$min.value.label.match.percentage &&
+                isNumbersPreserved(lbl, lbls.to.compare.against[which.max(match.percentages)])
+        }
+        else
+            is.fuzzy.match <- FALSE
+
         if (is.fuzzy.match)
         {
-            merged.val <- unname(merged.val.attr[which.max(match.percentages)])
+            merged.val <- unname(original.val.attr[which.max(match.percentages)])
             if (merged.val != val)
             {
-                map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in merged.val.attr
+                map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in original.val.attr
             }
             # else: similar label, same value, no action required as we treat
             #       them as the same and one of them is already in merged.val.attr
