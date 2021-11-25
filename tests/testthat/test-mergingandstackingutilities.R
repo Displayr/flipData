@@ -100,5 +100,11 @@ test_that("parseVariableWildcardForMerging", {
                         "wildcard input 'Pepsi*'."), fixed = TRUE)
 })
 
+test_that("readDataSets: Non .sav files throw nice error", {
+    expect_error(readDataSets(c('file1.csv', 'file2.csv')),
+                 paste0("An input data file was not an SPSS .sav data file. ",
+                        "Only SPSS .sav data files are accepted."))
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")

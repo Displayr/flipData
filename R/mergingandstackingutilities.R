@@ -11,6 +11,11 @@ readDataSets <- function(data.set.names, min.data.sets = 1)
     if (length(data.set.names) < min.data.sets)
         stop("At least ", min.data.sets, " data set(s) are required.")
 
+    if (!all(grepl('.+\\.sav$', data.set.names))) {
+        stop("An input data file was not an SPSS .sav data file. ",
+             "Only SPSS .sav data files are accepted.")
+    }
+
     if (IsDisplayrCloudDriveAvailable())
         readDataSetsFromDisplayrCloudDrive(data.set.names)
     else
