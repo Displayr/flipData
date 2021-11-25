@@ -137,7 +137,6 @@ CheckPredictionVariables <- function(object, newdata)
         training.outcome.name    <- OutcomeName(object[["formula"]], data = object[["model"]])
         relevant.cols <- training.model.variables[training.model.variables != training.outcome.name]
     } else if (formula.exists && dummy.adjusted.importance) {
-        original.model <- object[["original"]]
         formula.vars <- AllVariablesNames(object[["formula"]])[-1L]
         dummy.vars <- names(object[["estimation.data"]])[grepl("dummy\\.var_GQ9KqD7YOf$", names(object[["estimation.data"]]))]
         relevant.vars <- union(formula.vars, dummy.vars)
