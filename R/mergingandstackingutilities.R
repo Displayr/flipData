@@ -8,6 +8,9 @@
 #' @importFrom flipAPI IsDisplayrCloudDriveAvailable
 readDataSets <- function(data.set.names, min.data.sets = 1)
 {
+    data.set.names <- vapply(data.set.names, trimws, character(1),
+                             USE.NAMES = FALSE)
+
     if (length(data.set.names) < min.data.sets)
         stop("At least ", min.data.sets, " data set(s) are required.")
 
