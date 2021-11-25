@@ -129,12 +129,19 @@ CheckPredictionVariables <- function(object, newdata)
     dummy.adjusted.importance <- regression.model &&
         object$missing == "Dummy variable adjustment" &&
         !is.null(object$importance.type)
+    formula.exists <- "formula" %in% names(object)
     # LDA transforms the model data into a model matrix (dummy variable encoding), so is not appropriate
-    if ("formula" %in% names(object) && !dummy.adjusted.importance && !inherits(object, "LDA"))
+    if (formula.exists && !dummy.adjusted.importance && !inherits(object, "LDA"))
     {
         training.model.variables <- AllVariablesNames(object[["formula"]], data = object[["model"]])
         training.outcome.name    <- OutcomeName(object[["formula"]], data = object[["model"]])
         relevant.cols <- training.model.variables[training.model.variables != training.outcome.name]
+    } else if (formula.exists && dummy.adjusted.importance) {
+        original.model <- object[["original"]]
+        formula.vars <- AllVariablesNames(object[["formula"]])[-1L]
+        dummy.vars <- names(object[["estimation.data"]])[grepl("dummy\\.var_GQ9KqD7YOf$", names(object[["estimation.data"]]))]
+        relevant.vars <- union(formula.vars, dummy.vars)
+        relevant.cols <- names(object[["estimation.data"]])[names(object[["estimation.data"]]) %in% relevant.vars]
     } else # Relevant for older CART which don't have a formula (see DS-2488)
         relevant.cols <- names(object[["model"]])[names(object[["model"]]) != object[["outcome.name"]]]
     # Check if a regression object is being processed and the outlier removal has been implemented.
