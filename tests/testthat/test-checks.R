@@ -170,4 +170,17 @@ test_that("DS-3488 Check dummy variable adjustment handled with and without outl
     expected.output <- missing.all.predictors[-1, -1]
     expect_equal(CheckPredictionVariables(output, newdata = dummy.adj.model),
                  dummy.adj.model[, c("X1", "X2")])
+    # Check estimation data is used and only uses the correct variables after Importance analysis
+    input.ed <- data.frame(Response = 1, w = 1, y = 1, z = 1, x.dummy.var_GQ9KqD7YOf = 1,
+                           non.outlier.data_GQ9KqD7YOf = TRUE)
+    new.data <- input.ed[2:5]
+    object <- structure(list(formula = Response ~ w + x + y + z + x.dummy.var_GQ9KqD7YOf + z.dummy.var_GQ9KqD7YOf,
+                             missing =  "Dummy variable adjustment",
+                             model = data.frame(Response = 1, w = 1, y = 1, z = 1,
+                                                x.dummy.var_GQ9KqD7YOf = 1,
+                                                z.dummy.var_GQ9KqD7YOf = 1),
+                             importance.type = "Shapley Regression",
+                             estimation.data = input.ed),
+                        class = "Regression")
+    expect_equal(CheckPredictionVariables(object, input.ed), new.data)
 })
