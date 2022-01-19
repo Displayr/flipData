@@ -29,10 +29,12 @@ readDataSets <- function(data.set.names, min.data.sets = 1)
 #' @return A list of data frames, with each representing a data set.
 #' @noRd
 #' @importFrom haven read_sav
-readLocalDataSets <- function(data.set.paths)
+#' @importFrom flipU InterceptExceptions
+readLocalDataSets <- function(data.set.paths, parser = read_sav)
 {
     result <- lapply(data.set.paths, function(path) {
-        read_sav(path)
+        handler = createReadErrorHandler(path)
+        InterceptExceptions(parser(path), error.handler = handler)
     })
     names(result) <- basename(data.set.paths)
     result
@@ -45,9 +47,24 @@ readLocalDataSets <- function(data.set.paths)
 #' @importFrom flipAPI QLoadData
 readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 {
-    result <- lapply(data.set.names, QLoadData)
+    result <- lapply(data.set.names, function(nm) {
+        handler = createReadErrorHandler(nm)
+        InterceptExceptions(QLoadData(nm), error.handler = handler)
+    })
     names(result) <- data.set.names
     result
+}
+
+createReadErrorHandler <- function(data.set.name)
+{
+    function(e) {
+        if (grepl("Invalid file, or file has unsupported features", e$message)) {
+            stop(paste0("The data file '", data.set.name, "' could not be parsed. ",
+                        "Check the data set for issues and try again after fixing them or removing unnecessary variables."))
+        } else {
+            stop(e$message)
+        }
+    }
 }
 
 #' @param data.set A data frame containing the data set to write.
