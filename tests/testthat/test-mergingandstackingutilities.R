@@ -109,7 +109,7 @@ test_that("readDataSets: Non .sav files throw nice error", {
 test_that("readDataSets: better error message when data file is invalid", {
     mock.parser <- function(x) stop("Invalid file, or file has unsupported features")
     expect_error(readLocalDataSets("bad.sav", mock.parser),
-                 paste0("The data set 'bad.sav' could not be parsed. ",
+                 paste0("The data file 'bad.sav' could not be parsed. ",
                         "Check the data set for issues and try again after fixing them or removing unnecessary variables."))
 })
 
