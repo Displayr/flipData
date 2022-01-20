@@ -763,7 +763,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
 
         # Check for mismatching variable types and value attributes
         if (!allIdentical(v.types[removeNA(group.ind)]) ||
-            !allValueAttributesIdentical(v.val.attr[removeNA(group.ind)]))
+            !allIdentical(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
                     "' has been ignored as it contains variables with mismatching types or value attributes.")
@@ -911,7 +911,7 @@ stackingSpecifiedByObservation <- function(manual.stacking,
     {
         group.ind <- removeNA(manual.stacking.groups[i, ])
         if (!allIdentical(v.types[group.ind]) ||
-            !allValueAttributesIdentical(v.val.attr[group.ind]))
+            !allIdentical(v.val.attr[group.ind]))
         {
             warning("No manual stacking was conducted as the following variables to be stacked ",
                     "have mismatching types or value attributes: ",

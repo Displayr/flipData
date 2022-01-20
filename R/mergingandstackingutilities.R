@@ -232,18 +232,6 @@ allIdentical <- function(x)
     length(unique(x)) < 2
 }
 
-#' @param x A list of value attributes (named numeric vectors)
-#' @return A logical scalar indicating if all value attributes are identical,
-#'  even if the values are specified in a different order.
-#' @examples
-#' val.attr <- structure(1:3, .Names = c("A", "B", "C"))
-#' allValueAttributesIdentical(list(val.attr, rev(val.attr))) # TRUE
-#' @noRd
-allValueAttributesIdentical <- function(x)
-{
-    allIdentical(lapply(x, sort))
-}
-
 #' @param x A vector.
 #' @return A vector which is a subset of x with NA values removed.
 #' @example
