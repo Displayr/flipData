@@ -483,6 +483,17 @@ test_that("stackingSpecifiedByVariable", {
                           "ignored as it contains variables with mismatching ",
                           "types or value attributes."))
     expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
+
+    # Value attributes in different order
+    v.val.attr.3 <- v.val.attr
+    v.val.attr.3[[2]] <- rev(v.val.attr.3[[2]])
+    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
+                                                                  list(variable.names = v.names,
+                                                                       variable.types = v.types,
+                                                                       variable.value.attributes = v.val.attr.3)), NA)
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA),
+                           .Dim = c(2L, 4L)))
 })
 
 test_that("stackingSpecifiedByObservation", {
