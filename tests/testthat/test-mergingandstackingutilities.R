@@ -25,6 +25,12 @@ test_that("allIdentical", {
     expect_equal(allIdentical(x = c(1, 1, 1)), TRUE)
 })
 
+test_that("allValueAttributesIdentical", {
+    val.attr <- structure(1:3, .Names = c("A", "B", "C"))
+    expect_equal(allValueAttributesIdentical(list(val.attr, rev(val.attr))), TRUE)
+    expect_equal(allValueAttributesIdentical(list(val.attr, rev(val.attr)[1:2])), FALSE)
+})
+
 test_that("removeNA", {
     expect_equal(removeNA(x = c(NA, 1, 2, NA, 3)), c(1, 2 ,3))
 })
