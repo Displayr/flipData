@@ -104,12 +104,12 @@ Calibrate <- function(categorical.variables = NULL,
 }
 
 # Converts lists to data fames, checking the data for errors along the way.
-#' @importFrom verbs SumColumns
+#' @importFrom verbs SumEachColumn
 convertToDataFrame <- function(x)
 {
     x = as.data.frame(x, stringsAsFactors = TRUE)
     # Check that data frame is complete
-    var.missing = SumColumns(is.na(x), remove.missing = FALSE) > 0
+    var.missing = SumEachColumn(is.na(x), remove.missing = FALSE) > 0
     if (any(var.missing))
     {
         var.missing = paste(names(var.missing)[var.missing], collapse = ", ")

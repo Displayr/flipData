@@ -41,11 +41,11 @@ ExcludeCasesWithAnyMissingData <- function(data)
 #' @examples
 #' my.df <- data.frame("A" = c(1, 2, 3, 4, NA), "B" = c(NA, 1, 2, 3, NA), "C" = c(NA, NA, 1, 2, NA))
 #' ExcludeCasesWithCompletelyMissingData(my.df)
-#' @importFrom verbs SumRows
+#' @importFrom verbs SumEachRow
 #' @export
 ExcludeCasesWithCompletelyMissingData <- function(data)
 {
-    result <- data[SumRows(is.na(data), remove.missing = FALSE) < ncol(data), ]
+    result <- data[SumEachRow(is.na(data), remove.missing = FALSE) < ncol(data), ]
     if (nrow(result) == 0)
     {
         NoData()
