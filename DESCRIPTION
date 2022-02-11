@@ -1,7 +1,7 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 1.5.7
+Version: 1.5.8
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and
@@ -26,7 +26,7 @@ Imports: CVXR (>= 1.0.0),
  stringr,
  survey,
  verbs
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Encoding: UTF-8
 Suggests: foreign,
  gtools,
