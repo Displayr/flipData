@@ -472,7 +472,7 @@ test_that("stackingSpecifiedByVariable", {
 
     # Incompatible value attributes
     val.attr.2 <- 4:6
-    names(val.attr.2) <- letters[4:6]
+    names(val.attr.2) <- letters[1:3]
     v.val.attr.2 <- v.val.attr
     v.val.attr.2[[2]] <- val.attr.2
     expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
@@ -662,4 +662,34 @@ test_that("parseVariableWildcard", {
                           "wildcard name 'BAD_*_VAR'. Ensure that the ",
                           "wildcard variable name has been correctly specified. ",
                           "Warning expected"), fixed = TRUE)
+})
+
+test_that("isValueAttributesMergable", {
+    val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
+                      structure(4:6, .Names = c("D", "E", "F")))
+    expect_true(isValueAttributesMergable(val.attrs))
+
+    val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
+                      structure(1:3, .Names = c("A", "B", "C")))
+    expect_true(isValueAttributesMergable(val.attrs))
+
+    val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
+                      structure(1:3, .Names = c("D", "E", "F")))
+    expect_false(isValueAttributesMergable(val.attrs))
+
+    val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
+                      structure(4:6, .Names = c("A", "B", "C")))
+    expect_false(isValueAttributesMergable(val.attrs))
+})
+
+test_that("stackedValueAttributes", {
+    val.attrs <- list(structure(4:6, .Names = c("D", "E", "F")),
+                      structure(1:3, .Names = c("A", "B", "C")))
+    expect_equal(stackedValueAttributes(1:2, val.attrs),
+                 structure(1:6, .Names = c("A", "B", "C", "D", "E", "F")))
+
+    val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
+                      structure(1:3, .Names = c("A", "B", "C")))
+    expect_equal(stackedValueAttributes(1:2, val.attrs),
+                 structure(1:3, .Names = c("A", "B", "C")))
 })

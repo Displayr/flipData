@@ -763,7 +763,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
 
         # Check for mismatching variable types and value attributes
         if (!allIdentical(v.types[removeNA(group.ind)]) ||
-            !allValueAttributesIdentical(v.val.attr[removeNA(group.ind)]))
+            !isValueAttributesMergable(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
                     "' has been ignored as it contains variables with mismatching types or value attributes.")
@@ -911,7 +911,7 @@ stackingSpecifiedByObservation <- function(manual.stacking,
     {
         group.ind <- removeNA(manual.stacking.groups[i, ])
         if (!allIdentical(v.types[group.ind]) ||
-            !allValueAttributesIdentical(v.val.attr[group.ind]))
+            !isValueAttributesMergable(v.val.attr[group.ind]))
         {
             warning("No manual stacking was conducted as the following variables to be stacked ",
                     "have mismatching types or value attributes: ",
@@ -920,6 +920,36 @@ stackingSpecifiedByObservation <- function(manual.stacking,
         }
     }
     manual.stacking.groups
+}
+
+# Value attributes are mergable if they are consistent with each other
+# (i.e. the value labels of their common values match).
+isValueAttributesMergable <- function(v.val.attrs)
+{
+    combined.val.attr <- do.call('c', v.val.attrs)
+    names(combined.val.attr) <- unlist(lapply(v.val.attrs,
+                                               function(v.val.attr) names(v.val.attr)),
+                                        use.names = FALSE)
+
+    # Check that there aren't multiple names per value
+    unique.vals <- unique(combined.val.attr)
+    for (v in unique.vals) {
+        nms <- unique(names(combined.val.attr)[v == combined.val.attr])
+        if (length(nms) > 1) {
+            return(FALSE)
+        }
+    }
+
+    # Check that there aren't multiple values per name
+    unique.names <- unique(names(combined.val.attr))
+    for (nm in unique.names) {
+        vals <- unique(combined.val.attr[nm == names(combined.val.attr)])
+        if (length(vals) > 1) {
+            return(FALSE)
+        }
+    }
+
+    return(TRUE)
 }
 
 # See unit tests for mergeCommonLabelAndManualStackingGroups in test-stacking.R
@@ -1060,8 +1090,8 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
             attr(v, "stacking.input.variable.labels") <- input.v.labels[group.ind]
             attr(v, "label") <- stackedVariableLabel(group.ind, input.v.labels, nm)
-            val.attr <- attr(input.data.set[[removeNA(group.ind)[1]]],
-                             "labels", exact = TRUE)
+            val.attr <- stackedValueAttributes(group.ind,
+                                               input.data.set.metadata$variable.value.attributes)
             if (!is.null(val.attr))
             {
                 if (is.integer(v))
@@ -1179,6 +1209,19 @@ stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.varia
         lbl[1]
     else
         trimws(paste(common.prefix, common.suffix))
+}
+
+# Assume that value attributes are mergable (isValueAttributesMergable or
+# allValueAttributesIdentical has been run and returned TRUE)
+stackedValueAttributes <- function(group.ind, input.value.attributes)
+{
+    v.val.attrs <- input.value.attributes[removeNA(group.ind)]
+    combined.val.attrs <- do.call('c', v.val.attrs)
+    names(combined.val.attrs) <- unlist(lapply(v.val.attrs,
+                                               function(v.val.attr) names(v.val.attr)),
+                                        use.names = FALSE)
+    is.dup <- duplicated(combined.val.attrs)
+    sort(combined.val.attrs[!is.dup])
 }
 
 # Common prefix from a character vector of names.
