@@ -135,7 +135,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
         tgt = categorical.targets[[i]]
         targets[[i]] = suppressWarnings(as.numeric(str_trim(tgt[, 2])))
         names(targets[[i]]) = tgt[, 1]
-        adj.variable = if(is.null(subset)) adjustment.variables[[i]] else droplevels(adjustment.variables[[i]][subset])
+        adj.variable = if(is.null(subset)) droplevels(adjustment.variables[[i]]) else droplevels(adjustment.variables[[i]][subset])
         adj.unique = levels(adj.variable)
         missing.targets = ! adj.unique %in% tgt[, 1]
         varname = names(adjustment.variables)[i]
