@@ -306,3 +306,14 @@ test_that("DS-3458: Catch CVXR solver errors from bad input data",
                            numeric.targets = targets),
                  "check that the supplied targets are appropriate for your data.")
 })
+
+test_that("DS-3646: Always drop empty levels when checking validity of targets",
+{
+    categorical.vars <- list(Gender = factor(c("Male", "Female", "Male", "Female")),
+                             Age = factor(c("Old", "Old", "Young", "Young"), levels = c("Old", "Young", "Middle-aged")))
+    targets <- list(Gender = rbind(c("Male", 0.5), c("Female", 0.5)),
+                    Age = rbind(c("Old", 0.25), c("Young", 0.25), c("Middle-aged",0.5)))
+    expect_error(Calibrate(categorical.vars, targets),
+                 "does not appear")
+
+})
