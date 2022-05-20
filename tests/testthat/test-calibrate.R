@@ -317,3 +317,14 @@ test_that("DS-3646: Always drop empty levels when checking validity of targets",
                  "does not appear")
 
 })
+
+test_that("DS-3682: Normalize rake weight before trimming", {
+    upper = 2
+    lower = 0.3
+    x = Calibrate(list(Age = input.age, Gender = input.gender), 
+                  list(Age = variable.targets.age, Gender = variable.targets.gender), 
+                  upper = upper, 
+                  lower = lower)
+    expect_equal(round(min(x), 7), 0.4089635)
+    expect_equal(round(max(x), 6), 2.148377)
+})

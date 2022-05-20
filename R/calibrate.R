@@ -323,6 +323,13 @@ trimWeight = function(weight, lower, upper)
 trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower, upper, trim.iterations, raking, package)
 {
     weight = computeCalibrate(adjustment.variables, margins, input.weight, raking, package)
+    # DS-3682: computeCalibrate produces weights which are not normalized to a mean of 1.
+    # As a result, the calculations below which compare the weight to upper and lower,
+    # which are user-specified bounds for a weight with a mean value of 1, do not produce
+    # the desired effect (typically the weight is either not trimmed, or trimming produces
+    # a weight where all values are identical because the original values were all below
+    # the lower bound.
+    weight = weight / mean(weight)
     trims = 0
     prev_diff = Inf
     dif = diffCalculation(weight, lower, upper)
@@ -334,6 +341,8 @@ trimmedCalibrate <- function(adjustment.variables, margins, input.weight, lower,
         trims = trims + 1
         weight = trimWeight(weight, lower, upper)
         weight = computeCalibrate(adjustment.variables, margins, weight, raking, package)
+        # DS-3682 see above
+        weight = weight / mean(weight)
         prev_diff = dif
         dif = diffCalculation(weight, lower, upper)
     }
