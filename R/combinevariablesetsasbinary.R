@@ -3,20 +3,17 @@
 #' CombineVariableSetsAsBinary
 #'
 #' @description Combines a list of variable sets to binary variables, matching categories between them.
-#' @param variable.set.list A list containing one or more variable sets which should be
-#' Nominal, Ordinal, Nominal/Ordinal - Multi, Binary - Multi, or Binary - Multi (Compact)
+#' @param ... One or more variable sets which should be Nominal, Ordinal, Nominal/Ordinal - Multi, 
+#' Binary - Multi, or Binary - Multi (Compact)
 #' @param compute.for.incomplete A boolean value. If \code{FALSE}, cases with any missing data
 #' will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 #' be assigned a missing value.
 #' @importFrom verbs Count AnyOf
 #' @importFrom flipTransformations AsNumeric
 #' @export
-CombineVariableSetsAsBinary <- function(variable.set.list, compute.for.incomplete = TRUE) {
+CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE) {
 
-
-    if (is.data.frame(variable.set.list) || !is.list(variable.set.list)) {
-        stop("Input data should be supplied as a list.")
-    }
+    variable.set.list <- list(...)
 
     # Check for duplicated labels which make life difficult when matching
     duplicated.labels = lapply(variable.set.list, function(x) {
@@ -38,9 +35,9 @@ CombineVariableSetsAsBinary <- function(variable.set.list, compute.for.incomplet
         if (is.factor(x)) {
             levs = levels(x)
             return(levs[duplicated(levs)])
-        } else {
-            return(colnames(x)[duplicated(colnames(x))])
-        }
+        } 
+        
+        colnames(x)[duplicated(colnames(x))]
     })
 
     n.duplicates = vapply(duplicated.labels, FUN = length, FUN.VALUE = numeric(1))
@@ -48,7 +45,7 @@ CombineVariableSetsAsBinary <- function(variable.set.list, compute.for.incomplet
     if (any(n.duplicates > 0)) {
         dup.qs = names(duplicated.labels)[n.duplicates > 0]
         dup.labels = duplicated.labels[n.duplicates > 0]
-        stop(paste0("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]]))
+        stop("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]])
     }
 
     
@@ -66,39 +63,37 @@ CombineVariableSetsAsBinary <- function(variable.set.list, compute.for.incomplet
     
     # If only one variable set then just return it
     if (length(binary.versions) == 1) {
-        result <- binary.versions[[1]] == 1
-    } else {
+        return(binary.versions[[1]] == 1)
+    } 
 
-        # Check matching of column labels in binary data
-        all.labels = lapply(binary.versions, FUN = colnames)
-        unique.labels = unique(unlist(all.labels))
-        common.labels = unique.labels
-        for (j in seq_along(binary.versions)) {
-            common.labels = intersect(common.labels, colnames(binary.versions[[j]]))
-        }
-        if (!setequal(unique.labels, common.labels)) {
-            stop(paste0("Unable to match categories from the input data. The labels which do not appear in all inputs are: ", paste0(setdiff(unique.labels, common.labels), collapse = ",")))
-        }
+    # Check matching of column labels in binary data
+    all.labels = lapply(binary.versions, FUN = colnames)
+    unique.labels = unique(unlist(all.labels))
+    common.labels = Reduce(intersect, all.labels)
 
-        input.args = binary.versions
-        input.args[["match.elements"]] <- "Yes"
-        input.args[["elements.to.count"]] <- list(numeric = NA, categorical = NULL)
-        input.args[["ignore.missing"]] <- TRUE
-        
-        # Count missing values for each case for each binary variable
-        n.missing <- do.call(Count, input.args)
-        
-        # Combine the sets of binary variables using AnyOf
-        input.args[["elements.to.count"]] <- list(numeric = 1, categorical = NULL)
-        result <- do.call(AnyOf, input.args)
-        
-        # Handle missing values
-        if (compute.for.incomplete) { # Only assign NA if all missing
-            result[n.missing == length(binary.versions)] <- NA
-        } else { # Assign NA if any missing
-            result[n.missing > 0] <- NA
-        }
+    if (!setequal(unique.labels, common.labels)) {
+        stop("Unable to match categories from the input data. The labels which do not appear in all inputs are: ", paste0(setdiff(unique.labels, common.labels), collapse = ","))
     }
+
+    input.args = binary.versions
+    input.args[["match.elements"]] <- "Yes"
+    input.args[["elements.to.count"]] <- list(numeric = NA, categorical = NULL)
+    input.args[["ignore.missing"]] <- TRUE
+    
+    # Count missing values for each case for each binary variable
+    n.missing <- do.call(Count, input.args)
+    
+    # Combine the sets of binary variables using AnyOf
+    input.args[["elements.to.count"]] <- list(numeric = 1, categorical = NULL)
+    result <- do.call(AnyOf, input.args)
+    
+    # Handle missing values
+    if (compute.for.incomplete) { # Only assign NA if all missing
+        result[n.missing == length(binary.versions)] <- NA
+    } else { # Assign NA if any missing
+        result[n.missing > 0] <- NA
+    }
+    
     result
 }
 
@@ -158,4 +153,6 @@ questionToBinary <- function(x) {
         binary.version[is.na(x), ] <- NA
         return(binary.version)
     }
+
+    stop("Unsupported data type: ", question.type)
 }
