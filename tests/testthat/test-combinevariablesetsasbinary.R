@@ -38,6 +38,8 @@ attr(Q4.pepsi.max, "questiontype") <- "PickOne"
 attr(Q4.pepsi.max, "dataset") <- "colas"
 
 Q4.binary = CombineVariableSetsAsBinary(Q4)
+Q4.binary = cbind(Q4.binary, "NET" = rep(TRUE, nrow(Q4.binary)))
+attr(Q4.binary, "codeframe") <- list("Hate" = 1, "Dislike" = 2, "Neither like not dislike" = 3, "Love" = 4, "Like" = 5, "NET" = c(1,2,3,4,5))
 attr(Q4.binary, "questiontype") <- "PickAny"
 attr(Q4.binary, "dataset") <- "colas"
 
@@ -79,14 +81,14 @@ test_that("Many PickOnes are equivalent to a PickOneMulti", {
 
 test_that("Combining PickOnes and Pick Any", {
 
-    expect_equal(Q4.binary, CombineVariableSetsAsBinary(Q4.binary.small, Q4.pepsi.light, Q4.pepsi.max), check.attributes = FALSE)
+    expect_equal(Q4.binary[, -ncol(Q4.binary)], CombineVariableSetsAsBinary(Q4.binary.small, Q4.pepsi.light, Q4.pepsi.max), check.attributes = FALSE)
 
 })
 
 test_that("Pick Any returns same data", {
 
-    expect_equal(CombineVariableSetsAsBinary(Q4.binary), Q4.binary, check.attributes = FALSE)
-    expect_equal(CombineVariableSetsAsBinary(Q4.binary, Q4.binary), Q4.binary, check.attributes = FALSE)
+    expect_equal(CombineVariableSetsAsBinary(Q4.binary), Q4.binary[, -ncol(Q4.binary)], check.attributes = FALSE)
+    expect_equal(CombineVariableSetsAsBinary(Q4.binary, Q4.binary), Q4.binary[, -ncol(Q4.binary)], check.attributes = FALSE)
 
 })
 

@@ -124,11 +124,11 @@ questionToBinary <- function(x) {
         
     if (question.type %in% c("PickAny", "PickAnyCompact")) {
         # Identify and remove the NET column basedon the codeframe attribute
-        cf = attr(x, "codeframe")
+        cf <- attr(x, "codeframe")
         if (!is.null(cf)) {
             unique.codes = unique(unlist(cf))
             net.cols = vapply(cf, isDefaultNet, FUN.VALUE = logical(1), unique.codes = unique.codes)
-            x[, !net.cols]    
+            x <- x[, !net.cols]    
         }
         return(x) 
     }
