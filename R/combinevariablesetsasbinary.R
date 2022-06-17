@@ -8,7 +8,7 @@
 #' @param compute.for.incomplete A boolean value. If \code{FALSE}, cases with any missing data
 #' will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 #' be assigned a missing value.
-#' @param treat.unobserved.binary.columns.as.missing Boolean value. When one of the input variable sets
+#' @param unmatched.pick.any.are.missing Boolean value. When one of the input variable sets
 #' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
 #' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
 #' missing values will only be assigned for cases where all existing columns are missing. Note that for 
@@ -17,7 +17,7 @@
 #' @importFrom verbs Count AnyOf SumEachRow
 #' @importFrom flipTransformations AsNumeric
 #' @export
-CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, treat.unobserved.binary.columns.as.missing = TRUE) {
+CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unmatched.pick.any.are.missing = TRUE) {
 
     variable.set.list <- list(...)
 
@@ -81,7 +81,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, trea
         binary.versions <- lapply(binary.versions, 
             FUN = fillInCategoriesWhenNotPresent, 
             expected.columns = unique.labels,
-            pick.any.all.missing = treat.unobserved.binary.columns.as.missing)
+            pick.any.all.missing = unmatched.pick.any.are.missing)
     }
 
     input.args = binary.versions
@@ -175,7 +175,7 @@ fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.a
     
     current.colnames <- colnames(binary.data)
 
-    if (all(expected.columns %in% colnames(current.colnames)))
+    if (all(expected.columns %in% current.colnames))
         return(binary.data)
 
     new.colnames <- expected.columns[! expected.columns %in% current.colnames]
@@ -193,7 +193,7 @@ fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.a
     # entirely missing unless overridden by the argument.
     n.missing.per.case <- SumEachRow(is.na(binary.data))
     missing.in.new.data = rep(TRUE, nrow(binary.data))
-    if (attr(binary.data, "originalquestiontype") == "Pick One" | !pick.any.all.missing) {
+    if (attr(binary.data, "originalquestiontype") == "Pick One" || !pick.any.all.missing) {
         missing.in.new.data <- n.missing.per.case == ncol(binary.data)
     } 
 
