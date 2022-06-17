@@ -7,7 +7,7 @@
 CombineVariableSetsAsBinary(
   ...,
   compute.for.incomplete = TRUE,
-  treat.unobserved.binary.columns.as.missing = TRUE
+  unmatched.pick.any.are.missing = TRUE
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ Binary - Multi, or Binary - Multi (Compact)}
 will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 be assigned a missing value.}
 
-\item{treat.unobserved.binary.columns.as.missing}{Boolean value. When one of the input variable sets
+\item{unmatched.pick.any.are.missing}{Boolean value. When one of the input variable sets
 is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
 entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
 missing values will only be assigned for cases where all existing columns are missing. Note that for 
