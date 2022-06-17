@@ -4,15 +4,26 @@
 \alias{CombineVariableSetsAsBinary}
 \title{CombineVariableSetsAsBinary}
 \usage{
-CombineVariableSetsAsBinary(variable.set.list, compute.for.incomplete = TRUE)
+CombineVariableSetsAsBinary(
+  ...,
+  compute.for.incomplete = TRUE,
+  treat.unobserved.binary.columns.as.missing = TRUE
+)
 }
 \arguments{
-\item{variable.set.list}{A list containing one or more variable sets which should be
-Nominal, Ordinal, Nominal/Ordinal - Multi, Binary - Multi, or Binary - Multi (Compact)}
+\item{...}{One or more variable sets which should be Nominal, Ordinal, Nominal/Ordinal - Multi, 
+Binary - Multi, or Binary - Multi (Compact)}
 
 \item{compute.for.incomplete}{A boolean value. If \code{FALSE}, cases with any missing data
 will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 be assigned a missing value.}
+
+\item{treat.unobserved.binary.columns.as.missing}{Boolean value. When one of the input variable sets
+is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
+entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
+missing values will only be assigned for cases where all existing columns are missing. Note that for 
+mutually-exclusive input variables, new columns will be created such that only cases with entirely 
+missing values are assigned a missing value.}
 }
 \description{
 Combines a list of variable sets to binary variables, matching categories between them.
