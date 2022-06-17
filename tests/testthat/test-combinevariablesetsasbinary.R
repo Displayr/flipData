@@ -105,10 +105,36 @@ test_that("Missing data", {
     expect_true(all(is.na(CombineVariableSetsAsBinary(aided, unaided, compute.for.incomplete = FALSE)[n.missing > 0])))
 })
 
+test_that("Filling in unmatched columns correctly", {
+
+    aided.2 <- aided
+    attr(aided.2, "originalquestiontype") <- "Pick Any"
+    expect_equal(fillInCategoriesWhenNotPresent(aided.2, colnames(aided.2)), aided.2)
+    expect_true(all(is.na(fillInCategoriesWhenNotPresent(aided.2, c(colnames(aided.2), "Hello"))[, "Hello"])))
+
+    Q4.pepsi.light.2 <- Q4.pepsi.light
+    Q4.pepsi.light.2[c(1,2,3)] <- NA
+    Q4.pepsi.light.binary <- CombineVariableSetsAsBinary(Q4.pepsi.light.2)
+    attr(Q4.pepsi.light.binary, "originalquestiontype") <- "Pick One"
+
+    expect_equal(which(is.na(fillInCategoriesWhenNotPresent(Q4.pepsi.light.binary, c(colnames(Q4.pepsi.light.binary), "Hello"))[, "Hello"])), c(1,2,3))
+
+})
+
+test_that("Unmatched columns included", {
+    aided.2 <- aided
+    colnames(aided.2)[11] <- "Hello"
+    combined <- CombineVariableSetsAsBinary(aided.2, unaided)
+    unique.cols <- unique(c(colnames(aided.2), colnames(unaided)))
+    expect_true(all(colnames(combined) %in% unique.cols))
+    expect_true(all(unique.cols %in% colnames(combined)))
+    expect_equal(as.numeric(combined[, "Hello"]), aided.2[, "Hello"])
+})
+
+
+
 test_that("Error messages", {
     aided.2 <- aided
     colnames(aided.2)[11] <- "Telstra"
     expect_error(CombineVariableSetsAsBinary(aided.2, unaided), "duplicate")
-    colnames(aided.2)[11] <- "Phone company"
-    expect_error(CombineVariableSetsAsBinary(aided.2, unaided), "Unable to match")
 })

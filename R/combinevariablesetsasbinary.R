@@ -8,10 +8,16 @@
 #' @param compute.for.incomplete A boolean value. If \code{FALSE}, cases with any missing data
 #' will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 #' be assigned a missing value.
-#' @importFrom verbs Count AnyOf
+#' @param unmatched.pick.any.are.missing Boolean value. When one of the input variable sets
+#' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
+#' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
+#' missing values will only be assigned for cases where all existing columns are missing. Note that for 
+#' mutually-exclusive input variables, new columns will be created such that only cases with entirely 
+#' missing values are assigned a missing value. 
+#' @importFrom verbs Count AnyOf SumEachRow
 #' @importFrom flipTransformations AsNumeric
 #' @export
-CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE) {
+CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unmatched.pick.any.are.missing = TRUE) {
 
     variable.set.list <- list(...)
 
@@ -72,7 +78,10 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE) {
     common.labels = Reduce(intersect, all.labels)
 
     if (!setequal(unique.labels, common.labels)) {
-        stop("Unable to match categories from the input data. The labels which do not appear in all inputs are: ", paste0(setdiff(unique.labels, common.labels), collapse = ","))
+        binary.versions <- lapply(binary.versions, 
+            FUN = fillInCategoriesWhenNotPresent, 
+            expected.columns = unique.labels,
+            pick.any.all.missing = unmatched.pick.any.are.missing)
     }
 
     input.args = binary.versions
@@ -130,6 +139,7 @@ questionToBinary <- function(x) {
             net.cols = vapply(cf, isDefaultNet, FUN.VALUE = logical(1), unique.codes = unique.codes)
             x <- x[, !net.cols]    
         }
+        attr(x, "originalquestiontype") <- "Pick Any"
         return(x) 
     }
 
@@ -151,8 +161,45 @@ questionToBinary <- function(x) {
         binary.version <- AsNumeric(x, binary = TRUE, name = levels(x))
         colnames(binary.version) <- levels(x) 
         binary.version[is.na(x), ] <- NA
+        attr(binary.version, "originalquestiontype") <- "Pick One"
         return(binary.version)
     }
 
     stop("Unsupported data type: ", question.type)
+}
+
+# Function to expand the number of columns in the binary data
+# when there are fewer columns than expected. expected.columns
+# should be a vector of column names. 
+fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.any.all.missing = TRUE) {
+    
+    current.colnames <- colnames(binary.data)
+
+    if (all(expected.columns %in% current.colnames))
+        return(binary.data)
+
+    new.colnames <- expected.columns[! expected.columns %in% current.colnames]
+    new.data <- matrix(FALSE, nrow = nrow(binary.data), ncol = length(new.colnames))
+    colnames(new.data) <- new.colnames
+
+
+    # Missing data rule
+    # For data which was originally mutually-exclusive,
+    # cases are assigned missing values in the new columns
+    # when the case has missing data in the existing columns.
+    # In this case the row will always be entirely missing
+    # or entirely non-missing.
+    # For data which was already binary, new columns should be
+    # entirely missing unless overridden by the argument.
+    n.missing.per.case <- SumEachRow(is.na(binary.data))
+    missing.in.new.data = rep(TRUE, nrow(binary.data))
+    if (attr(binary.data, "originalquestiontype") == "Pick One" || !pick.any.all.missing) {
+        missing.in.new.data <- n.missing.per.case == ncol(binary.data)
+    } 
+
+    new.data[missing.in.new.data, ] <- NA
+
+    binary.data <- cbind(binary.data, new.data)
+    binary.data <- binary.data[, expected.columns]
+    binary.data 
 }
