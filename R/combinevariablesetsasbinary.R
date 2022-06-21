@@ -56,20 +56,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
 
     binary.versions <- lapply(variable.set.list, FUN = questionToBinary)
 
-    final.binary.versions <- list()
-
-    # Pick One - Multis will appear as a list.
-    # Append thoses lists to the main list and delete the
-    # corresponding original elements
-    for (j in 1:length(binary.versions)) {
-        if (!is.data.frame(binary.versions[[j]]) & is.list(binary.versions[[j]])) {
-            final.binary.versions <- c(final.binary.versions, binary.versions[[j]])
-        } else {
-            final.binary.versions <- c(final.binary.versions, list(binary.versions[[j]]))
-        }
-    }
-
-    binary.versions <- final.binary.versions
+    binary.versions <- flattenToSingleList(binary.versions)
 
     n.cases <- vapply(binary.versions, FUN = NROW, FUN.VALUE = numeric(1))
 
@@ -127,6 +114,12 @@ isDefaultNet <- function(codes, unique.codes) {
     all(unique.codes %in% codes) && length(codes) == length(unique.codes)
 }
 
+
+flattenToSingleList <- function(input.list)
+{
+    args <- lapply(input.list, function(x) if (is.list(x) && ! is.data.frame(x)) flattenToSingleList(x) else list(x))
+    do.call(c, args)
+}
 
 # Convert Displayr variable sets to binary.
 # Factors are split out with one column per level
