@@ -148,11 +148,9 @@ test_that("Error messages", {
 })
 
 test_that("Blank factor labels", {
-
     test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
     test.case.2 <- factor(c("A", "A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
 
     expect_equal(colnames(CombineVariableSetsAsBinary(test.case.1, test.case.2)), c("", "A", "B", "C"))
-
 })
 

@@ -180,9 +180,9 @@ questionToBinary <- function(x) {
 
 # Function to expand the number of columns in the binary data
 # when there are fewer columns than expected. expected.columns
+
 # should be a vector of column names.
 fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.any.all.missing = TRUE) {
-
     current.colnames <- colnames(binary.data)
 
     if (all(expected.columns %in% current.colnames))
@@ -205,11 +205,13 @@ fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.a
     missing.in.new.data = rep(TRUE, nrow(binary.data))
     if (attr(binary.data, "originalquestiontype") == "Pick One" || !pick.any.all.missing) {
         missing.in.new.data <- n.missing.per.case == ncol(binary.data)
-    }
+    } 
 
     new.data[missing.in.new.data, ] <- NA
 
     binary.data <- cbind(binary.data, new.data)
     binary.data <- binary.data[, expected.columns]
-    binary.data
+
+    binary.data 
 }
+
