@@ -79,6 +79,10 @@ test_that("Many PickOnes are equivalent to a PickOneMulti", {
 
 })
 
+test_that("Multliple PickOneMulti where one is the subset of the other", {
+    expect_equal(CombineVariableSetsAsBinary(Q4, Q4.small), CombineVariableSetsAsBinary(Q4))
+})
+
 test_that("Combining PickOnes and Pick Any", {
 
     expect_equal(Q4.binary[, -ncol(Q4.binary)], CombineVariableSetsAsBinary(Q4.binary.small, Q4.pepsi.light, Q4.pepsi.max), check.attributes = FALSE)
@@ -137,4 +141,16 @@ test_that("Error messages", {
     aided.2 <- aided
     colnames(aided.2)[11] <- "Telstra"
     expect_error(CombineVariableSetsAsBinary(aided.2, unaided), "duplicate")
+
+    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
+    test.case.2 <- factor(c("A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+    expect_error(CombineVariableSetsAsBinary(test.case.1, test.case.2), "cases")
 })
+
+test_that("Blank factor labels", {
+    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
+    test.case.2 <- factor(c("A", "A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+
+    expect_equal(colnames(CombineVariableSetsAsBinary(test.case.1, test.case.2)), c("", "A", "B", "C"))
+})
+
