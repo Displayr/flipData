@@ -693,3 +693,12 @@ test_that("stackedValueAttributes", {
     expect_equal(stackedValueAttributes(1:2, val.attrs),
                  structure(1:3, .Names = c("A", "B", "C")))
 })
+
+
+# cola19.sav was created from cola.sav by appending @ to the end of the variable names of the 1st question
+test_that("DS-3758: special characters at end of variable names", {
+    expect_error(StackData(findInstDirFile("cola19.sav"),
+                           stack.with.common.labels = "Disabled",
+                           specify.by = "Variable",
+                           manual.stacking = c("Q1_F_c@,Q1_E_c1@,Q1_D_c@,Q1_C_c1@,Q1_A_c@,Q1_B_c1@")), NA)
+})
