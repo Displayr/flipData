@@ -1177,7 +1177,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                                      names(stacked.data.set))]] <- observation
     }
 
-    data.frame(stacked.data.set)
+    data.frame(stacked.data.set, check.names = FALSE)
 }
 
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
