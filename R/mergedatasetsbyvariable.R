@@ -585,7 +585,7 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
         }
     }
     names(merged.data.set.variables) <- merged.data.set.variable.names
-    data.frame(merged.data.set.variables)
+    data.frame(merged.data.set.variables, check.names = FALSE)
 }
 
 #' @param id.variable.names See data dictionary.

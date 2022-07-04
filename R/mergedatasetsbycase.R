@@ -1859,7 +1859,7 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
                  "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
         merged.data.set[[i]] <- v
     }
-    merged.data.set <- data.frame(merged.data.set)
+    merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
     names(merged.data.set) <- merged.names
 
     mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
