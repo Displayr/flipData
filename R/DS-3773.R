@@ -14,5 +14,4 @@
 # Issues:
 # RECORD/record variables not merging (one is numeric, one categorical)
 # Q5R97 merged into Q5_r97 instead of Q5r97
-# flipFormat::DataSetMergingByCaseWidget crashing when printing output when non-categorical input variables are merged and converted to categorical
-# Rename merged variables if they have the same name (ignoring case)
+

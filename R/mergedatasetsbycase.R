@@ -1693,8 +1693,9 @@ mergedVariableNames <- function(matched.names, use.names.and.labels.from)
     # Merged names may contain duplicate variable names due to the user
     # specifying variables with the same name to not be combined or variables
     # with the same name not being combined as their types are incompatible.
+    # Variables that only differ by case are also considered duplicate.
     # We rename variables so that the names are unique.
-    dup <- which(duplicated(merged.names))
+    dup <- which(duplicated(tolower(merged.names)))
     renamed.variables <- matrix(nrow = length(dup), ncol = 2)
     colnames(renamed.variables) <- c("Original name", "New name")
     for (i in seq_along(dup))
@@ -2396,7 +2397,7 @@ combineAsNumericVariable <- function(var.list, data.sets, v.types)
 # v.types can be text, numeric and categorical
 combineAsTextVariable <- function(var.list, data.sets, v.types)
 {
-    do.call("c", lapply(seq_along(data.sets), function(i) {
+    result <- do.call("c", lapply(seq_along(data.sets), function(i) {
         v <- var.list[[i]]
         if (is.null(v))
             rep(NA_character_, nrow(data.sets[[i]]))
@@ -2413,6 +2414,8 @@ combineAsTextVariable <- function(var.list, data.sets, v.types)
         else # v.types[i] == TEXT.VARIABLE.TYPE
             v
     }))
+    attr(result, "labels") <- NULL
+    result
 }
 
 #' @param text.variable A character vector representing a text variable.
