@@ -1259,19 +1259,78 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
             }, logical(1))
             arr.indices.matrix <- arr.indices.matrix[is.numbers.preserved, , drop = FALSE]
 
-            if (nrow(arr.indices.matrix) == 1)
+            if (nrow(arr.indices.matrix) > 0)
             {
-                result <- candidate.names[arr.indices.matrix[1, 1]]
-                attr(result, "match.percentage") <- p
-                attr(result, "is.fuzzy.match") <- !is.exact.match
-                attr(result, "matched.by") <- "Variable name"
-                return(result)
-            }
-            else if (nrow(arr.indices.matrix) > 1)
-            {
-                candidate.names <- candidate.names[arr.indices.matrix[, 1]]
-                candidate.labels <- candidate.labels[arr.indices.matrix[, 1]]
-                candidate.val.attrs <- candidate.val.attrs[arr.indices.matrix[, 1]]
+                candidate.indices <- unique(arr.indices.matrix[, 1])
+                if (length(candidate.ind) == 1) # best candidate found
+                {
+                    result <- candidate.names[candidate.indices]
+                    attr(result, "match.percentage") <- p
+                    attr(result, "is.fuzzy.match") <- !is.exact.match
+                    attr(result, "matched.by") <- "Variable name"
+                    return(result)
+                }
+                else # no single best candidate
+                {
+                    candidate.names <- candidate.names[candidate.indices]
+                    candidate.labels <- candidate.labels[candidate.indices]
+                    candidate.val.attrs <- candidate.val.attrs[candidate.indices]
+
+                    # If we ignore alphanumeric characters, try to break the tie
+                    # by not ignoring alphanumeric characters
+                    if (ignore.non.alphanumeric) {
+                        match.percentages.matrix <- matchPercentages(strings.1 = candidate.names,
+                                                                     strings.2 = nms,
+                                                                     ignore.case = ignore.case,
+                                                                     ignore.non.alphanumeric = FALSE,
+                                                                     min.match.percentage = min.match.percentage)
+                        arr.indices.matrix <- which(match.percentages.matrix == max(match.percentages.matrix),
+                                                    arr.ind = TRUE)
+                        candidate.indices <- unique(arr.indices.matrix[, 1])
+                        if (length(candidate.indices) == 1)
+                        {
+                            result <- candidate.names[candidate.indices]
+                            attr(result, "match.percentage") <- p
+                            attr(result, "is.fuzzy.match") <- !is.exact.match
+                            attr(result, "matched.by") <- "Variable name"
+                            return(result)
+                        }
+                        else
+                        {
+                            candidate.names <- candidate.names[candidate.indices]
+                            candidate.labels <- candidate.labels[candidate.indices]
+                            candidate.val.attrs <- candidate.val.attrs[candidate.indices]
+                        }
+                    }
+
+                    # If we ignore case, try to break the tie by not ignoring
+                    # alphanumeric characters
+                    if (ignore.case) {
+                        match.percentages.matrix <- matchPercentages(strings.1 = candidate.names,
+                                                                     strings.2 = nms,
+                                                                     ignore.case = FALSE,
+                                                                     ignore.non.alphanumeric = FALSE,
+                                                                     min.match.percentage = min.match.percentage)
+                        arr.indices.matrix <- which(match.percentages.matrix == max(match.percentages.matrix),
+                                                    arr.ind = TRUE)
+                        candidate.indices <- unique(arr.indices.matrix[, 1])
+                        if (length(unique(arr.indices.matrix[, 1])) == 1)
+                        {
+                            result <- candidate.names[candidate.indices]
+                            attr(result, "match.percentage") <- p
+                            attr(result, "is.fuzzy.match") <- !is.exact.match
+                            attr(result, "matched.by") <- "Variable name"
+                            return(result)
+                        }
+                        else
+                        {
+                            candidate.names <- candidate.names[candidate.indices]
+                            candidate.labels <- candidate.labels[candidate.indices]
+                            candidate.val.attrs <- candidate.val.attrs[candidate.indices]
+                        }
+                    }
+                    break
+                }
             }
         }
     }
