@@ -1262,7 +1262,7 @@ findMatchingVariable <- function(nms, lbls, val.attrs, candidate.names,
             if (nrow(arr.indices.matrix) > 0)
             {
                 candidate.indices <- unique(arr.indices.matrix[, 1])
-                if (length(candidate.ind) == 1) # best candidate found
+                if (length(candidate.indices) == 1) # best candidate found
                 {
                     result <- candidate.names[candidate.indices]
                     attr(result, "match.percentage") <- p
