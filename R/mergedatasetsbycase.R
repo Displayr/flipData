@@ -2359,7 +2359,8 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
         else
             return(combineAsTextVariable(var.list, data.sets, v.types))
     }
-    else if (unique.v.types == TEXT.VARIABLE.TYPE)
+    else if (length(unique.v.types) == 1 &&
+             unique.v.types == TEXT.VARIABLE.TYPE)
     {
         return(combineAsTextVariable(var.list, data.sets, v.types))
     }
