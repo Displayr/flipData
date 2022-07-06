@@ -702,3 +702,15 @@ test_that("DS-3758: special characters at end of variable names", {
                            specify.by = "Variable",
                            manual.stacking = c("Q1_F_c@,Q1_E_c1@,Q1_D_c@,Q1_C_c1@,Q1_A_c@,Q1_B_c1@")), NA)
 })
+
+# cola20.sav has variables with the same labels, e.g. Q10_A, Q10_A_2.
+test_that("DS-3781: identical variable labels", {
+    result <- StackData(findInstDirFile("cola20.sav"),
+                        stack.with.common.labels = "Disabled",
+                        specify.by = "Variable",
+                        manual.stacking = c("Q10_A,Q10_A_2", "Q10_B,Q10_B_2"))
+    expect_equal(unname(result$stacked.data.set.metadata$variable.labels[1]),
+                 "Sometimes I drink cola that is bought by my friends or family")
+    expect_equal(unname(result$stacked.data.set.metadata$variable.labels[2]),
+                 "Three words only")
+})

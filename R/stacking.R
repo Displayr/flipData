@@ -1229,6 +1229,9 @@ stackedValueAttributes <- function(group.ind, input.value.attributes)
 # halfway into a word or number.
 getCommonPrefix <- function(nms, whole.words = FALSE)
 {
+    if (allIdentical(nms))
+        return(nms[1])
+
     common_prefix <- ""
     for (i in 1:min(nchar(nms)))
     {
@@ -1283,6 +1286,9 @@ getCommonSuffixTwoNames <- function(nms)
 # halfway into a word or number.
 getCommonSuffix <- function(nms, whole.words = FALSE)
 {
+    if (allIdentical(nms))
+        return(nms[1])
+
     common_suffix <- ""
     for (i in 1:min(nchar(nms)))
     {
