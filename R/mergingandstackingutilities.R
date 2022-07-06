@@ -434,7 +434,7 @@ throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
 }
 
 #' @description Creates a name from new.name that does not exist in existing.names by
-#'  appending a numeric suffix if necessary
+#'  appending a numeric suffix if necessary. Case is ignored when comparing names.
 #' @param new.name Character scalar containing the candidate name that may need
 #'  to be renamed to be different from the names in existing.names.
 #' @param existing.names Character vector of existing names.
@@ -447,14 +447,16 @@ throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
 #' @noRd
 uniqueName <- function(new.name, existing.names, delimiter = "")
 {
-    if (!(new.name %in% existing.names))
+    lower.case.new.name <- tolower(new.name)
+    lower.case.existing.names <- tolower(existing.names)
+    if (!(lower.case.new.name %in% lower.case.existing.names))
         return (new.name)
 
     i <- 1
     repeat
     {
         candidate.name <- paste0(new.name, delimiter, i)
-        if (!(candidate.name %in% existing.names))
+        if (!(tolower(candidate.name) %in% lower.case.existing.names))
             return(candidate.name)
         i <- i + 1
     }

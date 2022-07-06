@@ -83,6 +83,9 @@ test_that("uniqueName", {
     expect_equal(uniqueName(new.name = "Q2",
                             existing.names = c("Q1", "Q2", "Q3"),
                             delimiter = "_"), "Q2_1")
+    expect_equal(uniqueName(new.name = "q2",
+                            existing.names = c("Q1", "Q2", "Q3"),
+                            delimiter = "_"), "q2_1")
 })
 
 test_that("parseVariableWildcardForMerging", {

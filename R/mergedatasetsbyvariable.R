@@ -140,12 +140,16 @@ MergeDataSetsByVariable <- function(data.set.names,
     result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
                                                            merged.data.set.name)
     result$source.data.set.indices <- attr(merged.data.set.var.names,
-                                           "source.data.set.indices")
+                                           "source.data.set.indices",
+                                           exact = TRUE)
     result$omitted.variable.names.list <- attr(merged.data.set.var.names,
-                                               "omitted.variable.names.list")
+                                               "omitted.variable.names.list",
+                                               exact = TRUE)
     result$merged.id.variable.name <- attr(merged.data.set.var.names,
-                                           "merged.id.variable.name")
-    result$id.variable.names <- attr(matched.cases.matrix, "id.variable.names")
+                                           "merged.id.variable.name",
+                                           exact = TRUE)
+    result$id.variable.names <- attr(matched.cases.matrix, "id.variable.names",
+                                     exact = TRUE)
     result$example.id.values <- exampleIDValues(result$id.variable.names,
                                                 data.sets)
     result$is.saved.to.cloud <- is.saved.to.cloud
@@ -330,7 +334,7 @@ convertIDVariableType <- function(ids, id.variable.type,
         if (id.variable.type == CATEGORICAL.VARIABLE.TYPE)
         {
             converted.ids <- rep(NA_character_, length(ids))
-            val.attrs <- attr(ids, "labels")
+            val.attrs <- attr(ids, "labels", exact = TRUE)
             val.labels <- names(val.attrs)
             for (i in seq_along(val.attrs))
                 converted.ids[ids == val.attrs[i]] <- val.labels[i]
@@ -372,7 +376,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     v.names.list <- input.data.sets.metadata$variable.names.list
-    id.var.names <- attr(matched.cases, "id.variable.names")
+    id.var.names <- attr(matched.cases, "id.variable.names", exact = TRUE)
 
     v.names.to.include.or.omit.list <- lapply(seq_len(n.data.sets), function(i) {
         parseInputVariableTextForDataSet(variables.to.include.or.omit[[i]],
@@ -527,11 +531,14 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
     n.data.sets <- input.data.sets.metadata$n.data.sets
     n.merged.cases <- nrow(matched.cases.matrix)
     included.variable.names.list <- attr(merged.data.set.variable.names,
-                                         "included.variable.names.list")
-    id.variable.names <- attr(matched.cases.matrix, "id.variable.names")
+                                         "included.variable.names.list",
+                                         exact = TRUE)
+    id.variable.names <- attr(matched.cases.matrix, "id.variable.names",
+                              exact = TRUE)
     merged.id.var.name <- attr(merged.data.set.variable.names,
-                               "merged.id.variable.name")
-    merged.id.variable <- attr(matched.cases.matrix, "merged.id.variable")
+                               "merged.id.variable.name", exact = TRUE)
+    merged.id.variable <- attr(matched.cases.matrix, "merged.id.variable",
+                               exact = TRUE)
 
     merged.data.set.variables <- vector(mode = "list",
                                         length = length(merged.data.set.variable.names))
@@ -546,7 +553,8 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
                 nm == merged.id.var.name) # ID variable
             {
                 merged.var <- merged.id.variable
-                attr(merged.var, "label") <- attr(data.sets[[data.set.ind]][[nm]], "label")
+                attr(merged.var, "label") <- attr(data.sets[[data.set.ind]][[nm]],
+                                                  "label", exact = TRUE)
             }
             else # Non-ID variable
             {
@@ -562,7 +570,7 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
                 v.type <- variableType(input.var)
                 if (v.type == CATEGORICAL.VARIABLE.TYPE)
                 {
-                    val.attr <- attr(input.var, "labels")
+                    val.attr <- attr(input.var, "labels", exact = TRUE)
                     if (is.integer(merged.var))
                     {
                         val.lbls <- names(val.attr)
@@ -572,7 +580,8 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
                     attr(merged.var, "labels") <- val.attr
                     class(merged.var) <- c(class(merged.var), "haven_labelled")
                 }
-                attr(merged.var, "label") <- attr(input.var, "label")
+                attr(merged.var, "label") <- attr(input.var, "label",
+                                                  exact = TRUE)
             }
 
             merged.data.set.size <- merged.data.set.size + object.size(merged.var)
@@ -600,7 +609,7 @@ exampleIDValues <- function(id.variable.names, data.sets)
 
     vapply(seq_along(data.sets), function(i) {
         v <- data.sets[[i]][[id.variable.names[i]]]
-        val.attr <- attr(v, "labels")
+        val.attr <- attr(v, "labels", exact = TRUE)
         # ID variables will have non-missing values as we checked for this
         if (!is.null(val.attr))
             names(val.attr)[val.attr == removeNA(v)[1]]
