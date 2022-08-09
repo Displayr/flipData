@@ -60,7 +60,8 @@ createReadErrorHandler <- function(data.set.name)
     function(e) {
         if (grepl("Invalid file, or file has unsupported features", e$message)) {
             stop(paste0("The data file '", data.set.name, "' could not be parsed. ",
-                        "Check the data set for issues and try again after fixing them or removing unnecessary variables."))
+                        "The data file may be fixed by inserting it in a Displayr document, ",
+                        "exporting it as an SPSS file (.sav) via the Publish button, and then uploading it back to the cloud drive. "))
         } else {
             stop(e$message)
         }

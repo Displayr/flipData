@@ -119,7 +119,7 @@ test_that("readDataSets: better error message when data file is invalid", {
     mock.parser <- function(x) stop("Invalid file, or file has unsupported features")
     expect_error(readLocalDataSets("bad.sav", mock.parser),
                  paste0("The data file 'bad.sav' could not be parsed. ",
-                        "Check the data set for issues and try again after fixing them or removing unnecessary variables."))
+                        "The data file may be fixed by inserting it in a Displayr document, exporting it as an SPSS file \\(.sav\\) via the Publish button, and then uploading it back to the cloud drive."))
 })
 
 if (file.exists("Combined data set.sav"))
