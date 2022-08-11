@@ -1174,3 +1174,6 @@ test_that("RS-9210: check that values merge correctly", {
                    `I've heard only negative things` = 5))
     expect_equal(result$value.map.list, list(NULL, NULL))
 })
+
+if (file.exists("Combined data set.sav"))
+    file.remove("Combined data set.sav")

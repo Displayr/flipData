@@ -254,3 +254,6 @@ test_that("exampleIDValues", {
                                  data.sets = data.sets),
                  c("1", "21", "A"))
 })
+
+if (file.exists("Combined data set.sav"))
+    file.remove("Combined data set.sav")

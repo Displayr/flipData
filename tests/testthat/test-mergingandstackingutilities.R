@@ -121,6 +121,3 @@ test_that("readDataSets: better error message when data file is invalid", {
                  paste0("The data file 'bad.sav' could not be parsed. ",
                         "Check the data set for issues and try again after fixing them or removing unnecessary variables."))
 })
-
-if (file.exists("Combined data set.sav"))
-    file.remove("Combined data set.sav")
