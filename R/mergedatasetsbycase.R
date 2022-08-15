@@ -2194,8 +2194,9 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
             }
             else
             {
-                # use the (first) value in merged.val.attr that matches the label
-                map <- rbind(map, c(val, vals.matching.lbl[1]), deparse.level = 0)
+                # Map val to value matching label in merged.val.attr
+                # vals.matching.lbl has length one as lbl is not duplicated.
+                map <- rbind(map, c(val, vals.matching.lbl), deparse.level = 0)
             }
         }
         # else: value/label pair exists in merged.val.attr, no action required
