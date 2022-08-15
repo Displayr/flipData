@@ -11,7 +11,7 @@ CombineVariableSetsAsBinary(
 )
 }
 \arguments{
-\item{...}{One or more variable sets which should be Nominal, Ordinal, Nominal/Ordinal - Multi, 
+\item{...}{One or more variable sets which should be Nominal, Ordinal, Nominal/Ordinal - Multi,
 Binary - Multi, or Binary - Multi (Compact)}
 
 \item{compute.for.incomplete}{A boolean value. If \code{FALSE}, cases with any missing data

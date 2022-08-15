@@ -53,7 +53,7 @@
 #'  whether to include the merged data set in the output object, which can be
 #'  used for diagnostic purposes in R.
 #' @param when.multiple.labels.for.one.value Character scalar that is either
-#'  "Use label from preferred data set"" or "Create new values for the labels".
+#'  "Use label from preferred data set" or "Create new values for the labels".
 #'  When the former is the case, the label from the earliest/latest data set
 #'  will be chosen if use.names.and.labels.from is "First data set"/"Last data set".
 #'  If the latter is the case, new values are generated for the extra labels.
@@ -2096,13 +2096,15 @@ mergeValueAttributes <- function(value.attributes.list,
             val <- unname(val.attr[j])
             lbl <- names(val.attr)[j]
             is.label.duplicated <- isLabelDuplicated(lbl, value.attributes.list)
+            new.val <- newUniqueValue(value.attributes.list, merged.val.attr)
             merged.val.attr <- mergeValueAndLabelIntoValueAttributes(val, lbl,
                                                                      merged.val.attr,
                                                                      original.val.attr,
                                                                      map,
                                                                      when.multiple.labels.for.one.value,
                                                                      match.parameters,
-                                                                     is.label.duplicated)
+                                                                     is.label.duplicated,
+                                                                     new.val)
             map <- attr(merged.val.attr, "map")
         }
         if (nrow(map) > 0)
@@ -2154,6 +2156,7 @@ mergeValueAttributes <- function(value.attributes.list,
 #' @param match.parameters Parameters used for fuzzy matching of names and labels.
 #' @param is.label.duplicated Whether lbl appears more than once in any of the
 #'  value attributes that are to be merged.
+#' @param new.val The value to use when a new value is needed.
 #' @return Returns a possibly augmented merged.val.attr, with the attribute "map"
 #'  containing the matrix map.
 #' @noRd
@@ -2161,7 +2164,8 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
                                                   original.val.attr, map,
                                                   when.multiple.labels.for.one.value,
                                                   match.parameters,
-                                                  is.label.duplicated)
+                                                  is.label.duplicated,
+                                                  new.val)
 {
     if (length(merged.val.attr) == 0)
         merged.val.attr[lbl] <- val
@@ -2170,13 +2174,23 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         vals.matching.lbl <- labelValues(merged.val.attr, lbl)
         if (!(val %in% vals.matching.lbl)) # label exists in merged.val.attr but value doesn't match
         {
-            if (is.label.duplicated && !(val %in% merged.val.attr))
+            if (is.label.duplicated)
             {
-                # Add the new value and duplicate label.
-                # We do this so that duplicate labels are retained in the merged value attributes
-                named.val <- val
-                names(named.val) <- lbl
-                merged.val.attr <- c(merged.val.attr, named.val)
+                if (!(val %in% merged.val.attr))
+                {
+                    # Add the new value and duplicate label.
+                    # We do this so that duplicate labels are retained in the merged value attributes
+                    named.val <- val
+                    names(named.val) <- lbl
+                    merged.val.attr <- c(merged.val.attr, named.val)
+                }
+                else if (when.multiple.labels.for.one.value == "Create new values for the labels")
+                {
+                    names(new.val) <- lbl
+                    merged.val.attr <- c(merged.val.attr, new.val)
+                    map <- rbind(map, c(val, new.val), deparse.level = 0)
+                }
+                # else "Use label from preferred data set", no action required as it is already in merged.val.attr
             }
             else
             {
@@ -2215,9 +2229,8 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         {
             if (when.multiple.labels.for.one.value == "Create new values for the labels")
             {
-                new.value <- ceiling(max(merged.val.attr)) + 1
-                merged.val.attr[lbl] <- new.value
-                map <- rbind(map, c(val, new.value), deparse.level = 0)
+                merged.val.attr[lbl] <- new.val
+                map <- rbind(map, c(val, new.val), deparse.level = 0)
             }
             # else "Use label from preferred data set", no action required as it is already in merged.val.attr
         }
@@ -2596,19 +2609,19 @@ removeDuplicateValues <- function(data.sets)
                     mod.var.names <- c(mod.var.names, var.names[i])
                 }
             }
-            if (length(mod.var.names) > 0)
-            {
-                if (length(mod.var.names) == 1)
-                    warning("Duplicate values have been removed from the following variable in data set ",
-                            data.set.name, ": ", mod.var.names)
-                if (length(mod.var.names) <= 10)
-                    warning("Duplicate values have been removed from the following variables in data set ",
-                            data.set.name, ": ", paste0(mod.var.names, collapse = ", "))
-                else
-                    warning("Duplicate values have been removed from ",
-                            length(mod.var.names), " variables in data set ",
-                            data.set.name, ".")
-            }
+        }
+        if (length(mod.var.names) > 0)
+        {
+            if (length(mod.var.names) == 1)
+                warning("Duplicate values have been removed from the following variable in data set ",
+                        data.set.name, ": ", mod.var.names)
+            else if (length(mod.var.names) <= 10)
+                warning("Duplicate values have been removed from the following variables in data set ",
+                        data.set.name, ": ", paste0(mod.var.names, collapse = ", "))
+            else # length(mod.var.names) > 10
+                warning("Duplicate values have been removed from ",
+                        length(mod.var.names), " variables in data set ",
+                        data.set.name, ".")
         }
         data.set
     })
@@ -2622,6 +2635,12 @@ isLabelDuplicated <- function(lbl, val.attrs.list)
 {
     any(vapply(val.attrs.list, function(val.attrs) sum(names(val.attrs) == lbl) > 1,
                logical(1)))
+}
+
+newUniqueValue <- function(val.attrs.list, merged.val.attr)
+{
+    combined.val.attrs.list <- c(val.attrs.list, list(merged.val.attr))
+    ceiling(max(unlist(combined.val.attrs.list))) + 1
 }
 
 # Convenience function: seq_len of nrow of matrix m

@@ -33,6 +33,7 @@ findInstDirFile <- function(file)
 # cola14.sav: Includes text variable LastResp_date_text containing strings that can be parsed
 #             as dates.
 #
+#
 # To update the merge.data.set.output.rda test data in flipFormat,
 # simply save merge.data.set.output from this test
 # into flipFormat/inst/testdata/merge.data.set.output.rda
@@ -1173,6 +1174,84 @@ test_that("RS-9210: check that values merge correctly", {
                    `I've heard mainly negative things` = 4,
                    `I've heard only negative things` = 5))
     expect_equal(result$value.map.list, list(NULL, NULL))
+})
+
+# cola21.sav: PreferredCola has value 3 duplicated 3 times with the labels
+# Pepsi Max, Pepsi and Pepsi Light.
+test_that("Duplicate values removed", {
+    expect_warning(output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                                    findInstDirFile("cola21.sav"))),
+                   "Duplicate values have been removed from the following variable in data set cola21.sav: PreferredCola")
+
+    # Only the first 3 (Pepsi Max) is retained
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$PreferredCola,
+                 c(`Coca Cola` = 9L, `Diet Coke` = 1L, `Coke Zero` = 2L, `Pepsi Max` = 3L))
+})
+
+# cola22.sav: Q3. Age has label "30 to 34" for values 4, 5, 6
+# cola23.sav: Q3. Age has label "30 to 34" for values 400, 500, 600
+test_that("DS-3863: duplicate value labels", {
+    # Merging identical variables with duplicate labels
+    # Duplicate labels "30 to 34" are retained
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola22.sav"),
+                                                     findInstDirFile("cola22.sav")))
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 structure(2:10, .Names = c("18 to 24", "25 to 29", "30 to 34",
+                                            "30 to 34", "30 to 34", "45 to 49",
+                                            "50 to 54", "55 to 64", "65 or more")))
+
+    # Duplicate labels "30 to 34" with values 400, 500, 600 that are not in the corresponding variable in the other data set
+    # Duplicate labels are retained
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola23.sav")))
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 c(`18 to 24` = 2L, `25 to 29` = 3L, `30 to 34` = 4L, `35 to 39` = 5L,
+                   `40 to 44` = 6L, `45 to 49` = 7L, `50 to 54` = 8L, `55 to 64` = 9L,
+                   `65 or more` = 10L, `30 to 34` = 400L, `30 to 34` = 500L, `30 to 34` = 600L))
+
+    # Duplicate labels "30 to 34" with values 4, 5, 6 that are in the corresponding variable in the other data set, and have different labels
+    # New values (11, 12) are created for the duplicate labels with values 5,6
+    # because when.multiple.labels.for.one.value = "Create new values for the labels" by default
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola22.sav")))
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 structure(2:12, .Names = c("18 to 24", "25 to 29", "30 to 34",
+                                            "35 to 39", "40 to 44", "45 to 49",
+                                            "50 to 54", "55 to 64", "65 or more",
+                                            "30 to 34", "30 to 34")))
+
+    # Duplicate labels "30 to 34" with values 4, 5, 6 that are in the corresponding variable in the other data set, and have different labels
+    # The duplicate labels with values 5,6 are mapped to 35 to 39 and 40 to 44 from the first data set
+    # because when.multiple.labels.for.one.value = "Use label from preferred data set"
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                     findInstDirFile("cola22.sav")),
+                                  when.multiple.labels.for.one.value = "Use label from preferred data set")
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 structure(2:10, .Names = c("18 to 24", "25 to 29", "30 to 34",
+                                            "35 to 39", "40 to 44", "45 to 49",
+                                            "50 to 54", "55 to 64", "65 or more")))
+
+    # Duplicate labels "30 to 34" with values 4, 5, 6 that are in the corresponding variable in the other data set, and have different labels
+    # As the data set with duplicate labels (cola22.sav) appears first, the values 5, 6 in the second data set are mapped to 11, 12
+    # because when.multiple.labels.for.one.value = "Create new values for the labels" by default
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola22.sav"),
+                                                     findInstDirFile("cola1.sav")))
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 structure(2:12, .Names = c("18 to 24", "25 to 29", "30 to 34",
+                                             "30 to 34", "30 to 34", "45 to 49",
+                                             "50 to 54", "55 to 64", "65 or more",
+                                             "35 to 39", "40 to 44")))
+
+    # Duplicate labels with values 4, 5, 6 that are in the corresponding variable in the other data set, and have different labels
+    # As the data set with duplicate labels (cola22.sav) appears first, the values 5, 6 in the second data set have labels "30 to 34"
+    # because when.multiple.labels.for.one.value = "Use label from preferred data set"
+    output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola22.sav"),
+                                                     findInstDirFile("cola1.sav")),
+                                  when.multiple.labels.for.one.value = "Use label from preferred data set")
+    expect_equal(output$merged.data.set.metadata$variable.value.attributes$Q3,
+                 structure(2:10, .Names = c("18 to 24", "25 to 29", "30 to 34",
+                                             "30 to 34", "30 to 34", "45 to 49",
+                                             "50 to 54", "55 to 64", "65 or more")))
 })
 
 if (file.exists("Combined data set.sav"))

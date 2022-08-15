@@ -8,8 +8,7 @@ MergeDataSetsByVariable(
   data.set.names,
   merged.data.set.name = NULL,
   id.variables = NULL,
- 
-    include.or.omit.variables = rep("Include all variables except those manually omitted",
+  include.or.omit.variables = rep("Include all variables except those manually omitted",
     length(data.set.names)),
   variables.to.include.or.omit = NULL,
   only.keep.cases.matched.to.all.data.sets = FALSE,
