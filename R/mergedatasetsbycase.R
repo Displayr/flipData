@@ -53,7 +53,7 @@
 #'  whether to include the merged data set in the output object, which can be
 #'  used for diagnostic purposes in R.
 #' @param when.multiple.labels.for.one.value Character scalar that is either
-#'  "Use label from preferred data set"" or "Create new values for the labels".
+#'  "Use label from preferred data set" or "Create new values for the labels".
 #'  When the former is the case, the label from the earliest/latest data set
 #'  will be chosen if use.names.and.labels.from is "First data set"/"Last data set".
 #'  If the latter is the case, new values are generated for the extra labels.
@@ -134,6 +134,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 min.value.label.match.percentage = 90)
 {
     data.sets <- readDataSets(data.set.names, 2)
+    data.sets <- removeDuplicateValues(data.sets)
     input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
     match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
@@ -2060,21 +2061,16 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
     result
 }
 
-#' @description  Extract the value from val.attr given a label, also dealing
-#'  with the special case where label == "". If it wasn't for this special case
-#'  we could just call unname(val.attr[label]).
+#' @description  Extract the values from val.attr given a label. There could be
+#' more than one value as multiple values could have the same label.
 #' @param val.attr A named numeric vector representing value attributes, where
 #'  the value names are the labels.
 #' @param label A character scalar of a label for which a value is to be returned.
-#' @return A numeric scalar of the value corresponding to the label.
+#' @return A numeric vector of the values corresponding to the label.
 #' @noRd
-labelValue <- function(val.attr, label)
+labelValues <- function(val.attr, label)
 {
-    if (label != "")
-        unname(val.attr[label])
-    else
-        # need to do this since val.attr[""] will return NA
-        unname(val.attr[names(val.attr) == ""])
+    unname(val.attr[names(val.attr) == label])
 }
 
 # Merge value attributes in value.attributes.list into one value attribute
@@ -2086,6 +2082,7 @@ mergeValueAttributes <- function(value.attributes.list,
     merged.val.attr <- numeric(0)
     original.val.attr <- numeric(0)
     value.map.list <- vector("list", length = length(value.attributes.list))
+
     for (i in seq_along(value.attributes.list))
     {
         # 2-column matrix representing a remapping of values where the
@@ -2094,15 +2091,20 @@ mergeValueAttributes <- function(value.attributes.list,
         map <- matrix(nrow = 0, ncol = 2)
 
         val.attr <- value.attributes.list[[i]]
-        for (lbl in names(val.attr))
+        for (j in seq_along(val.attr))
         {
-            val <- labelValue(val.attr, lbl)
+            val <- unname(val.attr[j])
+            lbl <- names(val.attr)[j]
+            is.label.duplicated <- isLabelDuplicated(lbl, value.attributes.list)
+            new.val <- newUniqueValue(value.attributes.list, merged.val.attr)
             merged.val.attr <- mergeValueAndLabelIntoValueAttributes(val, lbl,
                                                                      merged.val.attr,
                                                                      original.val.attr,
                                                                      map,
                                                                      when.multiple.labels.for.one.value,
-                                                                     match.parameters)
+                                                                     match.parameters,
+                                                                     is.label.duplicated,
+                                                                     new.val)
             map <- attr(merged.val.attr, "map")
         }
         if (nrow(map) > 0)
@@ -2152,28 +2154,57 @@ mergeValueAttributes <- function(value.attributes.list,
 #'  different values when creating the merged variable.
 #' @param when.multiple.labels.for.one.value See documentation for this in MergeDataSetsByCase
 #' @param match.parameters Parameters used for fuzzy matching of names and labels.
+#' @param is.label.duplicated Whether lbl appears more than once in any of the
+#'  value attributes that are to be merged.
+#' @param new.val The value to use when a new value is needed.
 #' @return Returns a possibly augmented merged.val.attr, with the attribute "map"
 #'  containing the matrix map.
 #' @noRd
 mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
                                                   original.val.attr, map,
                                                   when.multiple.labels.for.one.value,
-                                                  match.parameters)
+                                                  match.parameters,
+                                                  is.label.duplicated,
+                                                  new.val)
 {
     if (length(merged.val.attr) == 0)
         merged.val.attr[lbl] <- val
     else if (lbl %in% names(merged.val.attr))
     {
-        merged.val <- labelValue(merged.val.attr, lbl)
-        if (val != merged.val) # same label with different values
+        vals.matching.lbl <- labelValues(merged.val.attr, lbl)
+        if (!(val %in% vals.matching.lbl)) # label exists in merged.val.attr but value doesn't match
         {
-            map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in merged.val.attr
+            if (is.label.duplicated)
+            {
+                if (!(val %in% merged.val.attr))
+                {
+                    # Add the new value and duplicate label.
+                    # We do this so that duplicate labels are retained in the merged value attributes
+                    named.val <- val
+                    names(named.val) <- lbl
+                    merged.val.attr <- c(merged.val.attr, named.val)
+                }
+                else if (when.multiple.labels.for.one.value == "Create new values for the labels")
+                {
+                    names(new.val) <- lbl
+                    merged.val.attr <- c(merged.val.attr, new.val)
+                    map <- rbind(map, c(val, new.val), deparse.level = 0)
+                }
+                # else "Use label from preferred data set", no action required as it is already in merged.val.attr
+            }
+            else
+            {
+                # Map val to value matching label in merged.val.attr
+                # vals.matching.lbl has length one as lbl is not duplicated.
+                map <- rbind(map, c(val, vals.matching.lbl), deparse.level = 0)
+            }
         }
-        # else: same label, same value, no action required as it is already in merged.val.attr
+        # else: value/label pair exists in merged.val.attr, no action required
     }
     else
     {
-        if (length(original.val.attr) > 0)
+        # We don't fuzzy match duplicated labels because duplication might be lost
+        if (length(original.val.attr) > 0 && !is.label.duplicated)
         {
             lbls.to.compare.against <- names(original.val.attr)
             match.percentages <- matchPercentagesForValueLabels(lbl = lbl,
@@ -2199,9 +2230,8 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         {
             if (when.multiple.labels.for.one.value == "Create new values for the labels")
             {
-                new.value <- ceiling(max(merged.val.attr)) + 1
-                merged.val.attr[lbl] <- new.value
-                map <- rbind(map, c(val, new.value), deparse.level = 0)
+                merged.val.attr[lbl] <- new.val
+                map <- rbind(map, c(val, new.val), deparse.level = 0)
             }
             # else "Use label from preferred data set", no action required as it is already in merged.val.attr
         }
@@ -2557,6 +2587,61 @@ omittedVariables <- function(input.data.sets.metadata, matched.names)
         nms <- input.data.sets.metadata$variable.names[[i]]
         nms[!(nms %in% matched.names[, i])]
     })
+}
+
+# Remove duplicate values from value attributes in variables in data sets
+removeDuplicateValues <- function(data.sets)
+{
+    data.set.names <- names(data.sets)
+    data.sets <- lapply(data.set.names, function(data.set.name) {
+        data.set <- data.sets[[data.set.name]]
+        var.names <- names(data.set)
+        mod.var.names <- character(0)
+        for (i in seq_along(data.set))
+        {
+            val.attrs <- attr(data.set[[i]], "labels", exact = TRUE)
+            if (!is.null(val.attrs))
+            {
+                dup <- duplicated(val.attrs)
+                if (any(dup))
+                {
+                    val.attrs <- val.attrs[!dup]
+                    attr(data.set[[i]], "labels") <- val.attrs
+                    mod.var.names <- c(mod.var.names, var.names[i])
+                }
+            }
+        }
+        if (length(mod.var.names) > 0)
+        {
+            if (length(mod.var.names) == 1)
+                warning("Duplicate values have been removed from the following variable in data set ",
+                        data.set.name, ": ", mod.var.names)
+            else if (length(mod.var.names) <= 10)
+                warning("Duplicate values have been removed from the following variables in data set ",
+                        data.set.name, ": ", paste0(mod.var.names, collapse = ", "))
+            else # length(mod.var.names) > 10
+                warning("Duplicate values have been removed from ",
+                        length(mod.var.names), " variables in data set ",
+                        data.set.name, ".")
+        }
+        data.set
+    })
+    names(data.sets) <- data.set.names
+    data.sets
+}
+
+# Determines whether lbl appears more than once in any of the value attributes
+# in val.attrs.list
+isLabelDuplicated <- function(lbl, val.attrs.list)
+{
+    any(vapply(val.attrs.list, function(val.attrs) sum(names(val.attrs) == lbl) > 1,
+               logical(1)))
+}
+
+newUniqueValue <- function(val.attrs.list, merged.val.attr)
+{
+    combined.val.attrs.list <- c(val.attrs.list, list(merged.val.attr))
+    ceiling(max(unlist(combined.val.attrs.list))) + 1
 }
 
 # Convenience function: seq_len of nrow of matrix m

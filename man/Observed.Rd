@@ -23,8 +23,8 @@ Extracted for the entire data set (i.e., not just the specific values used in th
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Extracts the dependant variable from an object from its formula.
+\item \code{Observed(default)}: Extracts the dependant variable from an object from its formula.
 
-\item \code{MachineLearningEnsemble}: Extracts the dependant variable directly from an object.
+\item \code{Observed(MachineLearningEnsemble)}: Extracts the dependant variable directly from an object.
+
 }}
-

@@ -121,6 +121,3 @@ test_that("readDataSets: better error message when data file is invalid", {
                  paste0("The data file 'bad.sav' could not be parsed. ",
                         "The data file may be fixed by inserting it in a Displayr document, exporting it as an SPSS file \\(.sav\\) via the Publish button, and then uploading it back to the cloud drive."))
 })
-
-if (file.exists("Combined data set.sav"))
-    file.remove("Combined data set.sav")
