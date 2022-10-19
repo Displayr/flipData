@@ -1254,5 +1254,16 @@ test_that("DS-3863: duplicate value labels", {
                                              "50 to 54", "55 to 64", "65 or more")))
 })
 
+test_that("DS-4002: works when file extension in upper case", {
+    expect_error(merge.data.set.output <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                                                                 findInstDirFile("cola2uppercase.SAV"),
+                                                                                 findInstDirFile("cola5.sav"),
+                                                                                 findInstDirFile("cola8.sav")),
+                                                              data.sets.whose.variables.are.kept = 1,
+                                                              variables.to.combine = "Q4_A_3,Q4_A_3_new",
+                                                              auto.select.what.to.match.by = FALSE,
+                                                              match.by.variable.labels = FALSE), NA)
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")
