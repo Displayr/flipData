@@ -2219,7 +2219,7 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         if (is.fuzzy.match)
         {
             merged.val <- unname(original.val.attr[which.max(match.percentages)])
-            if (merged.val != val)
+            if (identical(merged.val, val))
             {
                 map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in original.val.attr
             }
