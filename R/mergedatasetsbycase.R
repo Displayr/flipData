@@ -1722,10 +1722,10 @@ isParsableAsDateTime <- function(text)
 # See unit tests in test-mergedatasetsbycase.R
 isConvertibleToDateTime <- function(num)
 {
-    missing.indices <- is.na(num)
     # check if numbers could be seconds from the epoch 1970/1/1 between the
     # years 1990 and 2050
-    num[!missing.indices] >= 631152000 && num[!missing.indices] <= 2524608000
+    val.range <- range(num, na.rm = TRUE)
+    val.range[1] >= 631152000 && val.range[2] <= 2524608000
 }
 
 isConvertibleToCategorical <- function(variable.type, values, val.attrs,
