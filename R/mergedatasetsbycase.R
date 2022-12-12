@@ -2219,7 +2219,7 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         if (is.fuzzy.match)
         {
             merged.val <- unname(original.val.attr[which.max(match.percentages)])
-            if (merged.val != val)
+            if (identical(merged.val, val))
             {
                 map <- rbind(map, c(val, merged.val), deparse.level = 0) # use the value in original.val.attr
             }
@@ -2287,7 +2287,7 @@ convertTextVariableToCategorical <- function(text.var, merged.val.attr)
             else # not found in merged.val.attr, add as numeric value
             {
                 new.ind <- length(merged.val.attr) + 1
-                new.val <- ceiling(max(merged.val.attr)) + 1
+                new.val <- ceiling(max(merged.val.attr, na.rm = TRUE)) + 1
                 merged.val.attr[new.ind] <- new.val
                 names(merged.val.attr)[new.ind] <- text.val
                 categorical.var.values[text.val == text.var] <- new.val
@@ -2642,7 +2642,7 @@ isLabelDuplicated <- function(lbl, val.attrs.list)
 newUniqueValue <- function(val.attrs.list, merged.val.attr)
 {
     combined.val.attrs.list <- c(val.attrs.list, list(merged.val.attr))
-    ceiling(max(unlist(combined.val.attrs.list))) + 1
+    ceiling(max(unlist(combined.val.attrs.list), na.rm = TRUE)) + 1
 }
 
 # Convenience function: seq_len of nrow of matrix m
