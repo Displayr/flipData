@@ -704,7 +704,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
 
     permitted.na <- permittedNA(v.names)
 
-    manual.stacking.groups.list<- list()
+    manual.stacking.groups.list <- list()
     manual.stacking.groups.text <- character(0)
 
     for (input.text in manual.stacking)

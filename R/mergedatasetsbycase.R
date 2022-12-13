@@ -1713,7 +1713,7 @@ isParsableAsNumeric <- function(text)
 isParsableAsDateTime <- function(text)
 {
     missing.indices <- isMissingValue(text)
-    all(!is.na(AsDateTime(text[!missing.indices], on.parse.failure = "silent")))
+    all(!is.na(AsDateTime(as.character(text[!missing.indices]), on.parse.failure = "silent")))
 }
 
 # Check if numeric values are stored as seconds from the epoch (1970/1/1).
@@ -1722,10 +1722,10 @@ isParsableAsDateTime <- function(text)
 # See unit tests in test-mergedatasetsbycase.R
 isConvertibleToDateTime <- function(num)
 {
-    missing.indices <- is.na(num)
     # check if numbers could be seconds from the epoch 1970/1/1 between the
     # years 1990 and 2050
-    num[!missing.indices] >= 631152000 && num[!missing.indices] <= 2524608000
+    val.range <- range(num, na.rm = TRUE)
+    val.range[1] >= 631152000 && val.range[2] <= 2524608000
 }
 
 isConvertibleToCategorical <- function(variable.type, values, val.attrs,
@@ -2515,6 +2515,7 @@ combineAsTextVariable <- function(var.list, data.sets, v.types)
 #' @noRd
 parseTextVariable <- function(text.variable, parser)
 {
+    text.variable <- as.character(text.variable)
     missing.indices <- isMissingValue(text.variable)
     result <- parser(rep(NA_character_, length(text.variable)))
     result[!missing.indices] <- parser(text.variable[!missing.indices])
