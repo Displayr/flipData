@@ -1266,7 +1266,7 @@ test_that("DS-4002: works when file extension in upper case", {
 })
 
 test_that("DS-4045 Don't fail on converting haven labeled text to date", {
-    bad.variable <- load(findInstDirFile("bad.haven.text.rds"))
+    bad.variable <- readRDS(findInstDirFile("bad.haven.text.rds"))
     expect_error(isParsableAsDateTime(bad.variable), NA)
 })
 
