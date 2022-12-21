@@ -1265,7 +1265,7 @@ test_that("DS-4002: works when file extension in upper case", {
                                                               match.by.variable.labels = FALSE), NA)
 })
 
-test_that("DS-4045, DS-4149 Don't fail on converting haven labeled text variables", {
+test_that("DS-4045, DS-4191 Don't fail on converting haven labeled text variables", {
     bad.variable <- readRDS(findInstDirFile("bad.haven.text.rds"))
     expect_error(isParsableAsDateTime(bad.variable), NA)
     expect_error(isMissingValue(bad.variable), NA)
