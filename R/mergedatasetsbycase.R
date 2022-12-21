@@ -1703,7 +1703,7 @@ isMissingValue <- function(text)
 # See unit tests in test-mergedatasetsbycase.R
 isParsableAsNumeric <- function(text)
 {
-    text <- unclassHavenLabelledTextIfNEcessary(text)
+    text <- unclassHavenLabelledTextIfNecessary(text)
     missing.indices <- isMissingValue(text)
     all(!is.na(suppressWarnings(as.numeric(text[!missing.indices]))))
 }
@@ -1713,7 +1713,7 @@ isParsableAsNumeric <- function(text)
 #' @importFrom flipTime AsDate AsDateTime
 isParsableAsDateTime <- function(text)
 {
-    text <- unclassHavenLabelledTextIfNEcessary(text)
+    text <- unclassHavenLabelledTextIfNecessary(text)
     missing.indices <- isMissingValue(text)
     all(!is.na(AsDateTime(text[!missing.indices], on.parse.failure = "silent")))
 }
@@ -1722,9 +1722,9 @@ isParsableAsDateTime <- function(text)
 # for files created e.g. in Q or Displayr. This function removes the additional
 # haven classes when parsing such Text variables to ensure that downstream
 # checks for their values can succeed.
-unclassHavenLabelledTextIfNEcessary <- function(text) {
-    if ("haven_labelled" %in% class(text))
-        text <- as.character(text)
+unclassHavenLabelledTextIfNecessary <- function(text) {
+    if (inherits(text, "haven_labelled"))
+        text <- unclass(text)
     text
 }
 
