@@ -1703,6 +1703,7 @@ isMissingValue <- function(text)
 # See unit tests in test-mergedatasetsbycase.R
 isParsableAsNumeric <- function(text)
 {
+    text <- unclassHavenLabelledTextIfNecessary(text)
     missing.indices <- isMissingValue(text)
     all(!is.na(suppressWarnings(as.numeric(text[!missing.indices]))))
 }
@@ -1712,8 +1713,19 @@ isParsableAsNumeric <- function(text)
 #' @importFrom flipTime AsDate AsDateTime
 isParsableAsDateTime <- function(text)
 {
+    text <- unclassHavenLabelledTextIfNecessary(text)
     missing.indices <- isMissingValue(text)
-    all(!is.na(AsDateTime(as.character(text[!missing.indices]), on.parse.failure = "silent")))
+    all(!is.na(AsDateTime(text[!missing.indices], on.parse.failure = "silent")))
+}
+
+# Some spss files produce a weird format when parsed by Haven. It does not occur
+# for files created e.g. in Q or Displayr. This function removes the additional
+# haven classes when parsing such Text variables to ensure that downstream
+# checks for their values can succeed.
+unclassHavenLabelledTextIfNecessary <- function(text) {
+    if (inherits(text, "haven_labelled"))
+        text <- unclass(text)
+    text
 }
 
 # Check if numeric values are stored as seconds from the epoch (1970/1/1).
