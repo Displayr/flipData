@@ -121,3 +121,57 @@ test_that("readDataSets: better error message when data file is invalid", {
                  paste0("The data file 'bad.sav' could not be parsed. ",
                         "The data file may be fixed by inserting it in a Displayr document, exporting it as an SPSS file \\(.sav\\) via the Publish button, and then uploading it back to the cloud drive."))
 })
+
+test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
+
+    makeDummyData <- function(var.names) {
+        dummy.data = as.data.frame(matrix(0, nrow = 5, ncol = length(var.names)))
+        colnames(dummy.data) <- var.names
+        dummy.data
+    }
+
+    # Period at beginning
+    dummy <- makeDummyData(c(".A", ".B", ".C"))
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Cannot save variables names which begin with '.'")
+    expect_equal(colnames(z), c("A", "B", "C"))
+
+    # Period at end
+    dummy <- makeDummyData(c("A.", "B.", "C."))
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Cannot save variables names which end with '.'")
+    expect_equal(colnames(z), c("A", "B", "C"))
+
+    # Restricted names
+    dummy <- makeDummyData(c("A", "B", "WITH"))
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Cannot save variables whose names are SPSS reserved keywords.")
+    expect_equal(colnames(z), c("A", "B", "WITH_r"))
+
+    # Too long
+    bad.strings = c('S2ShareofSalience_OtherpleasespecifyS2ShareofSalience_Otherpleasespecify',
+                    'S2ShareofSalience_Otherpleasespecify_0S2ShareofSalience_Otherpleasespecify_0',
+                    'L2LeisureActivitiesConsideration_OtherpleasespecifyL2LeisureActivitiesConsideration_Otherpleasespecify',
+                    'L2LeisureActivitiesConsideration_Otherpleasespecify_0L2LeisureActivitiesConsideration_Otherpleasespecify_0',
+                    'PQ4a_OtherwithchildrenathomepleasespecifyPQ4a_Otherwithchildrenathomepleasespecify')
+    dummy <- makeDummyData(bad.strings)
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Some variable names were too long and have been truncated: ")
+    expect_true(all(nchar(colnames(z), type = 'bytes') <= 64))
+
+    # Too long, not ascii
+    bad.strings = c("トム・クルーズが嫌いな理由を10語以内で教えてください",
+                    "春に訪れたい日本で一番好きな都市はどこですか")
+
+    dummy <- makeDummyData(bad.strings)
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Some variable names were too long and have been truncated: ")
+    expect_true(all(nchar(colnames(z), type = 'bytes') <= 64))
+
+
+    # Prevent duplicates
+    dummy <- makeDummyData(c("A", "B", "WITH", "A", "B", "WITH"))
+    expect_warning(z <- sanitizeSPSSVariableNames(dummy),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
+    expect_equal(colnames(z), c("A", "B", "WITH_r", "A_1", "B_1", "WITH_r_1"))
+})
