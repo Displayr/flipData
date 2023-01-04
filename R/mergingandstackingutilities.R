@@ -76,6 +76,7 @@ createReadErrorHandler <- function(data.set.name)
 #' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
 writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
+    data.set <- sanitizeSPSSVariableNames(data.set)
     if (is.saved.to.cloud)
         QSaveData(data.set, data.set.name)
     else
@@ -492,3 +493,31 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 
 # Set to 2GB as I found that memory issues start to occur beyond here
 DATA.SET.SIZE.LIMIT <- 2 * 1e9
+
+sanitizeSPSSVariableNames <- function(merged.data.file) {
+    variable.names <- colnames(merged.data.file)
+    # Can't begin with or end with a period
+    forbidden.period <- startsWith(variable.names, ".")
+    if (any(forbidden.period)) {
+        warning("Cannot save variables names which begin with '.'. Some variables have had the '.' removed from their names: ",
+                 paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[forbidden.period] <- gsub("^\\.", "", variable.names[forbidden.period])
+    }
+
+    forbidden.period <- endsWith(variable.names, ".")
+    if (any(forbidden.period)) {
+        warning("Cannot save variables names which end with '.'. Some variables have had the '.' removed from their names: ",
+                paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[forbidden.period] <- gsub("\\.$", "", variable.names[forbidden.period])
+    }
+
+    reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
+    forbidden.keywords <- variable.names %in% reserved.keywords
+    if (any(forbidden.keywords)) {
+        warning("Cannot save variables whose names are SPSS reserved keywords. The following variables have had '_r' added to their names:",
+                paste0(variable.names[forbidden.keywords], collapse = ", "))
+        variable.names[forbidden.keywords] <- paste0(variable.names[forbidden.keywords], "_r")
+    }
+    colnames(merged.data.file) <- variable.names
+    merged.data.file
+}
