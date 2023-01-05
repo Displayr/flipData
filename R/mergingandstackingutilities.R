@@ -76,7 +76,6 @@ createReadErrorHandler <- function(data.set.name)
 #' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
 writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
-    data.set <- sanitizeSPSSVariableNames(data.set)
     if (is.saved.to.cloud)
         QSaveData(data.set, data.set.name)
     else
@@ -495,8 +494,7 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 # Set to 2GB as I found that memory issues start to occur beyond here
 DATA.SET.SIZE.LIMIT <- 2 * 1e9
 
-sanitizeSPSSVariableNames <- function(merged.data.file) {
-    variable.names <- colnames(merged.data.file)
+sanitizeSPSSVariableNames <- function(variable.names) {
     # Can't begin with or end with a period
     forbidden.period <- startsWith(variable.names, ".")
     if (any(forbidden.period)) {
@@ -543,8 +541,7 @@ sanitizeSPSSVariableNames <- function(merged.data.file) {
         }
     }
 
-    colnames(merged.data.file) <- variable.names
-    merged.data.file
+    variable.names
 }
 
 
@@ -553,7 +550,7 @@ addSuffixFittingByteLimit <- function(string, suffix = "", byte.limit = 64) {
     size <- nchar(new.string, type = "bytes")
 
     # Nothing to do here, return
-    if (size < byte.limit)
+    if (size <= byte.limit)
         return (new.string)
 
     # Easy encoding, just truncate and paste

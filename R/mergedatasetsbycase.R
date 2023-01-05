@@ -1762,23 +1762,14 @@ mergedVariableNames <- function(matched.names, use.names.and.labels.from)
     merged.names <- namesFromEarliestDataSet(matched.names,
                                              use.names.and.labels.from)
 
-    # Merged names may contain duplicate variable names due to the user
-    # specifying variables with the same name to not be combined or variables
-    # with the same name not being combined as their types are incompatible.
-    # Variables that only differ by case are also considered duplicate.
-    # We rename variables so that the names are unique.
-    dup <- which(duplicated(tolower(merged.names)))
-    renamed.variables <- matrix(nrow = length(dup), ncol = 2)
-    colnames(renamed.variables) <- c("Original name", "New name")
-    for (i in seq_along(dup))
-    {
-        new.name <- uniqueName(merged.names[dup[i]], merged.names, "_")
-        renamed.variables[i, ] <- c(merged.names[dup[i]], new.name)
-        merged.names[dup[i]] <- new.name
-    }
-    attr(merged.names, "renamed.variables") <- renamed.variables
+    # Rename duplicates and other forbidden SPSS names
+    new.names <- sanitizeSPSSVariableNames(merged.names)
+    renamed.variables <- cbind("Original name" = merged.names,
+                               "New name" = new.names)
+    renamed.variables <- renamed.variables[new.names != merged.names, , drop = FALSE]
+    attr(new.names, "renamed.variables") <- renamed.variables
 
-    merged.names
+    new.names
 }
 
 # Get the names from the earliest data set for each row in matched.names

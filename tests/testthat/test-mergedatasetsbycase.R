@@ -115,20 +115,21 @@ test_that("Automatically determine match", {
 })
 
 test_that("Matching by variable labels", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola7.sav"),
                                                      findInstDirFile("cola8.sav")),
                                   auto.select.what.to.match.by = FALSE,
                                   match.by.variable.names = FALSE,
                                   match.by.variable.labels = TRUE,
                                   match.by.value.labels = FALSE,
-                                  include.merged.data.set.in.output = TRUE)
+                                  include.merged.data.set.in.output = TRUE),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     # Q1_F_c matched despite variable names being different
     expect_true(all(!is.na(result$merged.data.set$Q1_F_c)))
 })
 
 test_that("Matching by value labels", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola7.sav"),
                                                      findInstDirFile("cola8.sav")),
                                   auto.select.what.to.match.by = FALSE,
@@ -136,7 +137,8 @@ test_that("Matching by value labels", {
                                   match.by.variable.labels = FALSE,
                                   match.by.value.labels = TRUE,
                                   include.merged.data.set.in.output = TRUE,
-                                  variables.to.omit = "Q1_E_c1-Q1_B_c1")
+                                  variables.to.omit = "Q1_E_c1-Q1_B_c1"),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     # Q1_F_c matched despite variable names being different
     expect_true(all(!is.na(result$merged.data.set$Q1_F_c)))
 })
@@ -164,14 +166,15 @@ test_that("Ignore non-alphanumeric characters when matching", {
 })
 
 test_that("Minimum match percentage", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola10.sav"),
                                                      findInstDirFile("cola12.sav")),
                                   auto.select.what.to.match.by = FALSE,
                                   match.by.variable.names = FALSE,
                                   match.by.variable.labels = TRUE,
                                   match.by.value.labels = FALSE,
                                   min.match.percentage = 90,
-                                  include.merged.data.set.in.output = TRUE)
+                                  include.merged.data.set.in.output = TRUE),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     # Q4_A_3 not merged together since "Coke" differs from "Coca Cola" beyond
     # the min match percentage
     expect_true("Q4_A_3_1" %in% names(result$merged.data.set))
@@ -241,11 +244,12 @@ test_that("Manually combine variables by specifying names of variables to combin
 })
 
 test_that("Manually combine variables by specifying names of variables (with data set index) to combine", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola4.sav")),
                                            include.merged.data.set.in.output = TRUE,
-                                           variables.to.combine = "Q3_3_new_name(3),Q3_3(2)")
+                                           variables.to.combine = "Q3_3_new_name(3),Q3_3(2)"),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     merged.data.set <- result$merged.data.set
     expect_true("Q3_3" %in% names(merged.data.set))
     # new variable created with Q3_3 from data set 1 since only Q3_3 from
@@ -362,10 +366,11 @@ test_that("Error when two variables to be combined are found in the same data se
 })
 
 test_that("Variables to not combine", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola3.sav")),
-                                  variables.to.not.combine = "Q3")
+                                  variables.to.not.combine = "Q3"),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     expect_true(all(c("Q3", "Q3_1", "Q3_2") %in% result$merged.data.set.metadata$variable.names))
 })
 
@@ -456,11 +461,12 @@ test_that("Variable type conversion (text to date)", {
 })
 
 test_that("Non-combinable variables", {
-    result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola3.sav"),
+    expect_warning(result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola3.sav"),
                                                      findInstDirFile("cola7.sav")),
                                   match.by.variable.names = TRUE,
                                   match.by.variable.labels = FALSE,
-                                  match.by.value.labels = FALSE)
+                                  match.by.value.labels = FALSE),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     # Q3_3 in the two datasets cannot be combined as the latter is a text
     # variable with many different values. So a new variable Q3_3_1 is created
     # immediately below Q3_3
@@ -1077,7 +1083,7 @@ test_that("mergedVariableNames (preferring first data set)", {
                                         use.names.and.labels.from = "First data set")
     expect_equal(merged.names,
                  structure(c("Q1", "Q2", "Q3"),
-                           renamed.variables = structure(logical(0), .Dim = c(0L, 2L),
+                           renamed.variables = structure(character(0), .Dim = c(0L, 2L),
                                                          .Dimnames = list(NULL, c("Original name", "New name")))))
 })
 
@@ -1088,7 +1094,7 @@ test_that("mergedVariableNames (preferring last data set)", {
                                         use.names.and.labels.from = "Last data set")
     expect_equal(merged.names,
                  structure(c("Q1B", "Q2", "Q3B"),
-                           renamed.variables = structure(logical(0), .Dim = c(0L, 2L),
+                           renamed.variables = structure(character(0), .Dim = c(0L, 2L),
                                                          .Dimnames = list(NULL, c("Original name", "New name")))))
 })
 
@@ -1096,8 +1102,9 @@ test_that("mergedVariableNames (variable renamed due to name conflict)", {
     # Q1 appears in 2 rows so the second one gets renamed
     matched.names <- matrix(c("Q1", NA_character_, NA_character_, "Q3",
                               NA_character_, "Q1", "Q2", "Q3B"), ncol = 2)
-    merged.names <- mergedVariableNames(matched.names = matched.names,
-                                        use.names.and.labels.from = "First data set")
+    expect_warning(merged.names <- mergedVariableNames(matched.names = matched.names,
+                                        use.names.and.labels.from = "First data set"),
+                   "Some variable names were duplicated after cleaning and have been renamed:")
     expect_equal(merged.names,
                  structure(c("Q1", "Q1_1", "Q2", "Q3"),
                            renamed.variables = structure(c("Q1", "Q1_1"), .Dim = 1:2,
