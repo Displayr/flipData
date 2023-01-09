@@ -532,8 +532,6 @@ sanitizeSPSSVariableNames <- function(variable.names) {
     dupes <- duplicated(tolower(variable.names))
     if (any(dupes)) {
         dupe.ind <- which(dupes)
-        warning("Some variable names were duplicated after cleaning and have been renamed: ",
-                paste0(unique(variable.names[dupes]), collapse = ", "))
         for (i in dupe.ind) {
             variable.names[i] <- uniqueName(variable.names[i],
                                             existing.names = variable.names,

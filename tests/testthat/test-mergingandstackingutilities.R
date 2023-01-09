@@ -164,6 +164,6 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
     # Prevent duplicates
     bad.names <- c("A", "B", "WITH", "A", "B", "WITH")
     expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Some variable names were duplicated after cleaning and have been renamed:")
+                   "Cannot save variables whose names are SPSS reserved keywords")
     expect_equal(z, c("A", "B", "WITH_r", "A_1", "B_1", "WITH_r_1"))
 })
