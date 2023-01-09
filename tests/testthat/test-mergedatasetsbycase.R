@@ -244,8 +244,8 @@ test_that("Manually combine variables by specifying names of variables (with dat
     result <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
                                                      findInstDirFile("cola2.sav"),
                                                      findInstDirFile("cola4.sav")),
-                                           include.merged.data.set.in.output = TRUE,
-                                           variables.to.combine = "Q3_3_new_name(3),Q3_3(2)")
+                                  include.merged.data.set.in.output = TRUE,
+                                  variables.to.combine = "Q3_3_new_name(3),Q3_3(2)")
     merged.data.set <- result$merged.data.set
     expect_true("Q3_3" %in% names(merged.data.set))
     # new variable created with Q3_3 from data set 1 since only Q3_3 from
@@ -1077,7 +1077,7 @@ test_that("mergedVariableNames (preferring first data set)", {
                                         use.names.and.labels.from = "First data set")
     expect_equal(merged.names,
                  structure(c("Q1", "Q2", "Q3"),
-                           renamed.variables = structure(logical(0), .Dim = c(0L, 2L),
+                           renamed.variables = structure(character(0), .Dim = c(0L, 2L),
                                                          .Dimnames = list(NULL, c("Original name", "New name")))))
 })
 
@@ -1088,7 +1088,7 @@ test_that("mergedVariableNames (preferring last data set)", {
                                         use.names.and.labels.from = "Last data set")
     expect_equal(merged.names,
                  structure(c("Q1B", "Q2", "Q3B"),
-                           renamed.variables = structure(logical(0), .Dim = c(0L, 2L),
+                           renamed.variables = structure(character(0), .Dim = c(0L, 2L),
                                                          .Dimnames = list(NULL, c("Original name", "New name")))))
 })
 

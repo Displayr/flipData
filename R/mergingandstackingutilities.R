@@ -456,7 +456,8 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
     i <- 1
     repeat
     {
-        candidate.name <- paste0(new.name, delimiter, i)
+        candidate.name <- addSuffixFittingByteLimit(new.name,
+                                                    suffix = paste0(delimiter, i))
         if (!(tolower(candidate.name) %in% lower.case.existing.names))
             return(candidate.name)
         i <- i + 1
@@ -492,3 +493,84 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 
 # Set to 2GB as I found that memory issues start to occur beyond here
 DATA.SET.SIZE.LIMIT <- 2 * 1e9
+
+sanitizeSPSSVariableNames <- function(variable.names) {
+    # Can't begin with or end with a period
+    forbidden.period <- startsWith(variable.names, ".")
+    if (any(forbidden.period)) {
+        warning("Cannot save variables names which begin with '.'. Some variables have had the '.' removed from their names: ",
+                 paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[forbidden.period] <- gsub("^\\.", "", variable.names[forbidden.period])
+    }
+    forbidden.period <- endsWith(variable.names, ".")
+    if (any(forbidden.period)) {
+        warning("Cannot save variables names which end with '.'. Some variables have had the '.' removed from their names: ",
+                paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[forbidden.period] <- gsub("\\.$", "", variable.names[forbidden.period])
+    }
+
+    # SPSS variable names can't be reseved keywords
+    reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
+    forbidden.keywords <- variable.names %in% reserved.keywords
+    if (any(forbidden.keywords)) {
+        warning("Cannot save variables whose names are SPSS reserved keywords. The following variables have had '_r' added to their names:",
+                paste0(variable.names[forbidden.keywords], collapse = ", "))
+        variable.names[forbidden.keywords] <- paste0(variable.names[forbidden.keywords], "_r")
+    }
+
+    # SPSS variable names can't be longer than 64 bytes
+    bad.length <- nchar(variable.names, type = "bytes") > 64
+    if (any(bad.length)) {
+        warning("Some variable names were too long and have been truncated: ",
+                paste0(variable.names[bad.length], collapse = ", "))
+        variable.names[bad.length] <- vapply(variable.names[bad.length],
+                                             FUN = addSuffixFittingByteLimit,
+                                             FUN.VALUE = character(1))
+    }
+
+    # SPSS variable names must be unique
+    dupes <- duplicated(tolower(variable.names))
+    if (any(dupes)) {
+        dupe.ind <- which(dupes)
+        for (i in dupe.ind) {
+            variable.names[i] <- uniqueName(variable.names[i],
+                                            existing.names = variable.names,
+                                            delimiter = "_")
+        }
+    }
+
+    variable.names
+}
+
+
+addSuffixFittingByteLimit <- function(string, suffix = "", byte.limit = 64) {
+    new.string <- paste0(string, suffix)
+    size <- nchar(new.string, type = "bytes")
+
+    # Nothing to do here, return
+    if (size <= byte.limit)
+        return (new.string)
+
+    # Easy encoding, just truncate and paste
+    if (size == nchar(new.string))
+        return(paste0(substr(string, 1, byte.limit - nchar(suffix)), suffix))
+
+    # Approximately how many characters should we be?
+    # Can't just count characters because could be a
+    # different encoding.
+    ratio <- byte.limit / size
+    j <- min(floor(nchar(new.string) * ratio) - nchar(suffix), 2)
+
+    # Grow the substring until we exceed the limit
+    new.string <- paste0(substr(string, 1, j), suffix)
+    while (nchar(new.string, type = "bytes") < byte.limit) {
+        j <- j + 1
+        new.string <- paste0(substr(string, 1, j), suffix)
+    }
+
+    # Reduce by one to ensure we are back under the limit
+    j <- j - 1
+    new.string = paste0(substr(string, 1, j), suffix)
+    new.string
+
+}
