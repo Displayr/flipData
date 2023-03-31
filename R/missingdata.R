@@ -197,21 +197,17 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
     # Create dummy variable matrix, only create column if necessary
     dummy.variable.df <- lapply(predictor.df, function(x) {
         z <- is.na(x)
-        if (any(z))
-            return(as.integer(z))
-        else
-            return(NULL)
-        })
+        if (any(z)) as.integer(z)
+    })
     # Remove the NULL elements (no missing)
-    dummy.variable.df <- Filter(Negate(is.null), dummy.variable.df)
+    dummy.variable.df <- Filter(length, dummy.variable.df)
     missing.outcomes <- is.na(outcome[[1]])
     # If no missing data in predictors, return original data, trimming missing outcomes if req
     if (length(dummy.variable.df) == 0)
     {
         if (any(missing.outcomes) && checks)
-            return(data[!missing.outcomes, ])
-        else
-            return(data)
+            data <- data[!missing.outcomes, ]
+        return(data)
     }
     dummy.variable.df <- checkAndMapDummyVariables(dummy.variable.df)
     if (ncol(data) == 2)
@@ -237,7 +233,7 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
         # Copy attributes from the dummy variable (required for aliased dummy mapping)
         new.data <- CopyAttributes(new.data, dummy.variable.df)
     }
-    return(new.data)
+    new.data
 }
 
 # original.data should be data.frame input with numeric and factor columns
@@ -287,5 +283,3 @@ checkAndMapDummyVariables <- function(data)
         attr(data[[length(data)]], "predictors.matching.dummy") <- names(data)[length(data)]
     data
 }
-
-
