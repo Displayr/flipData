@@ -251,8 +251,10 @@ extractVariableInformationForTemplate <- function(x,
     }
     # If the variable is a factor, add the levels
     if (type == "factor") {
-        output[["levels"]] <- levels(x)
-        output[["observed.levels"]] <- levels(droplevels(x))
+        x.levels <- levels(x)
+        output[["levels"]] <- x.levels
+        # Use tabulate to find non-zero counts instead of droplevels for speed
+        output[["observed.levels"]] <- x.levels[tabulate(x, nbins = length(x.levels)) > 0L]
         output[["ordered"]] <- is.ordered(x)
     }
     output
