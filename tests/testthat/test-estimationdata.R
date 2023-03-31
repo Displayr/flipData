@@ -157,4 +157,151 @@ test_that("Dummy variable adjustment", {
                         "dummy variables;"))
 })
 
-
+test_that("Check Template creation", {
+    # Valid input checks
+    invalid.items <- list("", 1.0, 1L, TRUE, matrix(1:2, ncol = 1L))
+    for (item in invalid.items) {
+        expect_error(
+            EstimationDataTemplate(item),
+            "input must be a data.frame"
+        )
+    }
+    expect_error(data.frame(1), NA)
+    expect_error(
+        EstimationDataTemplate(data.frame()),
+        "input must have at least one row"
+    )
+    # basic valid properties
+    ## numeric variables
+    basic.integer <- 1:5
+    basic.numeric <- seq(from = 1.0, by = 0.5, length.out = 5L)
+    basic.factor <- factor(letters[1:5])
+    basic.ordered <- factor(LETTERS[1:5], ordered = TRUE)
+    basic.df <- data.frame(
+        x = basic.integer,
+        y = basic.numeric,
+        z = basic.factor,
+        zo = basic.ordered
+    )
+    expect_equal(EstimationDataTemplate(basic.df),
+        list(
+            x = list(type = "numeric"),
+            y = list(type = "numeric"),
+            z = list(
+                type = "factor",
+                levels = letters[1:5],
+                observed.levels = letters[1:5],
+                ordered = FALSE
+            ),
+            zo = list(
+                type = "factor",
+                levels = LETTERS[1:5],
+                observed.levels = LETTERS[1:5],
+                ordered = TRUE
+            )
+        )
+    )
+    # Check unobserved levels handled
+    factor.w.unobserved <- factor(letters[1:5], levels = letters[1:6])
+    ordered.w.unobserved <- factor(LETTERS[1:5], levels = LETTERS[1:6],
+                                   ordered = TRUE)
+    data.with.unordered <- data.frame(
+        x = basic.integer,
+        y = basic.numeric,
+        z = factor.w.unobserved,
+        zo = ordered.w.unobserved
+    )
+    expect_equal(EstimationDataTemplate(data.with.unordered),
+        list(
+            x = list(type = "numeric"),
+            y = list(type = "numeric"),
+            z = list(
+                type = "factor",
+                levels = letters[1:6],
+                observed.levels = letters[1:5],
+                ordered = FALSE
+            ),
+            zo = list(
+                type = "factor",
+                levels = LETTERS[1:6],
+                observed.levels = LETTERS[1:5],
+                ordered = TRUE
+            )
+        )
+    )
+    # Check metadata (attributes) when all exist
+    factor.with.attr <- structure(
+        basic.factor,
+        label = "A fancy factor",
+        name = "q1a",
+        questiontype = "PickOne",
+        question = "Q1",
+        dataset = "foo.sav",
+        levels = levels(basic.factor),
+        observed.levels = levels(basic.factor),
+        ordered = FALSE
+    )
+    numeric.with.attr <- structure(
+        basic.numeric,
+        label = "A fancy numeric",
+        name = "q1a",
+        questiontype = "PickOne",
+        question = "Q1",
+        dataset = "foo.sav"
+    )
+    mixed.df <- data.frame(
+        `Hello World` = basic.integer,
+        `Fancy Hello` = numeric.with.attr,
+        `Fancy factor` = factor.with.attr,
+        `Basic group` = basic.ordered,
+        check.names = FALSE
+    )
+    expected.list <- list(
+        `Hello World` = list(type = "numeric"),
+        `Fancy Hello` = list(
+            type = "numeric",
+            label = "A fancy numeric",
+            name = "q1a",
+            questiontype = "PickOne",
+            question = "Q1",
+            dataset = "foo.sav"
+        ),
+        `Fancy factor` = list(
+            type = "factor",
+            label = "A fancy factor",
+            name = "q1a",
+            questiontype = "PickOne",
+            question = "Q1",
+            dataset = "foo.sav",
+            levels = levels(basic.factor),
+            observed.levels = levels(basic.factor),
+            ordered = FALSE
+        ),
+        `Basic group` = list(
+            type = "factor",
+            levels = LETTERS[1:5],
+            observed.levels = LETTERS[1:5],
+            ordered = TRUE
+        )
+    )
+    expect_equal(EstimationDataTemplate(mixed.df), expected.list)
+    # Too many attributes, but only desired ones kept
+    too.many.attr <- structure(
+        basic.numeric,
+        label = "A fancy numeric",
+        name = "q1a",
+        foo = "bar",
+        questiontype = "PickOne",
+        question = "Q1",
+        dataset = "foo.sav",
+        irreleant = "baz"
+    )
+    data.too.many.attr <- data.frame(
+        `Hello World` = basic.integer,
+        `Fancy Hello` = too.many.attr,
+        `Fancy factor` = factor.with.attr,
+        `Basic group` = basic.ordered,
+        check.names = FALSE
+    )
+    expect_equal(EstimationDataTemplate(data.too.many.attr), expected.list)
+})

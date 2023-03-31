@@ -39,7 +39,8 @@
 #' @importFrom flipFormat Labels SampleDescription
 #' @importFrom flipImputation Imputation
 #' @seealso \code{\link[flipImputation]{Imputation}},
-#'     \code{\link[flipFormat]{SampleDescription}}
+#'     \code{\link[flipFormat]{SampleDescription}},
+#'     \code{EstimationDataTemplate}
 #' @return A list with components \itemize{ \item
 #'     \code{estimation.data} - tidied (filtered/subsetted and
 #'     NA-free) \code{data.frame} \item \code{weights} - the cleaned
@@ -207,5 +208,52 @@ EstimationData <- function(formula = NULL,
          description = description)
 }
 
+#' @title Extract dataframe information for a template
+#' @description Inspects the input dataframe and creates a list of lists. Each list element takes the name
+#'              of the variable and contains information about the variable with a sublist. Such information
+#'              includes the type of the variable (numeric of factor), and other metadata attributes such as
+#'              the label of the variable, the name of the variable, question type of the variable,
+#'              the dataset it originates from and others.
+#' @param x A \code{data.frame} containing the data to be templated.
+#' @return A list of lists. Each sublist contains information about each variable from the input
+#'         data frame. Each sublist describes the variable with the following elements:
+#' \itemize{
+#'    \item type: The type of the variable (numeric or factor)
+#'    \item label: The label of the variable
+#'    \item name: The name of the variable
+#'    \item questiontype: The question type of the variable
+#'    \item question: The question of the variable
+#'    \item dataset: The dataset of the variable
+#'    \item levels: If variable is a factor, the levels of the variable, otherwise not present
+#'    \item observed.levels: If variable is a factor, the observed levels of the variable, otherwise not present
+#'    \item ordered: If variable is a factor, whether the factor is ordered, otherwise not present
+#' }
+#' @export
+#' @importFrom stats setNames
+EstimationDataTemplate <- function(x) {
+    stopifnot("input must be a data.frame" = is.data.frame(x),
+              "input must have at least one row" = nrow(x) > 0)
 
+    # Use setNames explictly since lapply returns syntactic names
+    setNames(lapply(x, extractVariableInformationForTemplate), names(x))
+}
 
+extractVariableInformationForTemplate <- function(x,
+                                   extra.attributes = c("label", "name", "questiontype", "question", "dataset")) {
+    x.attributes <- attributes(x)
+    type <- if (is.factor(x)) "factor" else "numeric"
+    output <- list(type = type)
+    # If any useful attributes found, retain them
+    if (!is.null(x.attributes)) {
+        useful.attributes <- names(x.attributes) %in% extra.attributes
+        if (any(useful.attributes))
+            output <- c(output, x.attributes[useful.attributes])
+    }
+    # If the variable is a factor, add the levels
+    if (type == "factor") {
+        output[["levels"]] <- levels(x)
+        output[["observed.levels"]] <- levels(droplevels(x))
+        output[["ordered"]] <- is.ordered(x)
+    }
+    output
+}

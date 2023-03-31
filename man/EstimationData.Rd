@@ -85,5 +85,6 @@ Removes any empty levels from factors.
 }
 \seealso{
 \code{\link[flipImputation]{Imputation}},
-    \code{\link[flipFormat]{SampleDescription}}
+    \code{\link[flipFormat]{SampleDescription}},
+    \code{EstimationDataTemplate}
 }
