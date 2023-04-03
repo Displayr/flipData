@@ -228,6 +228,8 @@ EstimationData <- function(formula = NULL,
 #'    \item observed.levels: If variable is a factor, the observed levels of the variable, otherwise not present
 #'    \item has.unobserved.levels: Boolean indicating whether the variable has unobserved levels
 #'    \item ordered: If variable is a factor, whether the factor is ordered, otherwise not present
+#'    \item default.value: The default value of the variable, the minimum if numeric or the first (observed)
+#'                         level if factor
 #' }
 #' @export
 #' @importFrom stats setNames
@@ -258,6 +260,9 @@ createVariableTemplate <- function(x,
         output[["observed.levels"]] <- x.levels[tabulate(x, nbins = length(x.levels)) > 0L]
         output[["has.unobserved.levels"]] <- length(output[["observed.levels"]]) < length(x.levels)
         output[["ordered"]] <- is.ordered(x)
+        output[["default.value"]] <- output[["observed.levels"]][1L]
+        return(output)
     }
+    output[["default.value"]] <- min(x, na.rm = TRUE)
     output
 }

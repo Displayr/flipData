@@ -185,21 +185,29 @@ test_that("Check Template creation", {
     )
     expect_equal(EstimationDataTemplate(basic.df),
         list(
-            x = list(type = "numeric"),
-            y = list(type = "numeric"),
+            x = list(
+                type = "numeric",
+                default.value = 1L
+            ),
+            y = list(
+                type = "numeric",
+                default.value = 1.0
+            ),
             z = list(
                 type = "factor",
                 levels = letters[1:5],
                 observed.levels = letters[1:5],
                 has.unobserved.levels = FALSE,
-                ordered = FALSE
+                ordered = FALSE,
+                default.value = letters[1]
             ),
             zo = list(
                 type = "factor",
                 levels = LETTERS[1:5],
                 observed.levels = LETTERS[1:5],
                 has.unobserved.levels = FALSE,
-                ordered = TRUE
+                ordered = TRUE,
+                default.value = LETTERS[1]
             )
         )
     )
@@ -215,21 +223,29 @@ test_that("Check Template creation", {
     )
     expect_equal(EstimationDataTemplate(data.with.unordered),
         list(
-            x = list(type = "numeric"),
-            y = list(type = "numeric"),
+            x = list(
+                type = "numeric",
+                default.value = 1L
+            ),
+            y = list(
+                type = "numeric",
+                default.value = 1.0
+            ),
             z = list(
                 type = "factor",
                 levels = letters[1:6],
                 observed.levels = letters[1:5],
                 has.unobserved.levels = TRUE,
-                ordered = FALSE
+                ordered = FALSE,
+                default.value = letters[1]
             ),
             zo = list(
                 type = "factor",
                 levels = LETTERS[1:6],
                 observed.levels = LETTERS[1:5],
                 has.unobserved.levels = TRUE,
-                ordered = TRUE
+                ordered = TRUE,
+                default.value = LETTERS[1]
             )
         )
     )
@@ -243,7 +259,8 @@ test_that("Check Template creation", {
         dataset = "foo.sav",
         levels = levels(basic.factor),
         observed.levels = levels(basic.factor),
-        ordered = FALSE
+        ordered = FALSE,
+        default.value = levels(basic.factor)[1L]
     )
     numeric.with.attr <- structure(
         basic.numeric,
@@ -251,7 +268,8 @@ test_that("Check Template creation", {
         name = "q1a",
         questiontype = "PickOne",
         question = "Q1",
-        dataset = "foo.sav"
+        dataset = "foo.sav",
+        default.value = 1.0
     )
     mixed.df <- data.frame(
         `Hello World` = basic.integer,
@@ -261,14 +279,18 @@ test_that("Check Template creation", {
         check.names = FALSE
     )
     expected.list <- list(
-        `Hello World` = list(type = "numeric"),
+        `Hello World` = list(
+            type = "numeric",
+            default.value = 1L
+        ),
         `Fancy Hello` = list(
             type = "numeric",
             label = "A fancy numeric",
             name = "q1a",
             questiontype = "PickOne",
             question = "Q1",
-            dataset = "foo.sav"
+            dataset = "foo.sav",
+            default.value = 1.0
         ),
         `Fancy factor` = list(
             type = "factor",
@@ -280,14 +302,16 @@ test_that("Check Template creation", {
             levels = levels(basic.factor),
             observed.levels = levels(basic.factor),
             has.unobserved.levels = FALSE,
-            ordered = FALSE
+            ordered = FALSE,
+            default.value = levels(basic.factor)[1L]
         ),
         `Basic group` = list(
             type = "factor",
             levels = LETTERS[1:5],
             observed.levels = LETTERS[1:5],
             has.unobserved.levels = FALSE,
-            ordered = TRUE
+            ordered = TRUE,
+            default.value = LETTERS[1]
         )
     )
     expect_equal(EstimationDataTemplate(mixed.df), expected.list)

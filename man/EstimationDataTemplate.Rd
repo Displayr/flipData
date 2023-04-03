@@ -23,6 +23,8 @@ A list of lists. Each sublist contains information about each variable from the 
    \item observed.levels: If variable is a factor, the observed levels of the variable, otherwise not present
    \item has.unobserved.levels: Boolean indicating whether the variable has unobserved levels
    \item ordered: If variable is a factor, whether the factor is ordered, otherwise not present
+   \item default.value: The default value of the variable, the minimum if numeric or the first (observed)
+                        level if factor
 }
 }
 \description{
