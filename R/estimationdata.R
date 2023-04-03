@@ -211,7 +211,7 @@ EstimationData <- function(formula = NULL,
 #' @title Extract dataframe information for a template
 #' @description Inspects the input dataframe and creates a list of lists. Each list element takes the name
 #'              of the variable and contains information about the variable with a sublist. Such information
-#'              includes the type of the variable (numeric of factor), and other metadata attributes such as
+#'              includes the type of the variable (numeric or factor), and other metadata attributes such as
 #'              the label of the variable, the name of the variable, question type of the variable,
 #'              the dataset it originates from and others.
 #' @param x A \code{data.frame} containing the data to be templated.
