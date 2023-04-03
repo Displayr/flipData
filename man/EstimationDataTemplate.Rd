@@ -21,6 +21,7 @@ A list of lists. Each sublist contains information about each variable from the 
    \item dataset: The dataset of the variable
    \item levels: If variable is a factor, the levels of the variable, otherwise not present
    \item observed.levels: If variable is a factor, the observed levels of the variable, otherwise not present
+   \item has.unobserved.levels: Boolean indicating whether the variable has unobserved levels
    \item ordered: If variable is a factor, whether the factor is ordered, otherwise not present
 }
 }
