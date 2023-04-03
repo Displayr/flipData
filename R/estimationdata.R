@@ -236,10 +236,10 @@ EstimationDataTemplate <- function(x) {
               "input must have at least one row" = nrow(x) > 0)
 
     # Use setNames explictly since lapply returns syntactic names
-    setNames(lapply(x, extractVariableInformationForTemplate), names(x))
+    setNames(lapply(x, createVariableTemplate), names(x))
 }
 
-extractVariableInformationForTemplate <- function(x,
+createVariableTemplate <- function(x,
                                    extra.attributes = c("label", "name", "questiontype", "question", "dataset")) {
     x.attributes <- attributes(x)
     type <- if (is.factor(x)) "factor" else "numeric"
