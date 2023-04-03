@@ -191,12 +191,14 @@ test_that("Check Template creation", {
                 type = "factor",
                 levels = letters[1:5],
                 observed.levels = letters[1:5],
+                has.unobserved.levels = FALSE,
                 ordered = FALSE
             ),
             zo = list(
                 type = "factor",
                 levels = LETTERS[1:5],
                 observed.levels = LETTERS[1:5],
+                has.unobserved.levels = FALSE,
                 ordered = TRUE
             )
         )
@@ -219,12 +221,14 @@ test_that("Check Template creation", {
                 type = "factor",
                 levels = letters[1:6],
                 observed.levels = letters[1:5],
+                has.unobserved.levels = TRUE,
                 ordered = FALSE
             ),
             zo = list(
                 type = "factor",
                 levels = LETTERS[1:6],
                 observed.levels = LETTERS[1:5],
+                has.unobserved.levels = TRUE,
                 ordered = TRUE
             )
         )
@@ -275,12 +279,14 @@ test_that("Check Template creation", {
             dataset = "foo.sav",
             levels = levels(basic.factor),
             observed.levels = levels(basic.factor),
+            has.unobserved.levels = FALSE,
             ordered = FALSE
         ),
         `Basic group` = list(
             type = "factor",
             levels = LETTERS[1:5],
             observed.levels = LETTERS[1:5],
+            has.unobserved.levels = FALSE,
             ordered = TRUE
         )
     )

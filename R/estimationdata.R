@@ -255,6 +255,7 @@ extractVariableInformationForTemplate <- function(x,
         output[["levels"]] <- x.levels
         # Use tabulate to find non-zero counts instead of droplevels for speed
         output[["observed.levels"]] <- x.levels[tabulate(x, nbins = length(x.levels)) > 0L]
+        output[["has.unobserved.levels"]] <- length(output[["observed.levels"]]) < length(x.levels)
         output[["ordered"]] <- is.ordered(x)
     }
     output
