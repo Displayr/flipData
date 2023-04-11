@@ -4,14 +4,18 @@
 \alias{EstimationDataTemplate}
 \title{Extract dataframe information for a template}
 \usage{
-EstimationDataTemplate(x)
+EstimationDataTemplate(x, outcome.name)
 }
 \arguments{
 \item{x}{A \code{data.frame} containing the data to be templated.}
+
+\item{outcome.variable}{An optional name of the outcome variable. Should be a character(1L) string.
+If specified, the outcome variable will be omitted from the list.}
 }
 \value{
 A list of lists. Each sublist contains information about each variable from the input
-        data frame. Each sublist describes the variable with the following elements:
+        data frame. If the outcome.variable argument is provided, that variable should be
+        omitted from the list. Each sublist describes the variable with the following elements:
 \itemize{
    \item type: The type of the variable (numeric or factor)
    \item label: The label of the variable
