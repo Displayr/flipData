@@ -215,8 +215,14 @@ EstimationData <- function(formula = NULL,
 #'              the label of the variable, the name of the variable, question type of the variable,
 #'              the dataset it originates from and others.
 #' @param x A \code{data.frame} containing the data to be templated.
-#' @return A list of lists. Each sublist contains information about each variable from the input
-#'         data frame. Each sublist describes the variable with the following elements:
+#' @param outcome.name An optional name of the outcome variable. Should be a character(1L) string.
+#'                     If specified it will be set as the \code{"outcome.name"} attribute in the
+#'                     returned list (see below). If not specified, then the attribute will
+#'                     be set to \code{NA_character_}.
+#' @return A list of lists. The list will have an attributes called \code{"outcome.name"} which will be
+#'         set to the value of the \code{outcome.variable} argument or \code{NA_character_} if not
+#'         provided. Each sublist contains information about each variable from the input
+#'         \code{data.frame} with the following elements:
 #' \itemize{
 #'    \item type: The type of the variable (numeric or factor)
 #'    \item label: The label of the variable
@@ -233,12 +239,19 @@ EstimationData <- function(formula = NULL,
 #' }
 #' @export
 #' @importFrom stats setNames
-EstimationDataTemplate <- function(x) {
+EstimationDataTemplate <- function(x, outcome.name) {
     stopifnot("input must be a data.frame" = is.data.frame(x),
               "input must have at least one row" = nrow(x) > 0)
-
+    outcome.name.provided <- !missing(outcome.name)
+    if (outcome.name.provided) {
+        stopifnot("outcome.name must be a string" = is.character(outcome.name),
+                  "outcome.name should have length 1" = length(outcome.name) == 1L,
+                  "outcome.name must be a column in the data.frame" = !is.null(x[[outcome.name]]))
+    }
     # Use setNames explictly since lapply returns syntactic names
-    setNames(lapply(x, createVariableTemplate), names(x))
+    template <- setNames(lapply(x, createVariableTemplate), names(x))
+    attr(template, "outcome.name") <- if (outcome.name.provided) outcome.name else NA_character_
+    template
 }
 
 createVariableTemplate <- function(x,

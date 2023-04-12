@@ -183,7 +183,7 @@ test_that("Check Template creation", {
         z = basic.factor,
         zo = basic.ordered
     )
-    expect_equal(EstimationDataTemplate(basic.df),
+    expected.template <- structure(
         list(
             x = list(
                 type = "numeric",
@@ -209,8 +209,27 @@ test_that("Check Template creation", {
                 ordered = TRUE,
                 default.value = LETTERS[1]
             )
-        )
+        ),
+        outcome.name = NA_character_
     )
+    expect_equal(EstimationDataTemplate(basic.df), expected.template)
+    # Outcome variable removed when requested
+    for (outcome in names(basic.df)) {
+        template.with.outcome.info <- expected.template
+        attr(template.with.outcome.info, "outcome.name") <- outcome
+        expect_equal(EstimationDataTemplate(basic.df, outcome.name = outcome),
+                     template.with.outcome.info)
+    }
+    incorrect.name.types <- list(1L, 1.0, TRUE, matrix(1:2, ncol = 1L))
+    for (outcome.name in incorrect.name.types) {
+        expect_error(EstimationDataTemplate(basic.df, outcome.name = outcome.name),
+                     "outcome.name must be a string")
+    }
+    expect_error(EstimationDataTemplate(basic.df, outcome.name = c("x", "y")),
+                 "outcome.name should have length 1")
+    expect_error(EstimationDataTemplate(basic.df, outcome.name = "not.in.data.frame"),
+                 "outcome.name must be a column in the data.frame")
+    # Using a outcome name that is not in the data.frame produces an error
     # Check unobserved levels handled
     factor.w.unobserved <- factor(letters[1:5], levels = letters[1:6])
     ordered.w.unobserved <- factor(LETTERS[1:5], levels = LETTERS[1:6],
@@ -222,31 +241,34 @@ test_that("Check Template creation", {
         zo = ordered.w.unobserved
     )
     expect_equal(EstimationDataTemplate(data.with.unordered),
-        list(
-            x = list(
-                type = "numeric",
-                default.value = 1L
+        structure(
+            list(
+                x = list(
+                    type = "numeric",
+                    default.value = 1L
+                ),
+                y = list(
+                    type = "numeric",
+                    default.value = 1.0
+                ),
+                z = list(
+                    type = "factor",
+                    levels = letters[1:6],
+                    observed.levels = letters[1:5],
+                    has.unobserved.levels = TRUE,
+                    ordered = FALSE,
+                    default.value = letters[1]
+                ),
+                zo = list(
+                    type = "factor",
+                    levels = LETTERS[1:6],
+                    observed.levels = LETTERS[1:5],
+                    has.unobserved.levels = TRUE,
+                    ordered = TRUE,
+                    default.value = LETTERS[1]
+                )
             ),
-            y = list(
-                type = "numeric",
-                default.value = 1.0
-            ),
-            z = list(
-                type = "factor",
-                levels = letters[1:6],
-                observed.levels = letters[1:5],
-                has.unobserved.levels = TRUE,
-                ordered = FALSE,
-                default.value = letters[1]
-            ),
-            zo = list(
-                type = "factor",
-                levels = LETTERS[1:6],
-                observed.levels = LETTERS[1:5],
-                has.unobserved.levels = TRUE,
-                ordered = TRUE,
-                default.value = LETTERS[1]
-            )
+            outcome.name = NA_character_
         )
     )
     # Check metadata (attributes) when all exist
@@ -278,41 +300,45 @@ test_that("Check Template creation", {
         `Basic group` = basic.ordered,
         check.names = FALSE
     )
-    expected.list <- list(
-        `Hello World` = list(
-            type = "numeric",
-            default.value = 1L
+    expected.list <-
+    structure(
+        list(
+            `Hello World` = list(
+                type = "numeric",
+                default.value = 1L
+            ),
+            `Fancy Hello` = list(
+                type = "numeric",
+                label = "A fancy numeric",
+                name = "q1a",
+                questiontype = "PickOne",
+                question = "Q1",
+                dataset = "foo.sav",
+                default.value = 1.0
+            ),
+            `Fancy factor` = list(
+                type = "factor",
+                label = "A fancy factor",
+                name = "q1a",
+                questiontype = "PickOne",
+                question = "Q1",
+                dataset = "foo.sav",
+                levels = levels(basic.factor),
+                observed.levels = levels(basic.factor),
+                has.unobserved.levels = FALSE,
+                ordered = FALSE,
+                default.value = levels(basic.factor)[1L]
+            ),
+            `Basic group` = list(
+                type = "factor",
+                levels = LETTERS[1:5],
+                observed.levels = LETTERS[1:5],
+                has.unobserved.levels = FALSE,
+                ordered = TRUE,
+                default.value = LETTERS[1]
+            )
         ),
-        `Fancy Hello` = list(
-            type = "numeric",
-            label = "A fancy numeric",
-            name = "q1a",
-            questiontype = "PickOne",
-            question = "Q1",
-            dataset = "foo.sav",
-            default.value = 1.0
-        ),
-        `Fancy factor` = list(
-            type = "factor",
-            label = "A fancy factor",
-            name = "q1a",
-            questiontype = "PickOne",
-            question = "Q1",
-            dataset = "foo.sav",
-            levels = levels(basic.factor),
-            observed.levels = levels(basic.factor),
-            has.unobserved.levels = FALSE,
-            ordered = FALSE,
-            default.value = levels(basic.factor)[1L]
-        ),
-        `Basic group` = list(
-            type = "factor",
-            levels = LETTERS[1:5],
-            observed.levels = LETTERS[1:5],
-            has.unobserved.levels = FALSE,
-            ordered = TRUE,
-            default.value = LETTERS[1]
-        )
+        outcome.name = NA_character_
     )
     expect_equal(EstimationDataTemplate(mixed.df), expected.list)
     # Too many attributes, but only desired ones kept
