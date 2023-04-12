@@ -215,10 +215,10 @@ EstimationData <- function(formula = NULL,
 #'              the label of the variable, the name of the variable, question type of the variable,
 #'              the dataset it originates from and others.
 #' @param x A \code{data.frame} containing the data to be templated.
-#' @param outcome.variable An optional name of the outcome variable. Should be a character(1L) string.
-#'                         If specified it will be set as the \code{"outcome.name"} attribute in the
-#'                         returned list (see below). If not specified, then the attribute will
-#'                         be set to \code{NA_character_}.
+#' @param outcome.name An optional name of the outcome variable. Should be a character(1L) string.
+#'                     If specified it will be set as the \code{"outcome.name"} attribute in the
+#'                     returned list (see below). If not specified, then the attribute will
+#'                     be set to \code{NA_character_}.
 #' @return A list of lists. The list will have an attributes called \code{"outcome.name"} which will be
 #'         set to the value of the \code{outcome.variable} argument or \code{NA_character_} if not
 #'         provided. Each sublist contains information about each variable from the input

@@ -9,7 +9,7 @@ EstimationDataTemplate(x, outcome.name)
 \arguments{
 \item{x}{A \code{data.frame} containing the data to be templated.}
 
-\item{outcome.variable}{An optional name of the outcome variable. Should be a character(1L) string.
+\item{outcome.name}{An optional name of the outcome variable. Should be a character(1L) string.
 If specified it will be set as the \code{"outcome.name"} attribute in the
 returned list (see below). If not specified, then the attribute will
 be set to \code{NA_character_}.}
