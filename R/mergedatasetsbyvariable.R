@@ -635,3 +635,26 @@ print.MergeDataSetByVariable <- function(x, ...)
                                    x$example.id.values,
                                    x$is.saved.to.cloud)
 }
+
+#' @description Produces a widget output that supports pagination when printing
+#'  a MergeDataSetByVariablePage object.
+#' @param x A list of class MergeDataSetByVariablePage
+#' @noRd
+#' @export
+print.MergeDataSetByVariablePage <- function(x, ...)
+{
+    args <- list(x$input.data.sets.metadata,
+                 x$merged.data.set.metadata,
+                 x$source.data.set.indices,
+                 x$omitted.variable.names.list,
+                 x$merged.id.variable.name,
+                 x$id.variable.names,
+                 x$example.id.values,
+                 x$is.saved.to.cloud,
+                 x$page)
+
+    if (!is.null(x$variables.per.page))
+        args <- c(args, x$variables.per.page)
+
+    do.call(DataSetMergingByVariableWidget, args)
+}
