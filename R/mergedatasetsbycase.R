@@ -2663,6 +2663,8 @@ removeNULL <- function(x)
 }
 
 #' @importFrom flipFormat DataSetMergingByCaseWidget
+#' @param x A list of class MergeDataSetByCase
+#' @noRd
 #' @export
 print.MergeDataSetByCase <- function(x, ...)
 {
@@ -2673,4 +2675,26 @@ print.MergeDataSetByCase <- function(x, ...)
                                x$omitted.variable.names.list,
                                x$input.value.attributes.list,
                                x$is.saved.to.cloud)
+}
+
+#' @description Produces a widget output that supports pagination when printing
+#'  a MergeDataSetByCasePage object.
+#' @param x A list of class MergeDataSetByCasePage
+#' @noRd
+#' @export
+print.MergeDataSetByCasePage <- function(x, ...)
+{
+    args <- list(x$input.data.sets.metadata,
+                 x$merged.data.set.metadata,
+                 x$matched.names,
+                 x$merged.names,
+                 x$omitted.variable.names.list,
+                 x$input.value.attributes.list,
+                 x$is.saved.to.cloud,
+                 x$page)
+
+    if (!is.null(x$variables.per.page))
+        args <- c(args, x$variables.per.page)
+
+    do.call(DataSetMergingByCaseWidget, args)
 }
