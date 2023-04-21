@@ -39,4 +39,5 @@ Remotes: Displayr/flipAPI,
  Displayr/flipTime,
  Displayr/flipTransformations,
  Displayr/flipU,
- Displayr/verbs
+ Displayr/verbs,
+ cran/survey@4.0
