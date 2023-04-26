@@ -37,24 +37,55 @@ test_that("CheckForUniqueVariableNames",
 data(hbatwithsplits, package = "flipExampleData")
 test_that("CheckPredictionVariables",
 {
-    test.formula <- x3 ~ x1 + x2 + x6
-    data <- GetData(test.formula, hbatwithsplits, auxiliary.data = NULL)
-    z <- list(formula = test.formula, model = data, outcome.name = "x3", subset = !(hbatwithsplits$x1 %in% "Less than 1 year")) # remove a level
+    # newdata argument is provided and non-empty
+    expected.err <- paste0(sQuote("newdata"), " argument must be a data.frame ",
+                           "with at least one observation.")
+    bad.newdata <- list(1:10, TRUE, 1+1i, "foo", list())
+    for (newdat in bad.newdata)
+        expect_error(CheckPredictionVariables(z, newdata = newdat), expected.err, fixed = TRUE)
+    expect_error(CheckPredictionVariables(z, newdata = NULL), expected.err, fixed = TRUE)
+    expect_error(CheckPredictionVariables(z, newdata = data.frame()), expected.err, fixed = TRUE)
 
     # Predicting based on fewer variables than used to fit model
-    expect_error(CheckPredictionVariables(z, newdata = hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]), "Attempting to predict*")
+    test.formula <- x3 ~ x1 + x2 + x6
+    data <- GetData(test.formula, hbatwithsplits, auxiliary.data = NULL)
+    z <- structure(
+        list(formula = test.formula,
+             model = data,
+             outcome.name = "x3",
+             subset = !(hbatwithsplits$x1 %in% "Less than 1 year") # remove a level
+        ),
+        class = "Regression"
+    )
+
+    # Predicting based on fewer variables than used to fit model
+    expected.error <- paste0("Attempting to predict based on fewer variables than ",
+                             "those used to train the model.")
+    smaller.newdat <- hbatwithsplits[, !(names(hbatwithsplits) %in% "x2")]
+    expect_error(CheckPredictionVariables(z, newdata = smaller.newdat),
+                 expected.error, fixed = TRUE)
+    expect_error(Probabilities(z, newdata = smaller.newdat), expected.error, fixed = TRUE)
 
     # More levels in prediction data than fitted
     newdata <- hbatwithsplits
     attr(z$model$x1, "label") <- "something"
     attr(newdata$x1, "label") <- "something"
+    expected.warn <- paste0(
+        "The prediction variable ", sQuote("something"), " contained the category ",
+        "(", sQuote("Less than 1 year"), ") that was not used in the training data. ",
+        "It is not possible to predict outcomes in these cases and they are coded as ",
+        "missing as a result. 32 instances were affected. If non-missing predictions ",
+        "are required, consider merging categories if merging categories is ",
+        "applicable for this variable."
+    )
     expect_warning(checked <- CheckPredictionVariables(z, newdata = newdata),
-                   paste0("The prediction variable ", sQuote("something"), " contained the category ",
-                          "(", sQuote("Less than 1 year"), ") that was not used in the training data. It is not possible to predict ",
-                          "outcomes in these cases and they are coded as missing as a result. 32 instances were affected. ",
-                          "If non-missing predictions are required, consider merging categories if merging categories ",
-                          "is applicable for this variable."),
-                   fixed = TRUE)
+                   expected.warn, fixed = TRUE)
+    obs.warnings <- capture_warnings(
+            expect_error(Probabilities(z, newdata = newdata),
+                         "Probabilities is not implemented for this object type",
+                         fixed = TRUE)
+    )
+    expect_identical(obs.warnings, expected.warn)
     expect_equal(attr(checked$x1, "label"), "something")
 
     # Prediction levels reset to those used for fitting
@@ -69,6 +100,14 @@ test_that("CheckPredictionVariables",
     expect_equal(levels(amended$x1), levels(checked$x1))
     # Check levels have not been reordered
     expect_equal(as.character(amended$x1), "Over 5 years")
+
+    # Expect error if object not of class Regression or MachineLearning
+    expected.err <- paste0(
+        sQuote("object"), " argument must be a ", sQuote("Regression"),
+        " or ", sQuote("MachineLearning"), " object."
+    )
+    expect_error(CheckPredictionVariables(unclass(z), newdata = single.data),
+                 expected.err, fixed = TRUE)
 
     # Input string of factor level
     single.data[, "x1"] <- as.character("Over 5 years")
