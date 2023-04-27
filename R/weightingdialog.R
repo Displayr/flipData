@@ -121,8 +121,8 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
     } else {
         weights(calibrate(svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables),
                           createFormula(adjustment.variables),
-                          maxit = 10000,
-                          epsilon = 1e-9,
+                          maxit = 100,
+                          epsilon = 1e-8,
                           bounds = c(lower, upper),
                           population = margins,
                           calfun = calfun))
