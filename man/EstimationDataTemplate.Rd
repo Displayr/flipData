@@ -15,7 +15,7 @@ returned list (see below). If not specified, then the attribute will
 be set to \code{NA_character_}.}
 }
 \value{
-A list of lists. The list will have an attribute called \code{"outcome.name"} which will be
+A list of lists. The list will have an attributes called \code{"outcome.name"} which will be
         set to the value of the \code{outcome.variable} argument or \code{NA_character_} if not
         provided. Each sublist contains information about each variable from the input
         \code{data.frame} with the following elements:
