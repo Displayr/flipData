@@ -124,13 +124,7 @@ CheckForUniqueVariableNames <- function(formula)
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
-    if (missing(newdata) || !(is.data.frame(newdata) && NROW(newdata) > 0))
-        stop(sQuote("newdata"), " argument must be a data.frame ",
-             "with at least one observation.")
     regression.model <- inherits(object, "Regression")
-    if (!regression.model && !inherits(object, "MachineLearning"))
-        stop(sQuote("object"), " argument must be a ", sQuote("Regression"),
-             " or ", sQuote("MachineLearning"), " object.")
     # Deduce the predictor names from the formula and model data available
     dummy.adjusted.importance <- regression.model &&
         object$missing == "Dummy variable adjustment" &&
