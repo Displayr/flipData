@@ -124,6 +124,12 @@ CheckForUniqueVariableNames <- function(formula)
 #' @export
 CheckPredictionVariables <- function(object, newdata)
 {
+    if (missing(newdata) || !(is.data.frame(newdata) && NROW(newdata) > 0))
+        stop(sQuote("newdata"), " argument must be a data.frame ",
+             "with at least one observation.")
+    valid.classes <- c("CART", "MachineLearning", "Regression")
+    if (!inherits(object, valid.classes))
+        throwErrorUnsupportedPredictionClass(valid.classes)
     regression.model <- inherits(object, "Regression")
     # Deduce the predictor names from the formula and model data available
     dummy.adjusted.importance <- regression.model &&
@@ -259,4 +265,24 @@ checkPredictionWarningMessage <- function(label, level.counts, warning.due.to.ou
                    "If non-missing predictions are required, consider merging categories if merging categories ",
                    "is applicable for this variable."),
             variable.label, levels, level.counts)
+}
+
+#' ValidateNewData
+#'
+#' Checks the model provided in \code{object} either has valid data to make predictions
+#' or that the data provided in \code{newdata} is valid to use for predictions.
+#'
+#' @param object A \code{MachineLearning} or \code{Regression} object.
+#' @param newdata Optionally, a data frame including the variables used to fit the model.
+#' @return A \code{data.frame} that has the appropriate variables to predict new outcome
+#'         values for a provided model in \code{object}.
+#' @export
+ValidateNewData <- function(object, newdata = NULL)
+{
+    # CheckPredictionVariables is still required without newdata because empty training levels are removed
+    if (is.null(newdata))
+        return(suppressWarnings(CheckPredictionVariables(object, object$model)))
+    stopifnot("newdata must be a data.frame" = is.data.frame(newdata),
+              "Need at least one observation in the newdata argument" = NROW(newdata) > 0)
+    CheckPredictionVariables(object, newdata)
 }
