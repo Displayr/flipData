@@ -7,7 +7,8 @@
 Probabilities(object, newdata = NULL, ...)
 }
 \arguments{
-\item{object}{A \code{CART}, \code{MachineLearning} or \code{Regression} object.}
+\item{object}{A \code{CART}, \code{MachineLearning}, \code{MachineLearningEnsemble}
+or \code{Regression} object.}
 
 \item{newdata}{Optionally, a data frame including the variables used to fit the model.
 If not provided, the object$model is used instead.}
