@@ -19,6 +19,7 @@ Probabilities <- function(object, newdata = NULL, ...)
     UseMethod("Probabilities")
 }
 
+#' @export
 Probabilities.default <- function(object, newdata = NULL, ...)
 {
     stop("object not supported")
@@ -39,6 +40,9 @@ validateProbabilityArguments <- function(object, newdata)
     not.valid.object <- !inherits(object, valid.classes)
     if (not.valid.object)
         throwErrorUnsupportedPredictionClass(valid.classes)
+    # Machine Learning Ensembles don't have a model slot
+    if (inherits(object, "MachineLearningEnsemble")) return()
+    # If newdata is not provided, use the model data and check it is valid
     if (is.null(newdata))
         newdata <- object[["model"]]
     valid.newdata <- is.data.frame(newdata) && NROW(newdata) > 0

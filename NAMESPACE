@@ -2,6 +2,7 @@
 
 S3method(Observed,MachineLearningEnsemble)
 S3method(Observed,default)
+S3method(Probabilities,default)
 S3method(print,Calibrate)
 S3method(print,MergeDataSetByCase)
 S3method(print,MergeDataSetByCasePage)
