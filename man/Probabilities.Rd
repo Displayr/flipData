@@ -2,19 +2,25 @@
 % Please edit documentation in R/probabilities.R
 \name{Probabilities}
 \alias{Probabilities}
-\title{Probabilities
-\code{Probabilities} A generic function used to extract one or more
-variables containing probabilities relating to cases (e.g., segment membership).}
+\title{Probabilities}
 \usage{
-Probabilities(object, ...)
+Probabilities(object, newdata = NULL, ...)
 }
 \arguments{
-\item{object}{An object for which probabilities are desired.}
+\item{object}{A \code{CART}, \code{MachineLearning} or \code{Regression} object.}
 
-\item{...}{Additional argument}
+\item{newdata}{Optionally, a data frame including the variables used to fit the model.
+If not provided, the object$model is used instead.}
+
+\item{...}{Optional arguments to pass to \code{predict} or other functions.}
+}
+\value{
+A matrix of predicted probabilities for the observation to belong to each
+        class label.
 }
 \description{
-Probabilities
-\code{Probabilities} A generic function used to extract one or more
-variables containing probabilities relating to cases (e.g., segment membership).
+Estimates the probability of group membership for the data passed into \code{newdata} or
+the data used to fit the model if \code{newdata} is not specified. Intended to be used
+for the classifiers in the packages \code{flipRegression}, \code{flipMultivariates} and
+\code{flipTrees}.
 }
