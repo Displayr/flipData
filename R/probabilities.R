@@ -5,7 +5,8 @@
 #' for the classifiers in the packages \code{flipRegression}, \code{flipMultivariates} and
 #' \code{flipTrees}.
 #'
-#' @param object A \code{CART}, \code{MachineLearning} or \code{Regression} object.
+#' @param object A \code{CART}, \code{MachineLearning}, \code{MachineLearningEnsemble}
+#'        or \code{Regression} object.
 #' @param newdata Optionally, a data frame including the variables used to fit the model.
 #'        If not provided, the object$model is used instead.
 #' @param ... Optional arguments to pass to \code{predict} or other functions.
@@ -34,7 +35,7 @@ throwErrorUnsupportedPredictionClass <- function(valid.classes)
 
 validateProbabilityArguments <- function(object, newdata)
 {
-    valid.classes <- c("CART", "MachineLearning", "Regression")
+    valid.classes <- c("CART", "MachineLearning", "MachineLearningEnsemble", "Regression")
     not.valid.object <- !inherits(object, valid.classes)
     if (not.valid.object)
         throwErrorUnsupportedPredictionClass(valid.classes)

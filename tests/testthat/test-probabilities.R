@@ -2,7 +2,7 @@ context("Probabilities")
 
 test_that("Probabilities", {
     bad.inputs <- list(list(), TRUE, 1, 1.0, "foo")
-    valid.classes <- c("CART", "MachineLearning", "Regression")
+    valid.classes <- c("CART", "MachineLearning", "MachineLearningEnsemble", "Regression")
     expected.err <- capture_error(throwErrorUnsupportedPredictionClass(valid.classes))[["message"]]
     for (bad.input in bad.inputs) {
         expect_error(validateProbabilityArguments(bad.input, NULL), expected.err)
