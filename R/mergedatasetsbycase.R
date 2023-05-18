@@ -1917,10 +1917,10 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
                                use.names.and.labels.from,
                                when.multiple.labels.for.one.value,
                                match.parameters)
-        data.set.size <- data.set.size + object.size(v)
-        if (data.set.size > DATA.SET.SIZE.LIMIT)
-            stop("The combined data set is too large to create. ",
-                 "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
+        # data.set.size <- data.set.size + object.size(v)
+        # if (data.set.size > DATA.SET.SIZE.LIMIT)
+        #     stop("The combined data set is too large to create. ",
+        #          "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
         merged.data.set[[i]] <- v
     }
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
