@@ -110,69 +110,89 @@ StackData <- function(input.data.set.name,
                       include.original.case.variable = TRUE,
                       include.observation.variable = TRUE)
 {
-    # Load input data set as data frame
-    input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
+    tryCatch({
+        # Load input data set as data frame
+        input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
 
-    # Create an object containing metadata on the input data set such as
-    # variable names and labels which can be easily passed into function calls
-    input.data.set.metadata <- metadataFromDataSet(input.data.set,
-                                                   input.data.set.name)
+        # Create an object containing metadata on the input data set such as
+        # variable names and labels which can be easily passed into function calls
+        input.data.set.metadata <- metadataFromDataSet(input.data.set,
+                                                       input.data.set.name)
 
-    # Get the list of common labels to be used in stacking, either
-    # automatically, via reference variables, or manually
-    common.labels.list <- commonLabels(manual.common.labels,
-                                       stack.with.common.labels,
-                                       input.data.set.metadata,
-                                       reference.variables.to.stack)
+        # Get the list of common labels to be used in stacking, either
+        # automatically, via reference variables, or manually
+        common.labels.list <- commonLabels(manual.common.labels,
+                                           stack.with.common.labels,
+                                           input.data.set.metadata,
+                                           reference.variables.to.stack)
 
-    # Compute stacking groups from common labels and manual stacking groups,
-    # and then merge them together. A stacking group is a matrix that specifies
-    # variables to be stacked via their indices in the input data set. Each row
-    # represents a group of variables to be stacked.
-    common.label.stacking.groups <- stackWithCommonLabels(common.labels.list,
-                                                          input.data.set.metadata)
-    manual.stacking.groups <- stackManually(manual.stacking, specify.by,
-                                            input.data.set.metadata)
-    stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
-                                                               manual.stacking.groups)
+        # Compute stacking groups from common labels and manual stacking groups,
+        # and then merge them together. A stacking group is a matrix that specifies
+        # variables to be stacked via their indices in the input data set. Each row
+        # represents a group of variables to be stacked.
+        common.label.stacking.groups <- stackWithCommonLabels(common.labels.list,
+                                                              input.data.set.metadata)
+        manual.stacking.groups <- stackManually(manual.stacking, specify.by,
+                                                input.data.set.metadata)
+        stacking.groups <- mergeCommonLabelAndManualStackingGroups(common.label.stacking.groups,
+                                                                   manual.stacking.groups)
 
-    included.variable.names <- parseVariablesToInclude(variables.to.include,
-                                                       input.data.set.metadata,
-                                                       stacking.groups)
+        included.variable.names <- parseVariablesToInclude(variables.to.include,
+                                                           input.data.set.metadata,
+                                                           stacking.groups)
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwInputDataSetsTooLargeError()
+        } else
+            stop(e)
+    })
 
-    # Create the stacked data set as a data frame from the stacking groups
-    stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
-                                       stacking.groups,
-                                       include.original.case.variable,
-                                       include.observation.variable,
-                                       common.labels.list,
-                                       included.variable.names)
+    tryCatch({
+        # Create the stacked data set as a data frame from the stacking groups
+        stacked.data.set <- stackedDataSet(input.data.set, input.data.set.metadata,
+                                           stacking.groups,
+                                           include.original.case.variable,
+                                           include.observation.variable,
+                                           common.labels.list,
+                                           included.variable.names)
 
-    stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
-                                                     input.data.set.name)
+        stacked.data.set.name <- cleanStackedDataSetName(stacked.data.set.name,
+                                                         input.data.set.name)
 
-    write.stacked.data.set <- nrow(stacked.data.set) > 0
-    is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
-    if (write.stacked.data.set)
-        writeDataSet(stacked.data.set, stacked.data.set.name, is.saved.to.cloud)
+        write.stacked.data.set <- nrow(stacked.data.set) > 0
+        is.saved.to.cloud <- write.stacked.data.set && IsDisplayrCloudDriveAvailable()
+        if (write.stacked.data.set)
+            writeDataSet(stacked.data.set, stacked.data.set.name, is.saved.to.cloud)
 
-    # Create an object containing metadata on the stacked data set such as
-    # variable names and labels
-    stacked.data.set.metadata <- metadataFromStackedDataSet(stacked.data.set,
-                                                            stacked.data.set.name)
+        # Create an object containing metadata on the stacked data set such as
+        # variable names and labels
+        stacked.data.set.metadata <- metadataFromStackedDataSet(stacked.data.set,
+                                                                stacked.data.set.name)
 
-    result <- list()
-    result$input.data.set.metadata <- input.data.set.metadata
-    result$stacked.data.set.metadata <- stacked.data.set.metadata
-    result$unstackable.names <- attr(stacking.groups, "unstackable.names")
-    result$common.labels.list <- common.labels.list
-    result$is.saved.to.cloud <- is.saved.to.cloud
+        result <- list()
+        result$input.data.set.metadata <- input.data.set.metadata
+        result$stacked.data.set.metadata <- stacked.data.set.metadata
+        result$unstackable.names <- attr(stacking.groups, "unstackable.names")
+        result$common.labels.list <- common.labels.list
+        result$is.saved.to.cloud <- is.saved.to.cloud
 
-    if (include.stacked.data.set.in.output)
-        result$stacked.data.set <- stacked.data.set
+        if (include.stacked.data.set.in.output)
+            result$stacked.data.set <- stacked.data.set
 
-    class(result) <- "StackedData"
-    result
+        class(result) <- "StackedData"
+        result
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            msg <- paste0("The stacked data set is too large to create. ",
+                          "Consider reducing the number of variables in the stacked data set.")
+            if (!is.null(common.labels.list))
+                msg <- paste0(msg, " Also ensure that the common labels are ",
+                              "appropriate: ",
+                              paste0(unlist(common.labels.list), collapse = ", "), ".")
+            stop(msg)
+        } else
+            stop(e)
+    })
 }
 
 # Get common labels ready to be used for stacking. The actions of this function
@@ -1066,7 +1086,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
     is.manually.stacked <- attr(stacking.groups, "is.manually.stacked")
 
     stacked.data.set <- list()
-    data.set.size <- 0
     for (i in seq_along(input.v.names))
     {
         ind <- match(i, first.ind)
@@ -1105,7 +1124,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             }
 
             stacked.data.set[[nm]] <- v
-            data.set.size <- data.set.size + object.size(v)
         }
         else if (input.v.names[i] %in% included.variable.names)
         {
@@ -1130,18 +1148,6 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             }
             nm <- uniqueName(input.v.names[i], names(stacked.data.set))
             stacked.data.set[[nm]] <- v
-            data.set.size <- data.set.size + object.size(v)
-        }
-
-        if (data.set.size > DATA.SET.SIZE.LIMIT)
-        {
-            msg <- paste0("The stacked data set is too large to create. ",
-                          "Consider reducing the number of variables in the stacked data set.")
-            if (!is.null(common.labels.list))
-                msg <- paste0(msg, " Also ensure that the common labels are ",
-                              "appropriate: ",
-                              paste0(unlist(common.labels.list), collapse = ", "), ".")
-            stop(msg)
         }
     }
 
