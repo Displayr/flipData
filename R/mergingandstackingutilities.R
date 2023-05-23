@@ -491,9 +491,6 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
     variable.names[is.match]
 }
 
-# Set to 2GB as I found that memory issues start to occur beyond here
-DATA.SET.SIZE.LIMIT <- 2 * 1e9
-
 sanitizeSPSSVariableNames <- function(variable.names) {
     # Can't begin with or end with a period
     forbidden.period <- startsWith(variable.names, ".")
@@ -572,5 +569,14 @@ addSuffixFittingByteLimit <- function(string, suffix = "", byte.limit = 64) {
     j <- j - 1
     new.string = paste0(substr(string, 1, j), suffix)
     new.string
+}
 
+throwInputDataSetsTooLargeError <- function() {
+    stop("The input data sets are too large to process.",
+         "Consider reducing their size or only combining a subset of the data sets.")
+}
+
+throwCombinedDataSetTooLargeError <- function() {
+    stop("The combined data set is too large to create. ",
+         "Consider omitting variables from the combined data set.")
 }

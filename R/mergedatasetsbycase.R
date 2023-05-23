@@ -133,55 +133,70 @@ MergeDataSetsByCase <- function(data.set.names,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
 {
-    data.sets <- readDataSets(data.set.names, 2)
-    data.sets <- removeDuplicateValues(data.sets)
-    input.data.sets.metadata <- metadataFromDataSets(data.sets)
+    tryCatch({
+        data.sets <- readDataSets(data.set.names, 2)
+        data.sets <- removeDuplicateValues(data.sets)
+        input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-    match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
-                             match.by.variable.names = match.by.variable.names,
-                             match.by.variable.labels = match.by.variable.labels,
-                             match.by.value.labels = match.by.value.labels,
-                             ignore.case = ignore.case,
-                             ignore.non.alphanumeric = ignore.non.alphanumeric,
-                             min.match.percentage = min.match.percentage,
-                             min.value.label.match.percentage = min.value.label.match.percentage)
+        match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
+                                 match.by.variable.names = match.by.variable.names,
+                                 match.by.variable.labels = match.by.variable.labels,
+                                 match.by.value.labels = match.by.value.labels,
+                                 ignore.case = ignore.case,
+                                 ignore.non.alphanumeric = ignore.non.alphanumeric,
+                                 min.match.percentage = min.match.percentage,
+                                 min.value.label.match.percentage = min.value.label.match.percentage)
 
-    matched.names <- matchVariables(input.data.sets.metadata,
-                                    match.parameters,
-                                    variables.to.combine,
-                                    variables.to.not.combine,
-                                    variables.to.keep,
-                                    variables.to.omit, data.sets,
-                                    data.sets.whose.variables.are.kept,
-                                    use.names.and.labels.from)
-    merged.names <- mergedVariableNames(matched.names,
+        matched.names <- matchVariables(input.data.sets.metadata,
+                                        match.parameters,
+                                        variables.to.combine,
+                                        variables.to.not.combine,
+                                        variables.to.keep,
+                                        variables.to.omit, data.sets,
+                                        data.sets.whose.variables.are.kept,
                                         use.names.and.labels.from)
-    merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
-                                     use.names.and.labels.from,
-                                     when.multiple.labels.for.one.value,
-                                     match.parameters)
-    merged.data.set.name <- correctDataSetName(merged.data.set.name,
-                                               "Combined data set.sav")
+        merged.names <- mergedVariableNames(matched.names,
+                                            use.names.and.labels.from)
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwInputDataSetsTooLargeError()
+        } else
+            stop(e)
+    })
 
-    is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
-    writeDataSet(merged.data.set, merged.data.set.name, is.saved.to.cloud)
+    tryCatch({
+        merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
+                                         use.names.and.labels.from,
+                                         when.multiple.labels.for.one.value,
+                                         match.parameters)
+        merged.data.set.name <- correctDataSetName(merged.data.set.name,
+                                                   "Combined data set.sav")
 
-    result <- list()
-    if (include.merged.data.set.in.output)
-        result$merged.data.set <- merged.data.set
+        is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+        writeDataSet(merged.data.set, merged.data.set.name, is.saved.to.cloud)
 
-    result$input.data.sets.metadata <- input.data.sets.metadata
-    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
-                                                           merged.data.set.name)
-    result$matched.names <- matched.names
-    result$merged.names <- merged.names
-    result$omitted.variable.names.list <- omittedVariables(input.data.sets.metadata,
-                                                           matched.names)
-    result$input.value.attributes.list <- lapply(merged.data.set, attr,
-                                                 "input.value.attributes")
-    result$is.saved.to.cloud <- is.saved.to.cloud
-    class(result) <- "MergeDataSetByCase"
-    result
+        result <- list()
+        if (include.merged.data.set.in.output)
+            result$merged.data.set <- merged.data.set
+
+        result$input.data.sets.metadata <- input.data.sets.metadata
+        result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
+                                                               merged.data.set.name)
+        result$matched.names <- matched.names
+        result$merged.names <- merged.names
+        result$omitted.variable.names.list <- omittedVariables(input.data.sets.metadata,
+                                                               matched.names)
+        result$input.value.attributes.list <- lapply(merged.data.set, attr,
+                                                     "input.value.attributes")
+        result$is.saved.to.cloud <- is.saved.to.cloud
+        class(result) <- "MergeDataSetByCase"
+        result
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwCombinedDataSetTooLargeError()
+        } else
+            stop(e)
+    })
 }
 
 # Performs matching of variables and returns the matched.names character matrix
@@ -1910,17 +1925,12 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     n.data.set.cases <- vapply(data.sets, nrow, integer(1))
 
     merged.data.set <- vector(mode = "list", length = n.vars)
-    data.set.size <- 0
     for (i in seq_len(n.vars))
     {
         v <- compositeVariable(matched.names[i, ], data.sets,
                                use.names.and.labels.from,
                                when.multiple.labels.for.one.value,
                                match.parameters)
-        # data.set.size <- data.set.size + object.size(v)
-        # if (data.set.size > DATA.SET.SIZE.LIMIT)
-        #     stop("The combined data set is too large to create. ",
-        #          "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
         merged.data.set[[i]] <- v
     }
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)

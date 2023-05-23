@@ -113,48 +113,64 @@ MergeDataSetsByVariable <- function(data.set.names,
     #                          are specified.
     # merged.data.set: A data frame representing the merged data set.
 
-    data.sets <- readDataSets(data.set.names, 2)
-    input.data.sets.metadata <- metadataFromDataSets(data.sets)
+    tryCatch({
+        data.sets <- readDataSets(data.set.names, 2)
+        input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-    matched.cases.matrix <- matchCases(input.data.sets.metadata, id.variables,
-                                       data.sets,
-                                       only.keep.cases.matched.to.all.data.sets)
-    merged.data.set.var.names <- mergedDataSetVariableNames(input.data.sets.metadata,
-                                                            include.or.omit.variables,
-                                                            variables.to.include.or.omit,
-                                                            matched.cases.matrix)
-    merged.data.set <- doMergeByVariable(data.sets, matched.cases.matrix,
-                                         merged.data.set.var.names,
-                                         input.data.sets.metadata)
-    merged.data.set.name <- correctDataSetName(merged.data.set.name,
-                                               "Combined data set.sav")
-    is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
-    writeDataSet(merged.data.set, merged.data.set.name,
-                 is.saved.to.cloud = is.saved.to.cloud)
+        matched.cases.matrix <- matchCases(input.data.sets.metadata, id.variables,
+                                           data.sets,
+                                           only.keep.cases.matched.to.all.data.sets)
+        merged.data.set.var.names <- mergedDataSetVariableNames(input.data.sets.metadata,
+                                                                include.or.omit.variables,
+                                                                variables.to.include.or.omit,
+                                                                matched.cases.matrix)
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwInputDataSetsTooLargeError()
+        } else
+            stop(e)
+    })
 
-    result <- list()
-    if (include.merged.data.set.in.output)
-        result$merged.data.set <- merged.data.set
 
-    result$input.data.sets.metadata <- input.data.sets.metadata
-    result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
-                                                           merged.data.set.name)
-    result$source.data.set.indices <- attr(merged.data.set.var.names,
-                                           "source.data.set.indices",
-                                           exact = TRUE)
-    result$omitted.variable.names.list <- attr(merged.data.set.var.names,
-                                               "omitted.variable.names.list",
+    tryCatch({
+        merged.data.set <- doMergeByVariable(data.sets, matched.cases.matrix,
+                                             merged.data.set.var.names,
+                                             input.data.sets.metadata)
+        merged.data.set.name <- correctDataSetName(merged.data.set.name,
+                                                   "Combined data set.sav")
+        is.saved.to.cloud <- IsDisplayrCloudDriveAvailable()
+        writeDataSet(merged.data.set, merged.data.set.name,
+                     is.saved.to.cloud = is.saved.to.cloud)
+
+        result <- list()
+        if (include.merged.data.set.in.output)
+            result$merged.data.set <- merged.data.set
+
+        result$input.data.sets.metadata <- input.data.sets.metadata
+        result$merged.data.set.metadata <- metadataFromDataSet(merged.data.set,
+                                                               merged.data.set.name)
+        result$source.data.set.indices <- attr(merged.data.set.var.names,
+                                               "source.data.set.indices",
                                                exact = TRUE)
-    result$merged.id.variable.name <- attr(merged.data.set.var.names,
-                                           "merged.id.variable.name",
-                                           exact = TRUE)
-    result$id.variable.names <- attr(matched.cases.matrix, "id.variable.names",
-                                     exact = TRUE)
-    result$example.id.values <- exampleIDValues(result$id.variable.names,
-                                                data.sets)
-    result$is.saved.to.cloud <- is.saved.to.cloud
-    class(result) <- "MergeDataSetByVariable"
-    result
+        result$omitted.variable.names.list <- attr(merged.data.set.var.names,
+                                                   "omitted.variable.names.list",
+                                                   exact = TRUE)
+        result$merged.id.variable.name <- attr(merged.data.set.var.names,
+                                               "merged.id.variable.name",
+                                               exact = TRUE)
+        result$id.variable.names <- attr(matched.cases.matrix, "id.variable.names",
+                                         exact = TRUE)
+        result$example.id.values <- exampleIDValues(result$id.variable.names,
+                                                    data.sets)
+        result$is.saved.to.cloud <- is.saved.to.cloud
+        class(result) <- "MergeDataSetByVariable"
+        result
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwCombinedDataSetTooLargeError()
+        } else
+            stop(e)
+    })
 }
 
 #' @param input.data.sets.metadata See data dictionary.
@@ -542,7 +558,6 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
 
     merged.data.set.variables <- vector(mode = "list",
                                         length = length(merged.data.set.variable.names))
-    merged.data.set.size <- 0
 
     j <- 1
     for (data.set.ind in seq_len(n.data.sets))
@@ -583,12 +598,6 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
                 attr(merged.var, "label") <- attr(input.var, "label",
                                                   exact = TRUE)
             }
-
-            merged.data.set.size <- merged.data.set.size + object.size(merged.var)
-            if (merged.data.set.size > DATA.SET.SIZE.LIMIT)
-                stop("The combined data set is too large to create. ",
-                     "Consider omitting variables or only keeping combined variables that contain input variables from a few data sets.")
-
             merged.data.set.variables[[j]] <- merged.var
             j <- j + 1
         }
