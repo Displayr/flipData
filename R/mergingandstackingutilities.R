@@ -74,10 +74,21 @@ createReadErrorHandler <- function(data.set.name)
 #' @noRd
 #' @importFrom haven write_sav
 #' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
+#' @importFrom flipU InterceptExceptions
+#' @importFrom tools file_path_sans_ext
 writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
     if (is.saved.to.cloud)
-        QSaveData(data.set, data.set.name)
+        InterceptExceptions(QSaveData(data.set, data.set.name, 2e9), # 2e9 bytes seems to be just below the API upload limit for the cloud drive
+            warning.handler = function(w) {
+                if (grepl("Object compressed into a zip file", w$message)) {
+                    warning("The data file ", data.set.name,
+                            " has been compressed into ", file_path_sans_ext(data.set.name),
+                            ".zip on the Cloud Drive as it is too large. ",
+                            "It needs to be downloaded, unzipped and re-uploaded to be used in a Displayr document.")
+                } else
+                    warning(w$message)
+            })
     else
         write_sav(data.set, data.set.name)
 }
