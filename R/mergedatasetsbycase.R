@@ -2553,7 +2553,12 @@ remapValuesInVariable <- function(variable, map)
 {
     result <- variable
     for (i in seqRow(map))
-        result[variable == map[i, 1]] <- map[i, 2]
+    {
+        tryCatch(result[variable == map[i, 1]] <- map[i, 2],
+                 error = function(e) {
+                     stop("error: ", dput(attr(result, "labels")))
+                 })
+    }
     result
 }
 
