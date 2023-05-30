@@ -2554,10 +2554,7 @@ remapValuesInVariable <- function(variable, map)
     result <- variable
     for (i in seqRow(map))
     {
-        tryCatch(result[variable == map[i, 1]] <- map[i, 2],
-                 error = function(e) {
-                     stop("error: ", dput(list(variable, map[i,1])))
-                 })
+        result[variable == unname(map[i, 1])] <- map[i, 2]
     }
     result
 }
