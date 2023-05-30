@@ -2556,7 +2556,7 @@ remapValuesInVariable <- function(variable, map)
     {
         tryCatch(result[variable == map[i, 1]] <- map[i, 2],
                  error = function(e) {
-                     stop("error: ", dput(list(result, variable == map[i, 1], map[i, 2])))
+                     stop("error: ", dput(list(variable, map[i,1])))
                  })
     }
     result
