@@ -133,33 +133,29 @@ MergeDataSetsByCase <- function(data.set.names,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
 {
-    tryCatch({
-        data.sets <- readDataSets(data.set.names, 2)
-        data.sets <- removeDuplicateValues(data.sets)
-        input.data.sets.metadata <- metadataFromDataSets(data.sets)
+    data.sets <- readDataSets(data.set.names, 2)
+    data.sets <- removeDuplicateValues(data.sets)
+    input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
-        match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
-                                 match.by.variable.names = match.by.variable.names,
-                                 match.by.variable.labels = match.by.variable.labels,
-                                 match.by.value.labels = match.by.value.labels,
-                                 ignore.case = ignore.case,
-                                 ignore.non.alphanumeric = ignore.non.alphanumeric,
-                                 min.match.percentage = min.match.percentage,
-                                 min.value.label.match.percentage = min.value.label.match.percentage)
+    match.parameters <- list(auto.select.what.to.match.by = auto.select.what.to.match.by,
+                             match.by.variable.names = match.by.variable.names,
+                             match.by.variable.labels = match.by.variable.labels,
+                             match.by.value.labels = match.by.value.labels,
+                             ignore.case = ignore.case,
+                             ignore.non.alphanumeric = ignore.non.alphanumeric,
+                             min.match.percentage = min.match.percentage,
+                             min.value.label.match.percentage = min.value.label.match.percentage)
 
-        matched.names <- matchVariables(input.data.sets.metadata,
-                                        match.parameters,
-                                        variables.to.combine,
-                                        variables.to.not.combine,
-                                        variables.to.keep,
-                                        variables.to.omit, data.sets,
-                                        data.sets.whose.variables.are.kept,
+    matched.names <- matchVariables(input.data.sets.metadata,
+                                    match.parameters,
+                                    variables.to.combine,
+                                    variables.to.not.combine,
+                                    variables.to.keep,
+                                    variables.to.omit, data.sets,
+                                    data.sets.whose.variables.are.kept,
+                                    use.names.and.labels.from)
+    merged.names <- mergedVariableNames(matched.names,
                                         use.names.and.labels.from)
-        merged.names <- mergedVariableNames(matched.names,
-                                            use.names.and.labels.from)
-    }, error = function(e) {
-        stop(e)
-    })
     merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
                                      use.names.and.labels.from,
                                      when.multiple.labels.for.one.value,
