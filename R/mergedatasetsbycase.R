@@ -164,7 +164,7 @@ MergeDataSetsByCase <- function(data.set.names,
     #         stop(e)
     # })
 
-    tryCatch({
+    # tryCatch({
         merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
                                          use.names.and.labels.from,
                                          when.multiple.labels.for.one.value,
@@ -191,12 +191,12 @@ MergeDataSetsByCase <- function(data.set.names,
         result$is.saved.to.cloud <- is.saved.to.cloud
         class(result) <- "MergeDataSetByCase"
         result
-    }, error = function(e) {
-        if (grepl("cannot allocate vector of size ", e$message)) {
-            throwCombinedDataSetTooLargeError()
-        } else
-            stop(e)
-    })
+    # }, error = function(e) {
+    #     if (grepl("cannot allocate vector of size ", e$message)) {
+    #         throwCombinedDataSetTooLargeError()
+    #     } else
+    #         stop(e)
+    # })
 }
 
 # Performs matching of variables and returns the matched.names character matrix
