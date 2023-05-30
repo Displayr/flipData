@@ -133,7 +133,7 @@ MergeDataSetsByCase <- function(data.set.names,
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
                                 min.value.label.match.percentage = 90)
 {
-    # tryCatch({
+    tryCatch({
         data.sets <- readDataSets(data.set.names, 2)
         data.sets <- removeDuplicateValues(data.sets)
         input.data.sets.metadata <- metadataFromDataSets(data.sets)
@@ -157,12 +157,12 @@ MergeDataSetsByCase <- function(data.set.names,
                                         use.names.and.labels.from)
         merged.names <- mergedVariableNames(matched.names,
                                             use.names.and.labels.from)
-    # }, error = function(e) {
-    #     if (grepl("cannot allocate vector of size ", e$message)) {
-    #         throwInputDataSetsTooLargeError()
-    #     } else
-    #         stop(e)
-    # })
+    }, error = function(e) {
+        if (grepl("cannot allocate vector of size ", e$message)) {
+            throwInputDataSetsTooLargeError()
+        } else
+            stop(e)
+    })
 
     tryCatch({
         merged.data.set <- mergedDataSet(data.sets, matched.names, merged.names,
