@@ -2199,9 +2199,9 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
                 }
                 else if (when.multiple.labels.for.one.value == "Create new values for the labels")
                 {
+                    map <- rbind(map, c(val, new.val), deparse.level = 0)
                     names(new.val) <- lbl
                     merged.val.attr <- c(merged.val.attr, new.val)
-                    map <- rbind(map, c(val, new.val), deparse.level = 0)
                 }
                 # else "Use label from preferred data set", no action required as it is already in merged.val.attr
             }
@@ -2251,7 +2251,6 @@ mergeValueAndLabelIntoValueAttributes <- function(val, lbl, merged.val.attr,
         else # value and label not in merged.val.attr
             merged.val.attr[lbl] <- val # create new value in merged.val.attr
     }
-
     attr(merged.val.attr, "map") <- map
     merged.val.attr
 }
@@ -2553,9 +2552,7 @@ remapValuesInVariable <- function(variable, map)
 {
     result <- variable
     for (i in seqRow(map))
-    {
-        result[variable == unname(map[i, 1])] <- map[i, 2]
-    }
+        result[variable == map[i, 1]] <- map[i, 2]
     result
 }
 
