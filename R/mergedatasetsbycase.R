@@ -1936,9 +1936,18 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
     names(merged.data.set) <- merged.names
 
-    mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
-    merged.data.set[[mergesrc.name]] <- mergeSrc(n.data.set.cases,
-                                                 names(data.sets))
+    
+    new.mergesrc <- mergeSrc(n.data.set.cases, names(data.sets))
+    mergesrc.exists <- "mergesrc" %in% merged.names
+    if (mergesrc.exists) {
+        mergesrc <- merged.data.set[["mergesrc"]]
+        mergesrc[is.na(mergesrc)] <- new.mergesrc[is.na(mergesrc)]
+    } else {
+        mergesrc <- new.mergesrc
+    }
+
+    # mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
+    merged.data.set[["mergesrc"]] <- mergesrc 
     merged.data.set
 }
 
@@ -2580,7 +2589,9 @@ variableLabelFromDataSets <- function(matched.names.row, data.sets,
     return("")
 }
 
-# Create `Source of cases` variable for the output file, which allows the consumer to determine which input file each variable came from.
+# Create `Source of cases` variable for the output file, 
+# which allows the consumer to determine which input file 
+# each variable came from.
 mergeSrc <- function(n.data.set.cases, data.set.names)
 {
     n.data.sets <- length(n.data.set.cases)
