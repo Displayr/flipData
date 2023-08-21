@@ -12,10 +12,10 @@ findInstDirFile <- function(file)
 # cola17.sav: Q1_* to Q4_* included, with only "High self-monitor" cases kept.
 # cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 (renamed as Attr1_dup)
 #             modified to include duplicate values.
-# SPSS with integer value error 1.sav: Main file containing value attributes with
+# SPSSWithIntegerValueError1.sav: Main file containing value attributes with
 #             integers out of the allowable range.
-# SPSS with integer value error 2.sav: File to merge into the previous file.
-# SPSS with integer value error 3.sav: File containing a variable with more than one
+# SPSSWithIntegerValueError2.sav: File to merge into the previous file.
+# SPSSWithIntegerValueError3.sav: File containing a variable with more than one
 #             value outside of the allowable range. Multiple bad values not supported. 
 
 #' @param expr Expression to test
