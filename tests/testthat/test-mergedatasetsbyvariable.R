@@ -12,6 +12,11 @@ findInstDirFile <- function(file)
 # cola17.sav: Q1_* to Q4_* included, with only "High self-monitor" cases kept.
 # cola18.sav: Q1_* to Q4_* included, with IDs in Attr1 (renamed as Attr1_dup)
 #             modified to include duplicate values.
+# SPSSWithIntegerValueError1.sav: Main file containing value attributes with
+#             integers out of the allowable range.
+# SPSSWithIntegerValueError2.sav: File to merge into the previous file.
+# SPSSWithIntegerValueError3.sav: File containing a variable with more than one
+#             value outside of the allowable range. Multiple bad values not supported. 
 
 #' @param expr Expression to test
 #' @return Nothing. Errors if the expression errors.
@@ -253,6 +258,22 @@ test_that("exampleIDValues", {
     expect_equal(exampleIDValues(id.variable.names = c("ID_1", "ID_2", "ID_3"),
                                  data.sets = data.sets),
                  c("1", "21", "A"))
+})
+
+test_that("DS-5115: Handle integer values outside R's allowable range", 
+{
+    expect_warning(
+        MergeDataSetsByVariable(data.set.names = c(findInstDirFile("SPSSWithIntegerValueError1.sav"),
+                                                   findInstDirFile("SPSSWithIntegerValueError2.sav"))),
+        "contains a value outside of the allowable range"
+    )
+
+    expect_error(
+        MergeDataSetsByVariable(data.set.names = c(findInstDirFile("SPSSWithIntegerValueError3.sav"),
+                                                   findInstDirFile("SPSSWithIntegerValueError2.sav"))),
+        "contains multiple values outside the allowable range"
+    )
+
 })
 
 if (file.exists("Combined data set.sav"))

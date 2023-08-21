@@ -580,8 +580,12 @@ doMergeByVariable <- function(data.sets, matched.cases.matrix,
                 merged.var[non.missing.ind] <- input.var[matched.cases.matrix[non.missing.ind,
                                                                               data.set.ind]]
 
-                if (isIntegerValued(merged.var))
+                if (isIntegerValued(merged.var)) {
+                    recode.object <- recodeOutOfBoundsIntegersIfNecessary(merged.var, input.var = input.var)
+                    merged.var <- recode.object[["merged.var"]]
+                    input.var <- recode.object[["input.var"]]
                     merged.var <- as.integer(merged.var)
+                }
                 v.type <- variableType(input.var)
                 if (v.type == CATEGORICAL.VARIABLE.TYPE)
                 {
@@ -666,4 +670,44 @@ print.MergeDataSetByVariablePage <- function(x, ...)
         args <- c(args, x$variables.per.page)
 
     do.call(DataSetMergingByVariableWidget, args)
+}
+
+recodeOutOfBoundsIntegersIfNecessary <- function(merged.var, input.var) {
+    merged.unique.vals <- unique(merged.var)
+    merged.unique.vals <- removeNA(merged.unique.vals)
+    merged.val.attr <- attr(merged.var, "labels", exact = TRUE)
+    input.val.attr <- attr(input.var, "labels", exact = TRUE)
+    all.unique.vals <- unique(c(unclass(merged.unique.vals), unclass(input.val.attr)))
+
+    bad.vals <- abs(all.unique.vals) > 1e9
+    n.bad.vals <- length(which(bad.vals))
+    if (n.bad.vals == 0)
+        return(list(merged.var = merged.var,
+                    input.var = input.var))
+    lab <- attr(input.var, "label", exact = TRUE)
+    if (n.bad.vals > 1 ) {
+        stop("Variable: '",
+             lab,
+             "' contains multiple values outside the allowable range. ",
+             "Values larger than 1,000,000,000 or smaller than -1,000,000,000 ",
+             "should be recoded before attempting to merge these files.")
+    }
+
+    offending.value <- all.unique.vals[bad.vals]
+    remaining.values <- setdiff(all.unique.vals, offending.value)
+    # -99 is an industry convention
+    new.value <- if (-99 %in% remaining.values) min(remaining.values) - 1 else -99
+    warning("Variable: '",
+             lab,
+             "' contains a value outside of the allowable range (",
+             offending.value,
+             "). This value has been recoded as ",
+             new.value)
+    merged.var[merged.var == offending.value] <- new.value
+    input.val.attr[input.val.attr == offending.value] <- new.value
+    merged.val.attr[merged.val.attr == offending.value] <- new.value
+    attr(input.var, "labels") <- input.val.attr
+    attr(merged.var, "labels") <- merged.val.attr
+    list(merged.var = merged.var,
+         input.var = input.var)
 }
