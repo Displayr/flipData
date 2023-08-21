@@ -714,3 +714,10 @@ test_that("DS-3781: identical variable labels", {
     expect_equal(unname(result$stacked.data.set.metadata$variable.labels[2]),
                  "Three words only")
 })
+
+# Clean up stacked files
+if (file.exists("cola19 stacked.sav"))
+    file.remove("cola19 stacked.sav")
+
+if (file.exists("cola20 stacked.sav"))
+    file.remove("cola20 stacked.sav")
