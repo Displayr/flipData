@@ -1936,18 +1936,11 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
     names(merged.data.set) <- merged.names
 
-    
-    new.mergesrc <- mergeSrc(n.data.set.cases, names(data.sets))
     mergesrc.exists <- "mergesrc" %in% merged.names
-    if (mergesrc.exists) {
-        mergesrc <- merged.data.set[["mergesrc"]]
-        mergesrc[is.na(mergesrc)] <- new.mergesrc[is.na(mergesrc)]
-    } else {
-        mergesrc <- new.mergesrc
-    }
-
-    # mergesrc.name <- uniqueName("mergesrc", names(merged.data.set), "_")
-    merged.data.set[["mergesrc"]] <- mergesrc 
+    existing.mergesrc <- if (mergesrc.exists) merged.data.set[["mergesrc"]] else NULL
+    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, 
+                                              data.set.names = names(data.sets), 
+                                              existing.mergesrc = existing.mergesrc)
     merged.data.set
 }
 
@@ -2589,16 +2582,30 @@ variableLabelFromDataSets <- function(matched.names.row, data.sets,
     return("")
 }
 
-# Create `Source of cases` variable for the output file, 
-# which allows the consumer to determine which input file 
+# Create `Source of cases` variable for the output file,
+# which allows the consumer to determine which input file
 # each variable came from.
-mergeSrc <- function(n.data.set.cases, data.set.names)
+mergeSrc <- function(n.data.set.cases, data.set.names, existing.mergesrc = NULL)
 {
+    if (!is.null(existing.mergesrc)) {
+        em.labels <- names(attr(existing.mergesrc, "labels"))
+        existing.mergesrc <- em.labels[existing.mergesrc]
+    }
+
     n.data.sets <- length(n.data.set.cases)
     result <- rep(seq_len(n.data.sets), n.data.set.cases)
+    file.names <- data.set.names
+    result <- file.names[result]
+
+    if (!is.null(existing.mergesrc))
+        result[!is.na(existing.mergesrc)] <- existing.mergesrc[!is.na(existing.mergesrc)]
+    data.set.names <- unique(result)
+    n.data.sets <- length(data.set.names)
+    labels <- structure(seq_len(n.data.sets),
+                        .Names = data.set.names)
+    result <- labels[result]
     attr(result, "label") <- "Source of cases"
-    attr(result, "labels") <- structure(seq_len(n.data.sets),
-                                        .Names = data.set.names)
+    attr(result, "labels") <- labels
     class(result) <- c(class(result), "haven_labelled")
     result
 }

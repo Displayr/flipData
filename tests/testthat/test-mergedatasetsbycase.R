@@ -1279,5 +1279,39 @@ test_that("DS-4045, DS-4191 Don't fail on converting haven labeled text variable
 
 })
 
+test_that("DS-4307: Don't create multiple mergesrc variables on subsequent merges", {
+
+    # Merge once, creates "Combined data set.sav"
+    MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                           findInstDirFile("cola2.sav")),
+                        include.merged.data.set.in.output = TRUE)
+    merged.twice <- MergeDataSetsByCase(data.set.names = c("Combined data set.sav",
+                                                           findInstDirFile("cola3.sav")),
+                                        include.merged.data.set.in.output = TRUE,
+                                        merged.data.set.name = "Deleteme.sav")
+    mergesrc <- merged.twice[["merged.data.set"]][["mergesrc"]]
+    expected <- structure(rep(1:3, c(327, 327, 327)),
+                    "class" = c("integer", "haven_labelled"),
+                    "labels" = setNames(1:3, c("cola1.sav", "cola2.sav", "cola3.sav")),
+                    "label" = "Source of cases")
+    expect_equal(mergesrc, expected)
+
+    # Reverse order
+    merged.twice <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola3.sav"),
+                                                            "Combined data set.sav"),
+                                        include.merged.data.set.in.output = TRUE,
+                                        merged.data.set.name = "Deleteme.sav")
+    mergesrc <- merged.twice[["merged.data.set"]][["mergesrc"]]
+    expected <- structure(rep(1:3, c(327, 327, 327)),
+                    "class" = c("integer", "haven_labelled"),
+                    "labels" = setNames(1:3, c("cola3.sav", "cola1.sav", "cola2.sav")),
+                    "label" = "Source of cases")
+    expect_equal(mergesrc, expected)
+
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")
+
+if (file.exists("Deleteme.sav"))
+    file.remove("Deleteme.sav")
