@@ -1936,11 +1936,9 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
     names(merged.data.set) <- merged.names
 
-    mergesrc.exists <- "mergesrc" %in% merged.names
-    existing.mergesrc <- if (mergesrc.exists) merged.data.set[["mergesrc"]] else NULL
     merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases,
                                               data.set.names = names(data.sets),
-                                              existing.mergesrc = existing.mergesrc)
+                                              existing.mergesrc = merged.data.set$"mergesrc")
     merged.data.set
 }
 
