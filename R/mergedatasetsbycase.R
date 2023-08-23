@@ -1938,8 +1938,8 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
 
     mergesrc.exists <- "mergesrc" %in% merged.names
     existing.mergesrc <- if (mergesrc.exists) merged.data.set[["mergesrc"]] else NULL
-    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases, 
-                                              data.set.names = names(data.sets), 
+    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases,
+                                              data.set.names = names(data.sets),
                                               existing.mergesrc = existing.mergesrc)
     merged.data.set
 }
@@ -2587,27 +2587,30 @@ variableLabelFromDataSets <- function(matched.names.row, data.sets,
 # each variable came from.
 mergeSrc <- function(n.data.set.cases, data.set.names, existing.mergesrc = NULL)
 {
-    if (!is.null(existing.mergesrc)) {
-        em.labels <- names(attr(existing.mergesrc, "labels"))
-        existing.mergesrc <- em.labels[existing.mergesrc]
-    }
 
     n.data.sets <- length(n.data.set.cases)
-    result <- rep(seq_len(n.data.sets), n.data.set.cases)
-    file.names <- data.set.names
-    result <- file.names[result]
-
-    if (!is.null(existing.mergesrc))
-        result[!is.na(existing.mergesrc)] <- existing.mergesrc[!is.na(existing.mergesrc)]
-    data.set.names <- unique(result)
-    n.data.sets <- length(data.set.names)
-    labels <- structure(seq_len(n.data.sets),
-                        .Names = data.set.names)
-    result <- labels[result]
-    attr(result, "label") <- "Source of cases"
-    attr(result, "labels") <- labels
-    class(result) <- c(class(result), "haven_labelled")
-    result
+    mergesrc <- rep(seq_len(n.data.sets), n.data.set.cases)
+    attr(mergesrc, "labels") <- structure(seq_len(n.data.sets),
+                                        .Names = data.set.names)
+    # Shift new mergesrc values and append to existing
+    # mergesrc variable.
+    if (!is.null(existing.mergesrc)) {
+        existing.labels <- attr(existing.mergesrc, "labels")
+        mergesrc[!is.na(existing.mergesrc)] <- NA
+        remaining.vals <- unique(mergesrc)
+        remaining.labels <- attr(mergesrc, "labels")
+        remaining.labels <- remaining.labels[remaining.labels %in% remaining.vals]
+        offset <- max(attr(existing.mergesrc, "labels")) - min(remaining.labels) + 1L
+        remaining.labels <- remaining.labels + offset
+        mergesrc <- mergesrc + offset
+        mergesrc[!is.na(existing.mergesrc)] <- existing.mergesrc[!is.na(existing.mergesrc)]
+        new.labels <- c(existing.labels, remaining.labels)
+        mergesrc <- as.integer(mergesrc)
+        attr(mergesrc, "labels") <- new.labels
+    }
+    attr(mergesrc, "label") <- "Source of cases"
+    class(mergesrc) <- c(class(mergesrc), "haven_labelled")
+    mergesrc
 }
 
 # Return a list of names of variables in each data set omitted from the merged

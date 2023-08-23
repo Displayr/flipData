@@ -1298,14 +1298,14 @@ test_that("DS-4307: Don't create multiple mergesrc variables on subsequent merge
 
     # Reverse order
     merged.twice <- MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola3.sav"),
-                                                            "Combined data set.sav"),
+                                                           "Combined data set.sav"),
                                         include.merged.data.set.in.output = TRUE,
                                         merged.data.set.name = "Deleteme.sav")
     mergesrc <- merged.twice[["merged.data.set"]][["mergesrc"]]
-    expected <- structure(rep(1:3, c(327, 327, 327)),
-                    "class" = c("integer", "haven_labelled"),
-                    "labels" = setNames(1:3, c("cola3.sav", "cola1.sav", "cola2.sav")),
-                    "label" = "Source of cases")
+    expected <- structure(rep(c(3,1,2), c(327, 327, 327)),
+                          "class" = c("integer", "haven_labelled"),
+                          "labels" = setNames(1:3, c("cola1.sav", "cola2.sav", "cola3.sav")),
+                          "label" = "Source of cases")
     expect_equal(mergesrc, expected)
 
 })
