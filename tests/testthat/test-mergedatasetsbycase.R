@@ -1310,8 +1310,36 @@ test_that("DS-4307: Don't create multiple mergesrc variables on subsequent merge
 
 })
 
+test_that("DS-5306 Support when both data sets have meresrc variables", {
+    # Generate files with mergesrc variables "merged1.sav" and "merged2.sav"
+    MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola1.sav"),
+                                           findInstDirFile("cola2.sav")),
+                        merged.data.set.name = "merged1.sav",
+                        include.merged.data.set.in.output = TRUE)
+    MergeDataSetsByCase(data.set.names = c(findInstDirFile("cola3.sav"),
+                                           findInstDirFile("cola4.sav")),
+                        merged.data.set.name = "merged2.sav",
+                        include.merged.data.set.in.output = TRUE)
+    merged.twice <- MergeDataSetsByCase(data.set.names = c("merged1.sav",
+                                                           "merged2.sav"),
+                                        include.merged.data.set.in.output = TRUE,
+                                        merged.data.set.name = "Deleteme.sav")
+    mergesrc <- merged.twice[["merged.data.set"]][["mergesrc"]]
+    expected <- structure(rep(1:4, c(327, 327, 327, 327)),
+                          "class" = c("integer", "haven_labelled"),
+                          "labels" = setNames(1:3, c("cola1.sav", "cola2.sav", "cola3.sav", "cola4.sav")),
+                          "label" = "Source of cases")
+    expect_equal(mergesrc, expected)
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")
 
 if (file.exists("Deleteme.sav"))
     file.remove("Deleteme.sav")
+
+if (file.exists("merged1.sav"))
+    file.remove("merged1.sav")
+
+if (file.exists("merged2.sav"))
+    file.remove("merged2.sav")
