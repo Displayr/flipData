@@ -1936,9 +1936,16 @@ mergedDataSet <- function(data.sets, matched.names, merged.names,
     merged.data.set <- data.frame(merged.data.set, check.names = FALSE)
     names(merged.data.set) <- merged.names
 
-    merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases,
-                                              data.set.names = names(data.sets),
-                                              existing.mergesrc = merged.data.set$"mergesrc")
+    # Check whether we need to create a new mergesrc variable
+    sets.containing.mergesrc <- vapply(data.sets,
+                                       FUN = function (x) { !is.null(x[["mergesrc"]])},
+                                       FUN.VALUE = logical(1))
+    if (length(which(sets.containing.mergesrc)) < length(data.sets)) {
+        merged.data.set[["mergesrc"]] <- mergeSrc(n.data.set.cases,
+                                                  data.set.names = names(data.sets),
+                                                  existing.mergesrc = merged.data.set$"mergesrc")
+    }
+
     merged.data.set
 }
 
@@ -2585,7 +2592,6 @@ variableLabelFromDataSets <- function(matched.names.row, data.sets,
 # each variable came from.
 mergeSrc <- function(n.data.set.cases, data.set.names, existing.mergesrc = NULL)
 {
-
     n.data.sets <- length(n.data.set.cases)
     mergesrc <- rep(seq_len(n.data.sets), n.data.set.cases)
     attr(mergesrc, "labels") <- structure(seq_len(n.data.sets),
