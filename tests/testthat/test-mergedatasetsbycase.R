@@ -1325,10 +1325,16 @@ test_that("DS-5306 Support when both data sets have meresrc variables", {
                                         include.merged.data.set.in.output = TRUE,
                                         merged.data.set.name = "Deleteme.sav")
     mergesrc <- merged.twice[["merged.data.set"]][["mergesrc"]]
-    expected <- structure(rep(1:4, c(327, 327, 327, 327)),
-                          "class" = c("integer", "haven_labelled"),
-                          "labels" = setNames(1:3, c("cola1.sav", "cola2.sav", "cola3.sav", "cola4.sav")),
-                          "label" = "Source of cases")
+    expected <- structure(
+        rep(1:4, c(327, 327, 327, 327)),
+        class = c("integer", "haven_labelled"),
+        input.value.attributes.list = list(
+            c(1:2, NA, NA),
+            c(NA, NA, 1:2)
+        ),
+        labels = setNames(1:4, c("cola1.sav", "cola2.sav", "cola3.sav", "cola4.sav")),
+        label = "Source of cases"
+    )
     expect_equal(mergesrc, expected)
 })
 
