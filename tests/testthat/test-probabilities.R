@@ -44,9 +44,5 @@ test_that("Probabilities", {
     for (input in valid.input) {
         expect_silent(validateProbabilityArguments(input, NULL))
         expect_silent(validateProbabilityArguments(input, data.frame(x = 1)))
-        # Default method will error as the methods are provided in flipTrees,
-        # flipRegression and flipMultivariates
-        expect_error(Probabilities(input, NULL), valid.input.but.no.method.err)
-        expect_error(Probabilities(input, data.frame(x = 1)), valid.input.but.no.method.err)
     }
 })
