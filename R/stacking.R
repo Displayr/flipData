@@ -1195,10 +1195,8 @@ stackedVariableName <- function(group.ind, input.variable.names, taken.names)
     common.prefix <- trimws(getCommonPrefix(nm))
     common.suffix <- trimws(getCommonSuffix(nm))
     candidate <- trimws(paste0(common.prefix, common.suffix))
-    if (candidate != "")
-        candidate
-    else
-        "stacked_var"
+    if (candidate == "")
+        candidate <- "stacked_var"
 
     uniqueName(candidate, taken.names, "_")
 }
