@@ -715,6 +715,13 @@ test_that("DS-3781: identical variable labels", {
                  "Three words only")
 })
 
+test_that("DS-5351 Candidate variable names are non-empty", {
+    group.ind <- 3:4
+    input.variable.names <- c("foo", "var123", "var456", "bar", "baz")
+    taken.names <- NULL
+    expect_equal(stackedVariableName(group.ind, input.variable.names, taken.names), "stacked_var")
+})
+
 # Clean up stacked files
 if (file.exists("cola19 stacked.sav"))
     file.remove("cola19 stacked.sav")
