@@ -58,10 +58,12 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 createReadErrorHandler <- function(data.set.name)
 {
     function(e) {
-        if (grepl("Invalid file, or file has unsupported features", e$message)) {
-            stop(paste0("The data file '", data.set.name, "' could not be parsed. ",
-                        "The data file may be fixed by inserting it in a Displayr document, ",
-                        "exporting it as an SPSS file (.sav) via the Publish button, and then uploading it back to the cloud drive. "))
+        msg <- paste0("The data file '", data.set.name, "' could not be parsed. ",
+                      "The data file may be fixed by inserting it in a Displayr document, ",
+                      "exporting it as an SPSS file (.sav) via the Publish button, and then uploading it back to the cloud drive. ")
+        if (grepl("Invalid file, or file has unsupported features", e$message) ||
+            grepl("Unable to convert string to the requested encoding", e$message)) {
+            stop(msg)
         } else {
             stop(e$message)
         }
