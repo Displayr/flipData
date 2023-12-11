@@ -32,6 +32,8 @@
 #' @param include.merged.data.set.in.output A logical scalar which controls
 #'  whether to include the merged data set in the output object, which can be
 #'  used for diagnostic purposes in R.
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list of class MergeDataSetByVariable with the following elements:
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
@@ -71,7 +73,8 @@ MergeDataSetsByVariable <- function(data.set.names,
                                     include.or.omit.variables = rep("Include all variables except those manually omitted", length(data.set.names)),
                                     variables.to.include.or.omit = NULL,
                                     only.keep.cases.matched.to.all.data.sets = FALSE,
-                                    include.merged.data.set.in.output = FALSE)
+                                    include.merged.data.set.in.output = FALSE,
+                                    encoding = NULL)
 {
     # === Data dictionary ===
     # data.sets: A list of data frames, with each representing an input data set.
@@ -114,7 +117,7 @@ MergeDataSetsByVariable <- function(data.set.names,
     # merged.data.set: A data frame representing the merged data set.
 
     tryCatch({
-        data.sets <- readDataSets(data.set.names, 2)
+        data.sets <- readDataSets(data.set.names, 2, encoding)
         input.data.sets.metadata <- metadataFromDataSets(data.sets)
 
         matched.cases.matrix <- matchCases(input.data.sets.metadata, id.variables,

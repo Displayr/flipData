@@ -67,7 +67,8 @@
 #' @param min.value.label.match.percentage Numeric scalar of the minimum
 #'  percentage match for value labels to be considered the same when combining
 #'  value attributes from different variables.
-#'
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list with the following elements:
 #' \itemize{
 #'   \item \code{merged.data.set} If \code{include.merged.data.set.in.output},
@@ -131,10 +132,11 @@ MergeDataSetsByCase <- function(data.set.names,
                                 when.multiple.labels.for.one.value = "Create new values for the labels",
                                 use.names.and.labels.from = "First data set",
                                 data.sets.whose.variables.are.kept = seq_along(data.set.names),
-                                min.value.label.match.percentage = 90)
+                                min.value.label.match.percentage = 90,
+                                encoding = NULL)
 {
     tryCatch({
-        data.sets <- readDataSets(data.set.names, 2)
+        data.sets <- readDataSets(data.set.names, 2, encoding)
         data.sets <- removeDuplicateValues(data.sets)
         input.data.sets.metadata <- metadataFromDataSets(data.sets)
 

@@ -59,6 +59,8 @@
 #'   variable in the stacked data set.
 #' @param include.observation.variable Whether to include the \code{observation}
 #'   variable in the stacked data set.
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list with the following elements:
 #' \itemize{
 #'   \item \code{stacked.data.set.metadata} A list containing metadata on the
@@ -108,11 +110,12 @@ StackData <- function(input.data.set.name,
                       variables.to.include = NULL,
                       include.stacked.data.set.in.output = FALSE,
                       include.original.case.variable = TRUE,
-                      include.observation.variable = TRUE)
+                      include.observation.variable = TRUE,
+                      encoding = NULL)
 {
     tryCatch({
         # Load input data set as data frame
-        input.data.set <- readDataSets(input.data.set.name, 1)[[1]]
+        input.data.set <- readDataSets(input.data.set.name, 1, encoding)[[1]]
 
         # Create an object containing metadata on the input data set such as
         # variable names and labels which can be easily passed into function calls

@@ -167,3 +167,5 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
                    "Cannot save variables whose names are SPSS reserved keywords")
     expect_equal(z, c("A", "B", "WITH_r", "A_1", "B_1", "WITH_r_1"))
 })
+
+

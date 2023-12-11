@@ -3,10 +3,12 @@
 #'  data sets.
 #' @param min.data.sets The minimum number of data sets required. An error is
 #'  thrown if the number of data set names is below this number.
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list of data frames, with each representing a data set.
 #' @noRd
 #' @importFrom flipAPI IsDisplayrCloudDriveAvailable
-readDataSets <- function(data.set.names, min.data.sets = 1)
+readDataSets <- function(data.set.names, min.data.sets = 1, encoding = NULL)
 {
     data.set.names <- vapply(data.set.names, trimws, character(1),
                              USE.NAMES = FALSE)
@@ -20,38 +22,80 @@ readDataSets <- function(data.set.names, min.data.sets = 1)
     }
 
     if (IsDisplayrCloudDriveAvailable())
-        readDataSetsFromDisplayrCloudDrive(data.set.names)
+        readDataSetsFromDisplayrCloudDrive(data.set.names, encoding)
     else
-        readLocalDataSets(data.set.names)
+        readLocalDataSets(data.set.names, encoding = encoding)
 }
 
 #' @param data.set.paths A character vector of paths to local data files.
+#' @param parser The parser used to read the data file.
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list of data frames, with each representing a data set.
 #' @noRd
 #' @importFrom haven read_sav
 #' @importFrom flipU InterceptExceptions
-readLocalDataSets <- function(data.set.paths, parser = read_sav)
+readLocalDataSets <- function(data.set.paths, parser = read_sav,
+                              encoding = NULL)
 {
-    result <- lapply(data.set.paths, function(path) {
-        handler = createReadErrorHandler(path)
-        InterceptExceptions(parser(path), error.handler = handler)
+    result <- lapply(seq_len(data.set.names), function(i) {
+        enc <- if (is.null(encoding)) NULL else encoding[i]
+        readSingleLocalDataSet(data.set.names[i], parser, enc)
     })
     names(result) <- basename(data.set.paths)
     result
 }
 
+readSingleLocalDataSet <- function(path, parser, encoding)
+{
+    encodings <- c(encoding, 'UTF-8', 'ISO-8859-1')
+    handler <- createReadErrorHandler(path)
+    result <- NULL
+    for (enc in encodings) {
+        result <- InterceptExceptions(parser(path, encoding = enc), error.handler = handler))
+        if (!is.null(result)) {
+            break
+        }
+    }
+    if (is.null(result)) {
+        stop(paste0('There was a problem reading file ', path,
+                    '. Try specifying the encoding.'))
+    }
+    result
+}
+
 #' @param data.set.names A character vector of data set names in the Displayr
 #'  cloud drive.
+#' @param encoding A vector of the names of the data files encodings,
+#'  otherwise NULL.
 #' @return A list of data frames, with each representing a data set.
 #' @noRd
 #' @importFrom flipAPI QLoadData
-readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
+readDataSetsFromDisplayrCloudDrive <- function(data.set.names, encoding)
 {
-    result <- lapply(data.set.names, function(nm) {
-        handler = createReadErrorHandler(nm)
-        InterceptExceptions(QLoadData(nm), error.handler = handler)
+    result <- lapply(seq_len(data.set.names), function(i) {
+        enc <- if (is.null(encoding)) NULL else encoding[i]
+        readSingleDataSetFromDisplayrCloudDrive(data.set.names[i], enc)
     })
     names(result) <- data.set.names
+    result
+}
+
+readSingleDataSetFromDisplayrCloudDrive <- function(data.set.name, encoding = NULL)
+{
+    encodings <- c(encoding, 'UTF-8', 'ISO-8859-1')
+    handler <- createReadErrorHandler(nm)
+    result <- NULL
+    for (enc in encodings) {
+        result <- InterceptExceptions(QLoadData(nm, encoding = enc), error.handler = handler))
+        if (!is.null(result)) {
+            break
+        }
+    }
+    if (is.null(result)) {
+        stop(paste0('There was a problem reading file ', nm,
+                    '. Try specifying the encoding.'))
+    }
     result
 }
 
