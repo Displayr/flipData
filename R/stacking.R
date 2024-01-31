@@ -786,7 +786,8 @@ stackingSpecifiedByVariable <- function(manual.stacking,
             !isValueAttributesMergable(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
-                    "' has been ignored as it contains variables with mismatching types or value attributes.")
+                    "' has been ignored as it contains variables with mismatching types or value attributes. ",
+                   "Every value must have identical labels in each variable it appears in.")
             next
         }
 
