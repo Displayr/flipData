@@ -728,3 +728,21 @@ if (file.exists("cola19 stacked.sav"))
 
 if (file.exists("cola20 stacked.sav"))
     file.remove("cola20 stacked.sav")
+
+test_that("DS-4405: Stacking with duplicate labels",
+{
+    expect_equal(deduplicateValAttrNames(list(Dislike = 0, Dislike = 1, Hate = 2)),
+                 list("Dislike [Value: 0]" = 0, "Dislike [Value: 1]" = 1, Hate = 2))
+    StackData("~/../Downloads/Cola Tracking - bug data.sav",
+              manual.stacking = "q4*",
+              stack.with.common.labels = "Disabled",
+              stacked.data.set.name = "stack_duplabels.sav",
+              specify.by = "Variable")
+    ## no warning about duplicated labels
+    expect_silent(out.dat <- foreign::read.spss("stack_duplabels.sav"))
+    labels.expected <- c("Hate", "Dislike [Value: -1]", "Dislike [Value: 0]",
+                         "Like", "Love")
+    expect_equal(levels(out.dat[["q4"]]), labels.expected)
+    if (file.exists("stack_duplabels.sav"))
+        file.remove("stack_duplabels.sav")
+})
