@@ -715,6 +715,9 @@ permittedNA <- function(variable.names)
 # i.e., each string in manual.stacking describes the variables to be stacked
 # into one variable.
 # See unit tests for stackingSpecifiedByVariable in test-stacking.R
+#' @return matrix with one row per group of variables to be stacked. Number of columns
+#' is equal to the size of the largest group of variables, smaller groups will
+#' have NA values in their last columns
 stackingSpecifiedByVariable <- function(manual.stacking,
                                         input.data.set.metadata)
 {
@@ -786,8 +789,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
             !isValueAttributesMergable(v.val.attr[removeNA(group.ind)]))
         {
             warning("The manual stacking input '", input.text,
-                    "' has been ignored as it contains variables with mismatching types or value attributes. ",
-                   "Every value must have identical labels in each variable it appears in.")
+                    "' has been ignored as it contains variables with mismatching types or value attributes.")
             next
         }
 
@@ -963,12 +965,12 @@ isValueAttributesMergable <- function(v.val.attrs)
 
     # Check that there aren't multiple values per name
     unique.names <- unique(names(combined.val.attr))
-    for (nm in unique.names) {
-        vals <- unique(combined.val.attr[nm == names(combined.val.attr)])
-        if (length(vals) > 1) {
-            return(FALSE)
-        }
-    }
+#    for (nm in unique.names) {
+#        vals <- unique(combined.val.attr[nm == names(combined.val.attr)])
+#        if (length(vals) > 1) {
+#            return(FALSE)
+#        }
+#    }
 
     return(TRUE)
 }
@@ -1218,17 +1220,44 @@ stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.varia
         trimws(paste(common.prefix, common.suffix))
 }
 
-# Assume that value attributes are mergable (isValueAttributesMergable or
+# Assume that value attributes are mergeable (isValueAttributesMergable or
 # allValueAttributesIdentical has been run and returned TRUE)
 stackedValueAttributes <- function(group.ind, input.value.attributes)
 {
     v.val.attrs <- input.value.attributes[removeNA(group.ind)]
     combined.val.attrs <- do.call('c', v.val.attrs)
+
     names(combined.val.attrs) <- unlist(lapply(v.val.attrs,
-                                               function(v.val.attr) names(v.val.attr)),
+                                               function(v.val.attr)
+                                                   names(deduplicateValAttrNames(v.val.attr))),
                                         use.names = FALSE)
+
     is.dup <- duplicated(combined.val.attrs)
     sort(combined.val.attrs[!is.dup])
+}
+
+#' Deduplicates the names of a list of value attributes
+#' by appending the value in square brackets to the labels
+#' @examples
+#' stopifnot(deduplicateValAttrNames(list(Dislike = 0, Dislike = 1)) ==
+#'   list("Dislike [Value: 0]" = 0, "Dislike [Value: 1]" = 1))
+#' @noRd
+deduplicateValAttrNames <- function(var.value.attrs)
+{
+    combined.names <- names(var.value.attrs)
+    if (anyDuplicated(combined.names))
+    {
+        duplicated.idx <- duplicated(combined.names)
+        duplicated.idx <- names(var.value.attrs) %in%
+            names(var.value.attrs[duplicated.idx])
+        duplicated.attr <- var.value.attrs[duplicated.idx]
+        duplicated.attr.names <- paste0(names(duplicated.attr),
+                                         " [Value: ",
+                                         duplicated.attr,
+                                         "]")
+        names(var.value.attrs)[duplicated.idx] <- duplicated.attr.names
+    }
+    return(var.value.attrs)
 }
 
 # Common prefix from a character vector of names.
