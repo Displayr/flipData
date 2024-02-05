@@ -475,14 +475,18 @@ test_that("stackingSpecifiedByVariable", {
     names(val.attr.2) <- letters[1:3]
     v.val.attr.2 <- v.val.attr
     v.val.attr.2[[2]] <- val.attr.2
-    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
-                                                                  list(variable.names = v.names,
-                                                                       variable.types = v.types,
-                                                                       variable.value.attributes = v.val.attr.2)),
-                   paste0("The manual stacking input 'Q2_A-Q2_D' has been ",
-                          "ignored as it contains variables with mismatching ",
-                          "types or value attributes."))
-    expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
+    
+    ## DS-4405: No longer a warning when some labels have duplicate attr. names              {
+    expect_silent(
+        stacking.groups <- stackingSpecifiedByVariable(
+                               c("Q2_A-Q2_D", "Q3_*"),
+                               list(variable.names = v.names,
+                                    variable.types = v.types,
+                                    variable.value.attributes = v.val.attr.2)
+                           )
+    )
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA), dim = c(2L, 4L)))
 
     # Value attributes in different order
     v.val.attr.3 <- v.val.attr
@@ -679,7 +683,7 @@ test_that("isValueAttributesMergable", {
 
     val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
                       structure(4:6, .Names = c("A", "B", "C")))
-    expect_false(isValueAttributesMergable(val.attrs))
+    expect_true(isValueAttributesMergable(val.attrs))
 })
 
 test_that("stackedValueAttributes", {
