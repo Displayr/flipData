@@ -733,7 +733,7 @@ test_that("DS-4405: Stacking with duplicate labels",
 {
     expect_equal(deduplicateValAttrNames(list(Dislike = 0, Dislike = 1, Hate = 2)),
                  list("Dislike [Value: 0]" = 0, "Dislike [Value: 1]" = 1, Hate = 2))
-    input.file <- findInstDirFile("testdata/ColaTracking-bugdata.sav")
+    input.file <- findInstDirFile("ColaTracking-bugdata.sav")
     StackData(input.file,
               manual.stacking = "q4*",
               stack.with.common.labels = "Disabled",
