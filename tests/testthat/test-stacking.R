@@ -475,14 +475,18 @@ test_that("stackingSpecifiedByVariable", {
     names(val.attr.2) <- letters[1:3]
     v.val.attr.2 <- v.val.attr
     v.val.attr.2[[2]] <- val.attr.2
-    expect_warning(stacking.groups <- stackingSpecifiedByVariable(c("Q2_A-Q2_D", "Q3_*"),
-                                                                  list(variable.names = v.names,
-                                                                       variable.types = v.types,
-                                                                       variable.value.attributes = v.val.attr.2)),
-                   paste0("The manual stacking input 'Q2_A-Q2_D' has been ",
-                          "ignored as it contains variables with mismatching ",
-                          "types or value attributes."))
-    expect_equal(stacking.groups, structure(6:8, .Dim = c(1L, 3L)))
+    
+    ## DS-4405: No longer a warning when some labels have duplicate attr. names              {
+    expect_warning(
+        stacking.groups <- stackingSpecifiedByVariable(
+                               c("Q2_A-Q2_D", "Q3_*"),
+                               list(variable.names = v.names,
+                                    variable.types = v.types,
+                                    variable.value.attributes = v.val.attr.2)
+                           ),
+    "Identical labels are used for distinct values in the variables")
+    expect_equal(stacking.groups,
+                 structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA), dim = c(2L, 4L)))
 
     # Value attributes in different order
     v.val.attr.3 <- v.val.attr
@@ -667,19 +671,20 @@ test_that("parseVariableWildcard", {
 test_that("isValueAttributesMergable", {
     val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
                       structure(4:6, .Names = c("D", "E", "F")))
-    expect_true(isValueAttributesMergable(val.attrs))
+    expect_true(isValueAttributesMergable(val.attrs, ""))
 
     val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
                       structure(1:3, .Names = c("A", "B", "C")))
-    expect_true(isValueAttributesMergable(val.attrs))
+    expect_true(isValueAttributesMergable(val.attrs, ""))
 
     val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
                       structure(1:3, .Names = c("D", "E", "F")))
-    expect_false(isValueAttributesMergable(val.attrs))
+    expect_false(isValueAttributesMergable(val.attrs, ""))
 
     val.attrs <- list(structure(1:3, .Names = c("A", "B", "C")),
                       structure(4:6, .Names = c("A", "B", "C")))
-    expect_false(isValueAttributesMergable(val.attrs))
+    expect_true(expect_warning(isValueAttributesMergable(val.attrs, "q4*"),
+                    "Identical labels are used for distinct values in the variables q4*"))
 })
 
 test_that("stackedValueAttributes", {
@@ -728,3 +733,23 @@ if (file.exists("cola19 stacked.sav"))
 
 if (file.exists("cola20 stacked.sav"))
     file.remove("cola20 stacked.sav")
+
+test_that("DS-4405: Stacking with duplicate labels",
+{
+    expect_equal(deduplicateValAttrNames(list(Dislike = 0, Dislike = 1, Hate = 2)),
+                 list("Dislike [Value: 0]" = 0, "Dislike [Value: 1]" = 1, Hate = 2))
+    input.file <- findInstDirFile("ColaTracking-bugdata.sav")
+    expect_warning(StackData(input.file,
+              manual.stacking = "q4*",
+              stack.with.common.labels = "Disabled",
+              stacked.data.set.name = "stack_duplabels.sav",
+              specify.by = "Variable"),
+                   "Identical labels are used for distinct values in the variables")
+    ## no warning about duplicated labels
+    expect_silent(out.dat <- foreign::read.spss("stack_duplabels.sav"))
+    labels.expected <- c("Hate", "Dislike [Value: -1]", "Dislike [Value: 0]",
+                         "Like", "Love")
+    expect_equal(levels(out.dat[["q4"]]), labels.expected)
+    if (file.exists("stack_duplabels.sav"))
+        file.remove("stack_duplabels.sav")
+})
