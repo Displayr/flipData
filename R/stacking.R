@@ -786,7 +786,7 @@ stackingSpecifiedByVariable <- function(manual.stacking,
 
         # Check for mismatching variable types and value attributes
         if (!allIdentical(v.types[removeNA(group.ind)]) ||
-            !isValueAttributesMergable(v.val.attr[removeNA(group.ind)]))
+            !isValueAttributesMergable(v.val.attr[removeNA(group.ind)], input.text))
         {
             warning("The manual stacking input '", input.text,
                     "' has been ignored as it contains variables with mismatching types or value attributes. ",
@@ -934,12 +934,13 @@ stackingSpecifiedByObservation <- function(manual.stacking,
     for (i in seq_len(nrow(manual.stacking.groups)))
     {
         group.ind <- removeNA(manual.stacking.groups[i, ])
+        variable.names <- paste0(v.names[group.ind], collapse = ", ")
         if (!allIdentical(v.types[group.ind]) ||
-            !isValueAttributesMergable(v.val.attr[group.ind]))
+            !isValueAttributesMergable(v.val.attr[group.ind], variable.names))
         {
             warning("No manual stacking was conducted as the following variables to be stacked ",
                     "have mismatching types or value attributes: ",
-                    paste0(v.names[group.ind], collapse = ", "), ".")
+                    variable.names, ".")
             return(NULL)
         }
     }
@@ -948,7 +949,7 @@ stackingSpecifiedByObservation <- function(manual.stacking,
 
 # Value attributes are mergable if they are consistent with each other
 # (i.e. the value labels of their common values match).
-isValueAttributesMergable <- function(v.val.attrs)
+isValueAttributesMergable <- function(v.val.attrs, variable.names)
 {
     combined.val.attr <- do.call('c', v.val.attrs)
     names(combined.val.attr) <- unlist(lapply(v.val.attrs,
@@ -961,6 +962,22 @@ isValueAttributesMergable <- function(v.val.attrs)
         nms <- unique(names(combined.val.attr)[v == combined.val.attr])
         if (length(nms) > 1) {
             return(FALSE)
+        }
+    }
+
+    # Check that there aren't multiple values per name
+    unique.names <- unique(names(combined.val.attr))
+    for (nm in unique.names) {
+        vals <- unique(combined.val.attr[nm == names(combined.val.attr)])
+        if (length(vals) > 1) {
+            warning("Identical labels are used for distinct values in the variables ",
+                    variable.names, ". Please check that the values and labels are correct ",
+                    " for each variable. The labels will be made unique in the ",
+                    "output data file by appending the corresponding value to ",
+                    "each label. They can be edited via the object inspector ",
+                    "after importing the stacked data file.")
+
+            break
         }
     }
 
