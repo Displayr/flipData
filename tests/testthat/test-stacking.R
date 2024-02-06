@@ -483,7 +483,7 @@ test_that("stackingSpecifiedByVariable", {
                                list(variable.names = v.names,
                                     variable.types = v.types,
                                     variable.value.attributes = v.val.attr.2)
-                           )
+                           ),
     "Identical labels are used for distinct values in the variables")
     expect_equal(stacking.groups,
                  structure(c(2L, 6L, 3L, 7L, 4L, 8L, 5L, NA), dim = c(2L, 4L)))
