@@ -81,7 +81,7 @@ createReadErrorHandler <- function(data.set.name)
 {
     replacement.msg <- paste0("The data file '", data.set.name, "' could not be parsed. ",
                       "The data file may be fixed by inserting it in a Displayr document, ",
-                      "exporting it as an SPSS file (.sav) via the Publish button ",
+                      "exporting it as an SPSS file (.sav) via the Publish button, ",
                       "and then uploading it back to the cloud drive.")
     intercept.msgs <- c("Invalid file, or file has unsupported features",
                         "Unable to convert string to the requested encoding")
