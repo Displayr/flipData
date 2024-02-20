@@ -55,19 +55,37 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
     result
 }
 
+createExceptionHandler <- function(intercept.messages,
+                                   replacement.messages, warn = FALSE)
+{
+    if (length(replacement.messages) == 1 && length(intercept.messages) > 1)
+        replacement.messages <- rep(replacement.messages, length(intercept.messages))
+    condition.fun <- if (warn) warning else stop
+    function(e)
+    {
+        msg.found <- FALSE
+        for (i in seq_along(intercept.messages))
+        {
+            if (grepl(intercept.messages[i], e$message))
+            {
+                condition.fun(replacement.messages[i], call. = FALSE)
+                msg.found <- TRUE
+            }
+        }
+        if (!msg.found)
+            condition.fun(e$message, call. = FALSE)
+    }
+}
+
 createReadErrorHandler <- function(data.set.name)
 {
-    function(e) {
-        msg <- paste0("The data file '", data.set.name, "' could not be parsed. ",
+    replacement.msg <- paste0("The data file '", data.set.name, "' could not be parsed. ",
                       "The data file may be fixed by inserting it in a Displayr document, ",
-                      "exporting it as an SPSS file (.sav) via the Publish button, and then uploading it back to the cloud drive. ")
-        if (grepl("Invalid file, or file has unsupported features", e$message) ||
-            grepl("Unable to convert string to the requested encoding", e$message)) {
-            stop(msg)
-        } else {
-            stop(e$message)
-        }
-    }
+                      "exporting it as an SPSS file (.sav) via the Publish button, ",
+                      "and then uploading it back to the cloud drive.")
+    intercept.msgs <- c("Invalid file, or file has unsupported features",
+                        "Unable to convert string to the requested encoding")
+    createExceptionHandler(intercept.msgs, replacement.msg, warn = FALSE)
 }
 
 #' @param data.set A data frame containing the data set to write.
@@ -81,17 +99,23 @@ createReadErrorHandler <- function(data.set.name)
 writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
     if (is.saved.to.cloud)
+    {
+        warn.msg <- paste0("The data file ", data.set.name,
+                           " has been compressed into ", file_path_sans_ext(data.set.name),
+                           ".zip on the Cloud Drive as it is too large. ",
+                           "It needs to be downloaded, unzipped and re-uploaded to be ",
+                           "used in a Displayr document.")
+        error.msg <- paste0("Some data files could not be parsed due to invalid characters ",
+                            "in some of the variable names. ",
+                            "These data files can be fixed by inserting them in a Displayr ",
+                            "document amd  exporting them as an SPSS file (.sav) to the ",
+                            " Cloud Drive via the Publish button.")
         InterceptExceptions(QSaveData(data.set, data.set.name, 2e9), # 2e9 bytes seems to be just below the API upload limit for the cloud drive
-            warning.handler = function(w) {
-                if (grepl("Object compressed into a zip file", w$message)) {
-                    warning("The data file ", data.set.name,
-                            " has been compressed into ", file_path_sans_ext(data.set.name),
-                            ".zip on the Cloud Drive as it is too large. ",
-                            "It needs to be downloaded, unzipped and re-uploaded to be used in a Displayr document.")
-                } else
-                    warning(w$message)
-            })
-    else
+            warning.handler = createExceptionHandler("Object compressed into a zip file",
+                                                     warn.msg, TRUE),
+            error.handler = createExceptionHandler("must have valid SPSS variable names",
+                                                   error.msg, FALSE))
+    }else
         write_sav(data.set, data.set.name)
 }
 
