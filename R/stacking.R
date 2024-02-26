@@ -1142,7 +1142,13 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             input.var <- input.data.set[[i]]
             val.attr <- attr(input.var, "labels", exact = TRUE)
             if (isIntegerValued(input.var))
+            {
+                # DS-5236: Keep NaN as NaN not NA to avoid haven mangling excluded/missing value attributes on save
+                nan <- is.nan(input.var)
                 input.var <- as.integer(input.var)
+                input.var[nan] <- NaN
+            }
+            
             v <- rep(input.var, each = n.stacked)
             attr(v, "is.stacked") <- FALSE
             attr(v, "is.manually.stacked") <- NA
