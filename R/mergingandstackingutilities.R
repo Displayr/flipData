@@ -354,13 +354,13 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 #' @noRd
 isIntegerValued <- function(x)
 {
-    if (is.numeric(x))
+    val.attr <- attr(x, "labels", exact = TRUE)
+    if (!any(is.nan(val.attr)) && is.numeric(x))
     {
         x.without.na <- removeNA(x)
         all(floor(x.without.na) == x.without.na &
             !is.infinite(x.without.na))
-    }
-    else
+    }else
         FALSE
 }
 

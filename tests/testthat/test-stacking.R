@@ -753,3 +753,45 @@ test_that("DS-4405: Stacking with duplicate labels",
     if (file.exists("stack_duplabels.sav"))
         file.remove("stack_duplabels.sav")
 })
+
+test_that("DS-5236: Stacking with missing data (NaN value attr.) stays NaN in output",
+{
+    input.data <- structure(list(Q1 =
+                       structure(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, 4),
+                                 label = "I love cats",
+                                 format.spss = "F4.0",
+                                 labels = c(`Strongly disagree` = 1, Disagree = 2,
+                                            `Neither agree nor disagree` = 3,
+                                            Agree = 4, `Strongly agree` = 5),
+                                 class = c("haven_labelled", "vctrs_vctr", "double")),
+                   Q2 = structure(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, 4),
+                                                    label = "I love dogs",
+                                                    format.spss = "F4.0",
+                                                    labels = c(`Strongly disagree` = 1, Disagree = 2,
+                                                               `Neither agree nor disagree` = 3, Agree = 4,
+                                                               `Strongly agree` = 5),
+                                                    class = c("haven_labelled", "vctrs_vctr", "double")),
+                   Q3 = structure(c(4, 4, 4, 3, 4, 4, 3, 3, 3, 2), label = "QA3",
+                                                 format.spss = "F4.0",
+                                                 labels = c(`Dog` = 1, Pig = 2,
+                                                            `Giraffe` = 3, Cow = 4,
+                                                            `Missing data` = NaN),
+                                                 class = c("haven_labelled", "vctrs_vctr", "double"))),
+                   row.names = c(NA, -10L),
+              class = c("tbl_df", "tbl", "data.frame"))
+    in.tfile <- tempfile(fileext = ".sav")
+    out.tfile <- tempfile(fileext = ".sav")
+    haven::write_sav(input.data, in.tfile)
+    args = list(in.tfile, stacked.data.set.name = file.path(out.tfile),
+                stack.with.common.labels = "Disabled", manual.common.labels = NULL,
+                specify.by = "Variable",
+                manual.stacking = c("Q1","Q2"),
+                variables.to.include = c("Q3"))
+
+    do.call(StackData, args)
+    expected.labels <- attr(input.data[[3]], "labels")
+    output.labels <- attr(haven::read_sav(out.tfile)[[3]], "labels")
+    expect_equal(expected.labels, output.labels)
+    unlink(in.tfile)
+    unlink(out.tfile)
+})
