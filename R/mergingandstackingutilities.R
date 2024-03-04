@@ -352,10 +352,11 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 #' isIntegerValued(c(1, 2, 3)) # TRUE
 #' isIntegerValued(c(1, 2.1, 3)) # FALSE
 #' @noRd
-isIntegerValued <- function(x)
+isIntegerValued <- function(x, val.attr = NULL)
 {
-    val.attr <- attr(x, "labels", exact = TRUE)
-    if (!any(is.nan(val.attr)) && is.numeric(x))
+    value.attrs.not.nan <- is.null(val.attr) || !any(is.nan(val.attr))
+    vals.not.nan <- !all(abs(result) <= .Machine$integer.max, na.rm = TRUE)
+    if (value.attrs.not.nan && vals.not.nan && is.numeric(x))
     {
         x.without.na <- removeNA(x)
         all(floor(x.without.na) == x.without.na &
