@@ -354,6 +354,8 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 #' @noRd
 isIntegerValued <- function(x, val.attr = NULL)
 {
+    if (is.null(val.attr))
+        val.attr <- attr(input.var, "labels", exact = TRUE)
     value.attrs.not.nan <- is.null(val.attr) || !any(is.nan(val.attr))
     vals.not.nan <- !all(abs(result) <= .Machine$integer.max, na.rm = TRUE)
     if (value.attrs.not.nan && vals.not.nan && is.numeric(x))
