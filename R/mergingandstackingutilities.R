@@ -359,7 +359,7 @@ isIntegerValued <- function(x, val.attr = NULL)
     
     if (is.null(val.attr))
         val.attr <- attr(x, "labels", exact = TRUE)
-    if (!is.null(val.attr) && !any(is.nan(val.attr)))
+    if (!is.null(val.attr) && any(is.nan(val.attr)))
         return(FALSE)
     
     
