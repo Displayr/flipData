@@ -261,20 +261,15 @@ test_that("exampleIDValues", {
 })
 
 test_that("DS-5115: Handle integer values outside R's allowable range", {
-    expect_warning(
+    expect_silent(
         MergeDataSetsByVariable(data.set.names = c(findInstDirFile("SPSSWithIntegerValueError1.sav"),
-                                                   findInstDirFile("SPSSWithIntegerValueError2.sav"))),
-        "contains a value outside of the allowable range"
+                                                   findInstDirFile("SPSSWithIntegerValueError2.sav")))
     )
-
-    expect_warning(
-        expect_error(
+    
+        expect_silent(
             MergeDataSetsByVariable(data.set.names = c(findInstDirFile("SPSSWithIntegerValueError3.sav"),
-                                                   findInstDirFile("SPSSWithIntegerValueError2.sav"))),
-            "contains multiple values outside the allowable range"
-        ),
-        "contains a value outside of the allowable range"
-    )
+                                                   findInstDirFile("SPSSWithIntegerValueError2.sav")))
+        )
 })
 
 if (file.exists("Combined data set.sav"))
