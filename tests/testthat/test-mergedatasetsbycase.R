@@ -1375,6 +1375,25 @@ test_that("DS-5236: Merging with missing data (NaN value attr.) stays NaN in out
   unlink(out.tfile)
 })
 
+test_that("DS-5115: Merging with missing data (NaN value attr.) stays NaN in output",
+{
+    out.file <- "temp_data_for_merge.sav"
+    in.file <- findInstDirFile("SPSSWithIntegerValueError1.sav")
+
+    expect_silent(do.call(MergeDataSetsByCase,
+                                    list(c(in.file, in.file), out.file)))
+    output.data <- haven::read_spss(out.file)
+    input.data <- haven::read_spss(in.file)
+    expected.labels <- attr(input.data[["badvar1"]], "labels")
+    output.labels <- attr(output.data[["badvar1"]], "labels")
+    expect_equal(expected.labels, output.labels)
+
+    expected.badvar <- c(input.data[["badvar1"]], input.data[["badvar1"]])
+    attr(expected.badvar, "format.spss") <- "F8.2"
+    expect_equal(expected.badvar, output.data[["badvar1"]])
+    unlink(out.file)
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")
 
