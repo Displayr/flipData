@@ -356,13 +356,15 @@ isIntegerValued <- function(x, val.attr = NULL)
 {
     if (!is.numeric(x))
         return(FALSE)
-    
+
     if (is.null(val.attr))
         val.attr <- attr(x, "labels", exact = TRUE)
-    if (!is.null(val.attr) && any(is.nan(val.attr)))
+    if (!is.null(val.attr) &&
+        (any(is.nan(val.attr)) ||
+         any(abs(val.attr) > .Machine$integer.max)))
         return(FALSE)
-    
-    
+
+
     x.without.na <- removeNA(x)
     all(floor(x.without.na) == x.without.na &
             !is.infinite(x.without.na) &
