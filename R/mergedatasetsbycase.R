@@ -2066,7 +2066,7 @@ combineAsCategoricalVariable <- function(var.list, data.sets,
         }
     }
 
-    if (isIntegerValued(result))
+    if (isIntegerValued(result, merged.val.attr))
     {
         result <- as.integer(result)
         nms <- names(merged.val.attr)
