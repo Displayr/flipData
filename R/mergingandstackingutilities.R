@@ -640,7 +640,7 @@ findInvalidIntegerValueColumns <- function(df)
         any(abs(x) > .Machine$integer.max, na.rm = TRUE)
     .invalidVariable <- function(variable)
         .invalidValues(variable) ||
-        (!is.null(val.attr <- attr(x, "labels", exact = TRUE)) &&
+        (!is.null(val.attr <- attr(variable, "labels", exact = TRUE)) &&
              .invalidValues(val.attr))
     vapply(df, .invalidVariable, logical(1L))
 }
