@@ -128,4 +128,3 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
                           calfun = calfun))
     }
 }
-

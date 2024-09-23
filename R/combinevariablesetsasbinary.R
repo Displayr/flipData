@@ -22,10 +22,10 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     variable.set.list <- list(...)
 
     # Check for duplicated labels which make life difficult when matching
-    duplicated.labels = lapply(variable.set.list, function(x) {
+    duplicated.labels <- lapply(variable.set.list, function(x) {
         question.type <- attr(x, "questiontype")
         if (is.factor(x)) {
-            question.type <- "PickOne" 
+            question.type <- "PickOne"
         }
 
         # Consider generalizing in future
@@ -46,11 +46,11 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
         colnames(x)[duplicated(colnames(x))]
     })
 
-    n.duplicates = vapply(duplicated.labels, FUN = length, FUN.VALUE = numeric(1))
+    n.duplicates <- vapply(duplicated.labels, FUN = length, FUN.VALUE = numeric(1))
 
     if (any(n.duplicates > 0)) {
-        dup.qs = names(duplicated.labels)[n.duplicates > 0]
-        dup.labels = duplicated.labels[n.duplicates > 0]
+        dup.qs <- names(duplicated.labels)[n.duplicates > 0]
+        dup.labels <- duplicated.labels[n.duplicates > 0]
         stop("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]])
     }
 
@@ -70,15 +70,17 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     }
 
     # Check matching of column labels in binary data
-    all.labels = lapply(binary.versions, FUN = colnames)
-    unique.labels = unique(unlist(all.labels))
-    common.labels = Reduce(intersect, all.labels)
+    all.labels <- lapply(binary.versions, FUN = colnames)
+    unique.labels <- unique(unlist(all.labels))
+    common.labels <- Reduce(intersect, all.labels)
 
     if (!setequal(unique.labels, common.labels)) {
-        binary.versions <- lapply(binary.versions,
+        binary.versions <- lapply(
+            binary.versions,
             FUN = fillInCategoriesWhenNotPresent,
             expected.columns = unique.labels,
-            pick.any.all.missing = unmatched.pick.any.are.missing)
+            pick.any.all.missing = unmatched.pick.any.are.missing
+        )
     }
 
     input.args <- binary.versions
@@ -213,13 +215,12 @@ fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.a
     missing.in.new.data = rep(TRUE, nrow(binary.data))
     if (attr(binary.data, "originalquestiontype") == "Pick One" || !pick.any.all.missing) {
         missing.in.new.data <- n.missing.per.case == ncol(binary.data)
-    } 
+    }
 
     new.data[missing.in.new.data, ] <- NA
 
     binary.data <- cbind(binary.data, new.data)
     binary.data <- binary.data[, expected.columns]
 
-    binary.data 
+    binary.data
 }
-
