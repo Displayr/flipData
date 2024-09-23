@@ -151,15 +151,35 @@ test_that("Error messages", {
     colnames(aided.2)[11] <- "Telstra"
     expect_error(CombineVariableSetsAsBinary(aided.2, unaided), "duplicate")
 
-    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
-    test.case.2 <- factor(c("A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+    test.case.1 <- factor(c("", "A", "B", "C", "A", "B", "C"))
+    test.case.2 <- factor(c("A", "B", "C", "A", "B", "C"), levels = c("", "A", "B", "C"))
     expect_error(CombineVariableSetsAsBinary(test.case.1, test.case.2), "cases")
 })
 
 test_that("Blank factor labels", {
-    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
-    test.case.2 <- factor(c("A", "A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+    test.case.1 <- factor(c("", "A", "B", "C", "A", "B", "C"))
+    test.case.2 <- factor(c("A", "A", "B", "C", "A", "B", "C"), levels = c("", "A", "B", "C"))
 
     expect_equal(colnames(CombineVariableSetsAsBinary(test.case.1, test.case.2)), c("", "A", "B", "C"))
 })
 
+test_that("Large variable sets aren't slow", {
+    x <- replicate(
+        2L,
+        factor(sample(c(NA, letters[1:3]), size = 1e4, replace = TRUE)),
+        simplify = FALSE
+    ) |>
+        as.data.frame() |>
+        structure(questiontype = "PickOneMulti")
+    y <- replicate(
+        2L,
+        factor(sample(c(NA, letters[1:3]), size = 1e4, replace = TRUE)),
+        simplify = FALSE
+    ) |>
+        as.data.frame() |>
+        structure(questiontype = "PickOneMulti")
+
+    (CombineVariableSetsAsBinary(x, y) |>
+         system.time())["elapsed"] |>
+        expect_lt(1)
+})
