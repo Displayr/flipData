@@ -7,7 +7,7 @@ parameters:
     default: ""
   remote-deps:
     type: string
-    default: ""
+    default: "cran/clarabel@master"
   plugins-branch:
     type: string
     default: ""
@@ -20,7 +20,7 @@ parameters:
     default: nightly
   save-snapshots:
     type: boolean
-    default: false  
+    default: false
 
 workflows:
   build-and-check-R-package:
