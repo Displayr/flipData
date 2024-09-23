@@ -9,11 +9,11 @@
 #' will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 #' be assigned a missing value.
 #' @param unmatched.pick.any.are.missing Boolean value. When one of the input variable sets
-#' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
-#' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
-#' missing values will only be assigned for cases where all existing columns are missing. Note that for 
-#' mutually-exclusive input variables, new columns will be created such that only cases with entirely 
-#' missing values are assigned a missing value. 
+#' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend
+#' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE},
+#' missing values will only be assigned for cases where all existing columns are missing. Note that for
+#' mutually-exclusive input variables, new columns will be created such that only cases with entirely
+#' missing values are assigned a missing value.
 #' @importFrom verbs Count AnyOf SumEachRow
 #' @importFrom flipTransformations AsNumeric
 #' @export
@@ -81,10 +81,18 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
             pick.any.all.missing = unmatched.pick.any.are.missing)
     }
 
-    input.args = binary.versions
-    input.args[["match.elements"]] <- "Yes"
+    input.args <- binary.versions
+    input.args[["match.elements"]] <- c(rows = "No", columns = "Yes")
     input.args[["elements.to.count"]] <- list(numeric = NA, categorical = NULL)
     input.args[["ignore.missing"]] <- TRUE
+
+    # Check rownames are identical
+    input.rownames <- lapply(variable.set.list, \(x) rownames(x) %||% seq_len(NROW(x)))
+    if (!identical(Reduce(intersect, input.rownames), input.rownames[[1]])) {
+        stop("Variable sets do not have the same cases, please select variable sets from the same ",
+             "data file or ensure the case numbers are aligned between variable sets before ",
+             "using this feature")
+    }
 
     # Count missing values for each case for each binary variable
     n.missing <- do.call(Count, input.args)
