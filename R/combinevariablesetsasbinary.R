@@ -9,11 +9,11 @@
 #' will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely missing will
 #' be assigned a missing value.
 #' @param unmatched.pick.any.are.missing Boolean value. When one of the input variable sets
-#' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
-#' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
-#' missing values will only be assigned for cases where all existing columns are missing. Note that for 
-#' mutually-exclusive input variables, new columns will be created such that only cases with entirely 
-#' missing values are assigned a missing value. 
+#' is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend
+#' entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE},
+#' missing values will only be assigned for cases where all existing columns are missing. Note that for
+#' mutually-exclusive input variables, new columns will be created such that only cases with entirely
+#' missing values are assigned a missing value.
 #' @importFrom verbs Count AnyOf SumEachRow
 #' @importFrom flipTransformations AsNumeric
 #' @export
@@ -22,10 +22,10 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     variable.set.list <- list(...)
 
     # Check for duplicated labels which make life difficult when matching
-    duplicated.labels = lapply(variable.set.list, function(x) {
+    duplicated.labels <- lapply(variable.set.list, function(x) {
         question.type <- attr(x, "questiontype")
         if (is.factor(x)) {
-            question.type <- "PickOne" 
+            question.type <- "PickOne"
         }
 
         # Consider generalizing in future
@@ -46,11 +46,11 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
         colnames(x)[duplicated(colnames(x))]
     })
 
-    n.duplicates = vapply(duplicated.labels, FUN = length, FUN.VALUE = numeric(1))
+    n.duplicates <- vapply(duplicated.labels, FUN = length, FUN.VALUE = numeric(1))
 
     if (any(n.duplicates > 0)) {
-        dup.qs = names(duplicated.labels)[n.duplicates > 0]
-        dup.labels = duplicated.labels[n.duplicates > 0]
+        dup.qs <- names(duplicated.labels)[n.duplicates > 0]
+        dup.labels <- duplicated.labels[n.duplicates > 0]
         stop("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]])
     }
 
@@ -70,21 +70,31 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     }
 
     # Check matching of column labels in binary data
-    all.labels = lapply(binary.versions, FUN = colnames)
-    unique.labels = unique(unlist(all.labels))
-    common.labels = Reduce(intersect, all.labels)
+    all.labels <- lapply(binary.versions, FUN = colnames)
+    unique.labels <- unique(unlist(all.labels))
+    common.labels <- Reduce(intersect, all.labels)
 
     if (!setequal(unique.labels, common.labels)) {
-        binary.versions <- lapply(binary.versions,
+        binary.versions <- lapply(
+            binary.versions,
             FUN = fillInCategoriesWhenNotPresent,
             expected.columns = unique.labels,
-            pick.any.all.missing = unmatched.pick.any.are.missing)
+            pick.any.all.missing = unmatched.pick.any.are.missing
+        )
     }
 
-    input.args = binary.versions
-    input.args[["match.elements"]] <- "Yes"
+    input.args <- binary.versions
+    input.args[["match.elements"]] <- c(rows = "No", columns = "Yes")
     input.args[["elements.to.count"]] <- list(numeric = NA, categorical = NULL)
     input.args[["ignore.missing"]] <- TRUE
+
+    # Check rownames are identical
+    input.rownames <- lapply(variable.set.list, \(x) rownames(x) %||% seq_len(NROW(x)))
+    if (!identical(Reduce(intersect, input.rownames), input.rownames[[1]])) {
+        stop("Variable sets do not have the same cases, please select variable sets from the same ",
+             "data file or ensure the case numbers are aligned between variable sets before ",
+             "using this feature")
+    }
 
     # Count missing values for each case for each binary variable
     n.missing <- do.call(Count, input.args)
@@ -205,13 +215,12 @@ fillInCategoriesWhenNotPresent <- function(binary.data, expected.columns, pick.a
     missing.in.new.data = rep(TRUE, nrow(binary.data))
     if (attr(binary.data, "originalquestiontype") == "Pick One" || !pick.any.all.missing) {
         missing.in.new.data <- n.missing.per.case == ncol(binary.data)
-    } 
+    }
 
     new.data[missing.in.new.data, ] <- NA
 
     binary.data <- cbind(binary.data, new.data)
     binary.data <- binary.data[, expected.columns]
 
-    binary.data 
+    binary.data
 }
-

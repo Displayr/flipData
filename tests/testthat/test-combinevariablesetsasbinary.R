@@ -7,92 +7,101 @@ data(phone, package = "flipExampleData")
 data(colas, package = "flipExampleData")
 
 
-phone.names <- c("AAPT", "New Tel", "One-tel", "Optus", "Orange", "Telstra", "Virgin", "Vodafone", "Other 1", "Other 2", "Don't know")
+phone.names <- c("AAPT", "New Tel", "One-tel", "Optus", "Orange", "Telstra",
+                 "Virgin", "Vodafone", "Other 1", "Other 2", "Don't know")
 unaided <- data.frame(phone[, paste0("Q5_", 1:11)])
 colnames(unaided) <- phone.names
 unaided[1, ] <- NA
-unaided = (unaided == "Yes") * 1
+unaided <- (unaided == "Yes") * 1
 attr(unaided, "questiontype") <- "PickAny"
 attr(unaided, "dataset") <- "phone"
 
-aided = data.frame(phone[, paste0("Q6_", 1:11)])
+aided <- data.frame(phone[, paste0("Q6_", 1:11)])
 colnames(aided) <- phone.names
-aided = (aided == "Yes") * 1
+aided <- (aided == "Yes") * 1
 attr(aided, "questiontype") <- "PickAny"
 attr(aided, "dataset") <- "phone"
 
-Q4 = as.data.frame(colas[, c("q4a", "q4b", "q4c", "q4d", "q4e", "q4f")])
-attr(Q4, "questiontype") <- "PickOneMulti"
-attr(Q4, "dataset") <- "colas"
+q4 <- as.data.frame(colas[, c("q4a", "q4b", "q4c", "q4d", "q4e", "q4f")])
+attr(q4, "questiontype") <- "PickOneMulti"
+attr(q4, "dataset") <- "colas"
 
-Q4.small = as.data.frame(colas[, c("q4a", "q4b", "q4c", "q4d")])
-attr(Q4.small, "questiontype") <- "PickOneMulti"
-attr(Q4.small, "dataset") <- "colas"
+q4.small <- as.data.frame(colas[, c("q4a", "q4b", "q4c", "q4d")])
+attr(q4.small, "questiontype") <- "PickOneMulti"
+attr(q4.small, "dataset") <- "colas"
 
-Q4.pepsi.light = colas[, "q4e"]
-attr(Q4.pepsi.light, "questiontype") <- "PickOne"
-attr(Q4.pepsi.light, "dataset") <- "colas"
+q4.pepsi.light <- colas[, "q4e"]
+attr(q4.pepsi.light, "questiontype") <- "PickOne"
+attr(q4.pepsi.light, "dataset") <- "colas"
 
-Q4.pepsi.max = colas[, "q4f"]
-attr(Q4.pepsi.max, "questiontype") <- "PickOne"
-attr(Q4.pepsi.max, "dataset") <- "colas"
+q4.pepsi.max <- colas[, "q4f"]
+attr(q4.pepsi.max, "questiontype") <- "PickOne"
+attr(q4.pepsi.max, "dataset") <- "colas"
 
-Q4.binary = CombineVariableSetsAsBinary(Q4)
-Q4.binary = cbind(Q4.binary, "NET" = rep(TRUE, nrow(Q4.binary)))
-attr(Q4.binary, "codeframe") <- list("Hate" = 1, "Dislike" = 2, "Neither like not dislike" = 3, "Love" = 4, "Like" = 5, "NET" = c(1,2,3,4,5))
-attr(Q4.binary, "questiontype") <- "PickAny"
-attr(Q4.binary, "dataset") <- "colas"
+q4.binary <- CombineVariableSetsAsBinary(q4)
+q4.binary <- cbind(q4.binary, "NET" = rep(TRUE, nrow(q4.binary)))
+attr(q4.binary, "codeframe") <- list(
+    "Hate" = 1, "Dislike" = 2, "Neither like not dislike" = 3, "Love" = 4, "Like" = 5,
+    "NET" = 1:5
+)
+attr(q4.binary, "questiontype") <- "PickAny"
+attr(q4.binary, "dataset") <- "colas"
 
-Q4.binary.small = CombineVariableSetsAsBinary(Q4)
-attr(Q4.binary.small, "questiontype") <- "PickAny"
-attr(Q4.binary.small, "dataset") <- "colas"
+q4.binary.small <- CombineVariableSetsAsBinary(q4)
+attr(q4.binary.small, "questiontype") <- "PickAny"
+attr(q4.binary.small, "dataset") <- "colas"
 
 test_that("Single PickOne", {
 
-    asnumeric = flipTransformations::AsNumeric(Q4.pepsi.light, binary = TRUE)
-    colnames(asnumeric) = levels(Q4.pepsi.light)
-    asnumeric = asnumeric == 1
+    asnumeric <- flipTransformations::AsNumeric(q4.pepsi.light, binary = TRUE)
+    colnames(asnumeric) <- levels(q4.pepsi.light)
+    asnumeric <- asnumeric == 1
 
-    expect_equal(CombineVariableSetsAsBinary(Q4.pepsi.light), asnumeric)
+    expect_equal(CombineVariableSetsAsBinary(q4.pepsi.light), asnumeric)
 
 })
 
 test_that("Two PickOnes", {
 
-    pepsi.light.numeric = flipTransformations::AsNumeric(Q4.pepsi.light, binary = TRUE)
-    colnames(pepsi.light.numeric) = levels(Q4.pepsi.light)
-    pepsi.max.numeric = flipTransformations::AsNumeric(Q4.pepsi.max, binary = TRUE)
-    colnames(pepsi.max.numeric) = levels(Q4.pepsi.max)
-    input.args = list(pepsi.light.numeric, pepsi.max.numeric)
+    pepsi.light.numeric <- flipTransformations::AsNumeric(q4.pepsi.light, binary = TRUE)
+    colnames(pepsi.light.numeric) <- levels(q4.pepsi.light)
+    pepsi.max.numeric <- flipTransformations::AsNumeric(q4.pepsi.max, binary = TRUE)
+    colnames(pepsi.max.numeric) <- levels(q4.pepsi.max)
+    input.args <- list(pepsi.light.numeric, pepsi.max.numeric)
     input.args[["match.elements"]] <- "Yes"
     input.args[["elements.to.count"]] <- list(numeric = 1, categorical = NULL)
     input.args[["ignore.missing"]] <- TRUE
-    pepsi.light.or.max = do.call(AnyOf, input.args)
+    pepsi.light.or.max <- do.call(AnyOf, input.args)
 
-    expect_equal(CombineVariableSetsAsBinary(Q4.pepsi.light, Q4.pepsi.max), pepsi.light.or.max)
+    expect_equal(CombineVariableSetsAsBinary(q4.pepsi.light, q4.pepsi.max), pepsi.light.or.max)
 })
 
 test_that("Many PickOnes are equivalent to a PickOneMulti", {
 
-    expect_equal(CombineVariableSetsAsBinary(Q4), 
-        CombineVariableSetsAsBinary(colas[, "q4a"], colas[, "q4b"], colas[, "q4c"], colas[, "q4d"], colas[, "q4e"], colas[, "q4f"]))
+    expect_equal(
+        CombineVariableSetsAsBinary(q4),
+        CombineVariableSetsAsBinary(colas$q4a, colas$q4b, colas$q4c, colas$q4d, colas$q4e, colas$q4f)
+    )
 
 })
 
 test_that("Multliple PickOneMulti where one is the subset of the other", {
-    expect_equal(CombineVariableSetsAsBinary(Q4, Q4.small), CombineVariableSetsAsBinary(Q4))
+    expect_equal(CombineVariableSetsAsBinary(q4, q4.small), CombineVariableSetsAsBinary(q4))
 })
 
 test_that("Combining PickOnes and Pick Any", {
 
-    expect_equal(Q4.binary[, -ncol(Q4.binary)], CombineVariableSetsAsBinary(Q4.binary.small, Q4.pepsi.light, Q4.pepsi.max), check.attributes = FALSE)
+    expect_equal(
+        q4.binary[, -ncol(q4.binary)],
+        CombineVariableSetsAsBinary(q4.binary.small, q4.pepsi.light, q4.pepsi.max), check.attributes = FALSE
+    )
 
 })
 
 test_that("Pick Any returns same data", {
 
-    expect_equal(CombineVariableSetsAsBinary(Q4.binary), Q4.binary[, -ncol(Q4.binary)], check.attributes = FALSE)
-    expect_equal(CombineVariableSetsAsBinary(Q4.binary, Q4.binary), Q4.binary[, -ncol(Q4.binary)], check.attributes = FALSE)
+    expect_equal(CombineVariableSetsAsBinary(q4.binary), q4.binary[, -ncol(q4.binary)], check.attributes = FALSE)
+    expect_equal(CombineVariableSetsAsBinary(q4.binary, q4.binary), q4.binary[, -ncol(q4.binary)], check.attributes = FALSE)
 
 })
 
@@ -116,12 +125,12 @@ test_that("Filling in unmatched columns correctly", {
     expect_equal(fillInCategoriesWhenNotPresent(aided.2, colnames(aided.2)), aided.2)
     expect_true(all(is.na(fillInCategoriesWhenNotPresent(aided.2, c(colnames(aided.2), "Hello"))[, "Hello"])))
 
-    Q4.pepsi.light.2 <- Q4.pepsi.light
-    Q4.pepsi.light.2[c(1,2,3)] <- NA
-    Q4.pepsi.light.binary <- CombineVariableSetsAsBinary(Q4.pepsi.light.2)
-    attr(Q4.pepsi.light.binary, "originalquestiontype") <- "Pick One"
+    q4.pepsi.light.2 <- q4.pepsi.light
+    q4.pepsi.light.2[1:3] <- NA
+    q4.pepsi.light.binary <- CombineVariableSetsAsBinary(q4.pepsi.light.2)
+    attr(q4.pepsi.light.binary, "originalquestiontype") <- "Pick One"
 
-    expect_equal(which(is.na(fillInCategoriesWhenNotPresent(Q4.pepsi.light.binary, c(colnames(Q4.pepsi.light.binary), "Hello"))[, "Hello"])), c(1,2,3))
+    expect_equal(which(is.na(fillInCategoriesWhenNotPresent(q4.pepsi.light.binary, c(colnames(q4.pepsi.light.binary), "Hello"))[, "Hello"])), c(1,2,3))
 
 })
 
@@ -142,15 +151,35 @@ test_that("Error messages", {
     colnames(aided.2)[11] <- "Telstra"
     expect_error(CombineVariableSetsAsBinary(aided.2, unaided), "duplicate")
 
-    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
-    test.case.2 <- factor(c("A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+    test.case.1 <- factor(c("", "A", "B", "C", "A", "B", "C"))
+    test.case.2 <- factor(c("A", "B", "C", "A", "B", "C"), levels = c("", "A", "B", "C"))
     expect_error(CombineVariableSetsAsBinary(test.case.1, test.case.2), "cases")
 })
 
 test_that("Blank factor labels", {
-    test.case.1 <- factor(c("", "A", "B", "C","A", "B", "C"))
-    test.case.2 <- factor(c("A", "A", "B", "C","A", "B", "C"), levels = c("", "A", "B", "C"))
+    test.case.1 <- factor(c("", "A", "B", "C", "A", "B", "C"))
+    test.case.2 <- factor(c("A", "A", "B", "C", "A", "B", "C"), levels = c("", "A", "B", "C"))
 
     expect_equal(colnames(CombineVariableSetsAsBinary(test.case.1, test.case.2)), c("", "A", "B", "C"))
 })
 
+test_that("Large variable sets aren't slow", {
+    x <- replicate(
+        2L,
+        factor(sample(c(NA, letters[1:3]), size = 1e4, replace = TRUE)),
+        simplify = FALSE
+    ) |>
+        as.data.frame() |>
+        structure(questiontype = "PickOneMulti")
+    y <- replicate(
+        2L,
+        factor(sample(c(NA, letters[1:3]), size = 1e4, replace = TRUE)),
+        simplify = FALSE
+    ) |>
+        as.data.frame() |>
+        structure(questiontype = "PickOneMulti")
+
+    (CombineVariableSetsAsBinary(x, y) |>
+         system.time())["elapsed"] |>
+        expect_lt(1)
+})
