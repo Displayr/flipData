@@ -182,4 +182,37 @@ test_that("Large variable sets aren't slow", {
     (CombineVariableSetsAsBinary(x, y) |>
          system.time())["elapsed"] |>
         expect_lt(1)
+    # Rownames checking works
+    x.small <- x[1:10, ] |> structure(questiontype = "PickOneMulti")
+    y.small <- y[1:10, ] |> structure(questiontype = "PickOneMulti")
+    CombineVariableSetsAsBinary(x.small, y.small) |> expect_silent()
+    # Happy with single variables
+    single.var <- factor(sample(c(NA, letters[1:3]), size = 10, replace = TRUE)) |>
+        structure(questiontype = "PickOne")
+    CombineVariableSetsAsBinary(single.var, x.small) |> expect_silent()
+    # Check rownames with error if inconsistent
+    y.offset <- y[11:20, ] |> structure(questiontype = "PickOneMulti")
+    CombineVariableSetsAsBinary(x.small, y.offset) |>
+        expect_error(
+            paste0(
+                "The input variables do not have the same number of cases, ",
+                "please select variables from the same data set"
+            )
+        )
+    assign("productName", "Displayr", envir = .GlobalEnv)
+    on.exit(rm("productName", envir = .GlobalEnv))
+    CombineVariableSetsAsBinary(x.small, y.offset) |>
+        expect_error(
+            paste0(
+                "The input variables do not have the same number of cases, ",
+                "please select variables from the same data source"
+            )
+        )
+    CombineVariableSetsAsBinary(single.var, y.offset) |>
+        expect_error(
+            paste0(
+                "The input variables do not have the same number of cases, ",
+                "please select variables from the same data source"
+            )
+        )
 })

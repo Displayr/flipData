@@ -89,11 +89,14 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     input.args[["ignore.missing"]] <- TRUE
 
     # Check rownames are identical
-    input.rownames <- lapply(variable.set.list, \(x) rownames(x) %||% seq_len(NROW(x)))
-    if (!identical(Reduce(intersect, input.rownames), input.rownames[[1]])) {
-        stop("Variable sets do not have the same cases, please select variable sets from the same ",
-             "data file or ensure the case numbers are aligned between variable sets before ",
-             "using this feature")
+    input.rownames <- lapply(variable.set.list, \(x) rownames(x) %||% as.character(seq_len(NROW(x))))
+    if (!identical(Reduce(intersect, input.rownames), input.rownames[[1L]])) {
+        product <- get0("productName", envir = .GlobalEnv, ifnotfound = "Q")
+        data.naming <- if (product == "Displayr") "data source" else "data set"
+        stop("The input variables do not have the same number of cases, ",
+             "please select variables from the same ", data.naming, " ",
+             "or ensure the case numbers are aligned between variables before ",
+             "using this feature again.")
     }
 
     # Count missing values for each case for each binary variable
