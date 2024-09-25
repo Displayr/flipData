@@ -36,6 +36,8 @@ workflows:
           pre-steps:
             - run:
                 command: |
+                  # Forcibly remove rustup folder
+                  rm -rf /.rustup
                   # Install rustup
                   curl https://sh.rustup.rs -sSf | bash -s -- -y
                   # Source rustup into $PATH
