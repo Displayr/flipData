@@ -38,6 +38,8 @@ workflows:
                 command: |
                   # Install rustup
                   curl https://sh.rustup.rs -sSf | bash -s -- -y
+                  # Source rustup into $PATH
+                  . "$HOME/.cargo/env" 
                   # Install the current version of Rust toolchain.
                   rustup toolchain install stable
                   rustup default stable
