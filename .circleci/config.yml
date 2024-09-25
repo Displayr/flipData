@@ -40,9 +40,14 @@ workflows:
                   curl https://sh.rustup.rs -sSf | bash -s -- -y
                   # Source rustup into $PATH
                   . "$HOME/.cargo/env" 
+                  rustup show
+                  # Remove existing toolchain
+                  rustup toolchain uninstall nightly-2021-09-01
                   # Install the current version of Rust toolchain.
                   rustup toolchain install stable
+                  rustup show
                   rustup default stable
+                  rustup show
       - r-packages/deploy_package:
           executor: << pipeline.parameters.executor >>
           requires:
