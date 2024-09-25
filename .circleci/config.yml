@@ -36,6 +36,8 @@ workflows:
           pre-steps:
             - run:
                 command: |
+                  # Install rustup
+                  curl https://sh.rustup.rs -sSf | bash -s -- -y
                   # Install the current version of Rust toolchain.
                   rustup toolchain install stable
                   rustup default stable
