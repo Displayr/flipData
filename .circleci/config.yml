@@ -33,6 +33,9 @@ workflows:
           remote_deps: << pipeline.parameters.remote-deps >>
           separate_test_job: false
           save_snapshots: << pipeline.parameters.save-snapshots >>
+          pre-steps:
+            - run:
+                command: echo "install custom dependency"
       - r-packages/deploy_package:
           executor: << pipeline.parameters.executor >>
           requires:
