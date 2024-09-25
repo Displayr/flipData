@@ -1338,6 +1338,62 @@ test_that("DS-5306 Support when both data sets have meresrc variables", {
     expect_equal(mergesrc, expected)
 })
 
+test_that("DS-5236: Merging with missing data (NaN value attr.) stays NaN in output",
+{
+  input.data <- structure(list(Q1 =
+                                   structure(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, 4),
+                                             label = "I love cats",
+                                             format.spss = "F4.0",
+                                             labels = c(`Strongly disagree` = 1, Disagree = 2,
+                                                        `Neither agree nor disagree` = 3,
+                                                        Agree = 4, `Strongly agree` = 5),
+                                             class = c("haven_labelled", "vctrs_vctr", "double")),
+                               Q2 = structure(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, 4),
+                                              label = "I love dogs",
+                                              format.spss = "F4.0",
+                                              labels = c(`Strongly disagree` = 1, Disagree = 2,
+                                                         `Neither agree nor disagree` = 3, Agree = 4,
+                                                         `Strongly agree` = 5),
+                                              class = c("haven_labelled", "vctrs_vctr", "double")),
+                               Q3 = structure(c(4, 4, 4, 3, 4, 4, 3, 3, 3, 2), label = "QA3",
+                                              format.spss = "F4.0",
+                                              labels = c(`Dog` = 1, Pig = 2,
+                                                         `Giraffe` = 3, Cow = 4,
+                                                         `Missing data` = NaN),
+                                              class = c("haven_labelled", "vctrs_vctr", "double"))),
+                          row.names = c(NA, -10L),
+                          class = c("tbl_df", "tbl", "data.frame"))
+  in.tfile <- "temp_data_for_merge.sav"
+  out.tfile <- "temp_data_merged.sav"
+  haven::write_sav(input.data, in.tfile)
+
+  output <- do.call(MergeDataSetsByCase, list(c(in.tfile, in.tfile), out.tfile))
+  expected.labels <- attr(input.data[["Q3"]], "labels")
+  output.labels <- attr(haven::read_sav(out.tfile)[[3]], "labels")
+  expect_equal(expected.labels, output.labels)
+  unlink(in.tfile)
+  unlink(out.tfile)
+})
+
+test_that("DS-5115: Merging with missing data (NaN value attr.) stays NaN in output",
+{
+    out.file <- "temp_data_for_merge.sav"
+    in.file <- findInstDirFile("SPSSWithIntegerValueError1.sav")
+
+    expect_silent(do.call(MergeDataSetsByCase,
+                                    list(c(in.file, in.file), out.file)))
+    output.data <- haven::read_spss(out.file)
+    input.data <- haven::read_spss(in.file)
+    expected.labels <- attr(input.data[["badvar1"]], "labels")
+    output.labels <- attr(output.data[["badvar1"]], "labels")
+    expect_equal(expected.labels, output.labels)
+
+    expected.badvar <- c(input.data[["badvar1"]], input.data[["badvar1"]])
+    attr(expected.badvar, "format.spss") <- "F8.2"
+    expect_equal(expected.badvar, output.data[["badvar1"]])
+    unlink(out.file)
+})
+
 if (file.exists("Combined data set.sav"))
     file.remove("Combined data set.sav")
 
