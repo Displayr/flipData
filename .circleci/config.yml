@@ -35,7 +35,10 @@ workflows:
           save_snapshots: << pipeline.parameters.save-snapshots >>
           pre-steps:
             - run:
-                command: echo "install custom dependency"
+                command: |
+                  # Install the current version of Rust toolchain.
+                  rustup toolchain install stable
+                  rustup default stable
       - r-packages/deploy_package:
           executor: << pipeline.parameters.executor >>
           requires:
