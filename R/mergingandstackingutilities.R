@@ -98,6 +98,8 @@ createReadErrorHandler <- function(data.set.name)
 #' @importFrom tools file_path_sans_ext
 writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
 {
+    if (any(invalid.columns <- findInvalidIntegerValueColumns(data.set)))
+        data.set <- updateClassForLabelledIntegerVariables(data.set, invalid.columns)
     if (is.saved.to.cloud)
     {
         warn.msg <- paste0("The data file ", data.set.name,
@@ -352,16 +354,23 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 #' isIntegerValued(c(1, 2, 3)) # TRUE
 #' isIntegerValued(c(1, 2.1, 3)) # FALSE
 #' @noRd
-isIntegerValued <- function(x)
+isIntegerValued <- function(x, val.attr = NULL)
 {
-    val.attr <- attr(x, "labels", exact = TRUE)
-    if (!any(is.nan(val.attr)) && is.numeric(x))
-    {
-        x.without.na <- removeNA(x)
-        all(floor(x.without.na) == x.without.na &
-            !is.infinite(x.without.na))
-    }else
-        FALSE
+    if (!is.numeric(x))
+        return(FALSE)
+
+    if (is.null(val.attr))
+        val.attr <- attr(x, "labels", exact = TRUE)
+    if (!is.null(val.attr) &&
+        (any(is.nan(val.attr)) ||
+         any(abs(val.attr) > .Machine$integer.max)))
+        return(FALSE)
+
+
+    x.without.na <- removeNA(x)
+    all(floor(x.without.na) == x.without.na &
+            !is.infinite(x.without.na) &
+            abs(x.without.na) <= .Machine$integer.max)
 }
 
 #' @param data.set.name A character scalar of the user-input name for
@@ -616,4 +625,32 @@ throwInputDataSetsTooLargeError <- function() {
 throwCombinedDataSetTooLargeError <- function() {
     stop("The combined data set is too large to create. ",
          "Consider omitting variables from the combined data set.")
+}
+
+#' Checks each labelled integer variable in a data.frame for integer values
+#' greater than .Machine$integer.max (including in the value attributes)
+#' @param df A data.frame containing haven::labelled and vctrs variables
+#' @return a logical vector for each
+#' @noRd
+findInvalidIntegerValueColumns <- function(df)
+{
+    n.col <- ncol(df)
+    invalid.columns <- logical(n.col)
+    .invalidValues <- function(x)
+        any(abs(x) > .Machine$integer.max, na.rm = TRUE)
+    .invalidVariable <- function(variable)
+        .invalidValues(variable) ||
+        (!is.null(val.attr <- attr(variable, "labels", exact = TRUE)) &&
+             .invalidValues(val.attr))
+    vapply(df, .invalidVariable, logical(1L))
+}
+
+#' Updates the class of specified columns of a data.frame from integer to double
+#' so they may be saved by haven::write_sav
+#' @noRd
+updateClassForLabelledIntegerVariables <- function(data.set, col.idx)
+{
+    for (i in which(col.idx))
+        class(data.set[, col.idx])[class(data.set[, col.idx]) %in% "integer"] <- "double"
+    return(data.set)
 }
