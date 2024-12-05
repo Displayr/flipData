@@ -57,6 +57,7 @@
 #'     character; description of the data; see
 #'     \code{\link[flipFormat]{SampleDescription}} }
 #' @importFrom verbs Sum
+#' @importFrom flipU Stop
 #' @export
 EstimationData <- function(formula = NULL,
                            data = NULL,
@@ -134,7 +135,7 @@ EstimationData <- function(formula = NULL,
                    "Assign partial data to clusters" = RemoveCasesWithAnyNA(data.subset),
                    "Use partial data" = RemoveCasesWithAllNA(data.subset),
                    "Use partial data (pairwise correlations)" = RemoveCasesWithAllNA(data.subset),
-                   stop(paste("Unknown 'missing' method:", missing)))
+                   Stop(paste("Unknown 'missing' method:", missing)))
         data.for.estimation <- CopyAttributes(data.for.estimation, data.subset)
         if (missing == "Dummy variable adjustment")
         { # Dummy variable adjustment can be selected but sometimes not used
@@ -174,7 +175,7 @@ EstimationData <- function(formula = NULL,
     # Reporting.
     n.estimation <- Sum(estimation.sample, remove.missing = FALSE)
     if (error.if.insufficient.obs && n.estimation < length(variable.names))
-        stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
+        Stop(gettextf("There are fewer observations (%d)%s(%d)", n.estimation,
                       " than there are variables ", length(variable.names)))
     description <- SampleDescription(n.total, n.subset, n.estimation,
                                      Labels(subset), weighted, weight.label, missing, imputation.label, m,

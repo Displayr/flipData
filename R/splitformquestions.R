@@ -12,13 +12,14 @@
 #' @param include.grid.flag Whether to return a flag indicating which variables
 #'   come from Pick Any - Grid or Number - Grid questions.
 #' @export
+#' @importFrom flipU Stop
 SplitFormQuestions <- function(form.data, show.labels = TRUE,
                                include.grid.flag = FALSE)
 {
     .checkForDuplicateNames <- function(dat, new.name)
     {
         if (new.name %in% names(dat))
-            stop("The data cannot have two columns with same name: '",
+            Stop("The data cannot have two columns with same name: '",
                  new.name, "'. Modify the inputs to avoid this.")
     }
 
@@ -88,6 +89,7 @@ SplitFormQuestions <- function(form.data, show.labels = TRUE,
 #'     be used to show the error message.
 #' @importFrom verbs Sum
 #' @export
+#' @importFrom flipU Stop
 MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
                                           variable.labels,
                                           is.grid, variable.labels.source)
@@ -142,7 +144,7 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
         question.name <- ifelse(get0("productName", ifnotfound = "Q") == "Q",
                                      "question", "variable set")
         if (length(not.found) == 1)
-            stop("The following variable was specified in '",
+            Stop("The following variable was specified in '",
                  variable.labels.source, "' but could not be matched to ",
                 "those in the list of alternatives: ",
                 paste0("'", not.found, "'"),
@@ -152,7 +154,7 @@ MatchVariableLabelsToQuestion <- function(labels.from.mixed.input,
                 "the variables from the ", question.name,
                 " should be selected as alternatives instead.")
         else
-            stop("The following variables were specified in '",
+            Stop("The following variables were specified in '",
                  variable.labels.source, "' but could not be matched to ",
                  "those in the list of alternatives: ",
                  paste0(paste0("'", not.found, "'"), collapse = ", "),

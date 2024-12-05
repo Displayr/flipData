@@ -20,9 +20,10 @@ Probabilities <- function(object, newdata = NULL, ...)
 }
 
 #' @export
+#' @importFrom flipU Stop
 Probabilities.default <- function(object, newdata = NULL, ...)
 {
-    stop("object not supported")
+    Stop("object not supported")
 }
 
 throwErrorUnsupportedPredictionClass <- function(valid.classes)

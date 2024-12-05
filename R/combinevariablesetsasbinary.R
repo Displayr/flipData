@@ -16,6 +16,7 @@
 #' missing values are assigned a missing value.
 #' @importFrom verbs Count AnyOf SumEachRow
 #' @importFrom flipTransformations AsNumeric
+#' @importFrom flipU Stop
 #' @export
 CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unmatched.pick.any.are.missing = TRUE) {
 
@@ -30,7 +31,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
 
         # Consider generalizing in future
         if (is.null(question.type)) {
-            stop("This function should only be applied to variable sets in Displayr.")
+            Stop("This function should only be applied to variable sets in Displayr.")
         }
 
 
@@ -51,7 +52,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     if (any(n.duplicates > 0)) {
         dup.qs <- names(duplicated.labels)[n.duplicates > 0]
         dup.labels <- duplicated.labels[n.duplicates > 0]
-        stop("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]])
+        Stop("The input data contains duplicate labels and cannot be matched. Duplicated labels: " , dup.labels[[1]])
     }
 
     binary.versions <- lapply(variable.set.list, FUN = questionToBinary)
@@ -61,7 +62,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     n.cases <- vapply(binary.versions, FUN = NROW, FUN.VALUE = numeric(1))
 
     if (!all(n.cases == n.cases[1])) {
-        stop("The number of cases is not the same in all of the input data.")
+        Stop("The number of cases is not the same in all of the input data.")
     }
 
     # If only one variable set then just return it
@@ -93,7 +94,7 @@ CombineVariableSetsAsBinary <- function(..., compute.for.incomplete = TRUE, unma
     if (!identical(Reduce(intersect, input.rownames), input.rownames[[1L]])) {
         product <- get0("productName", envir = .GlobalEnv, ifnotfound = "Q")
         data.naming <- if (product == "Displayr") "data source" else "data set"
-        stop("The input variables do not have the same number of cases, ",
+        Stop("The input variables do not have the same number of cases, ",
              "please select variables from the same ", data.naming, " ",
              "or ensure the case numbers are aligned between variables before ",
              "using this feature again.")
@@ -136,6 +137,7 @@ flattenToSingleList <- function(input.list)
 
 # Convert Displayr variable sets to binary.
 # Factors are split out with one column per level
+#' @importFrom flipU Stop
 questionToBinary <- function(x) {
     question.type = attr(x, "questiontype")
 
@@ -151,7 +153,7 @@ questionToBinary <- function(x) {
 
     # Consider generalizing in future
     if (is.null(question.type)) {
-        stop("This function should only be applied to variable sets in Displayr.")
+        Stop("This function should only be applied to variable sets in Displayr.")
     }
 
     if (question.type %in% c("PickAny", "PickAnyCompact")) {
@@ -188,7 +190,7 @@ questionToBinary <- function(x) {
         return(binary.version)
     }
 
-    stop("Unsupported data type: ", question.type)
+    Stop("Unsupported data type: ", question.type)
 }
 
 # Function to expand the number of columns in the binary data
