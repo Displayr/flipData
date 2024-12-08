@@ -19,10 +19,10 @@ will have a missing vlaue. If \code{TRUE}, only cases whose data is entirely mis
 be assigned a missing value.}
 
 \item{unmatched.pick.any.are.missing}{Boolean value. When one of the input variable sets
-is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend 
-entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE}, 
-missing values will only be assigned for cases where all existing columns are missing. Note that for 
-mutually-exclusive input variables, new columns will be created such that only cases with entirely 
+is binary (Pick Any variable set) and additonal columns need to be added, the new column is fillend
+entirely with missing values when a value of \code{TRUE} is supplied. If set to \code{FALSE},
+missing values will only be assigned for cases where all existing columns are missing. Note that for
+mutually-exclusive input variables, new columns will be created such that only cases with entirely
 missing values are assigned a missing value.}
 }
 \description{
