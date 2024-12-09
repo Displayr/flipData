@@ -6,16 +6,17 @@
 #' @return A list of data frames, with each representing a data set.
 #' @noRd
 #' @importFrom flipAPI IsDisplayrCloudDriveAvailable
+#' @importFrom flipU Stop
 readDataSets <- function(data.set.names, min.data.sets = 1)
 {
     data.set.names <- vapply(data.set.names, trimws, character(1),
                              USE.NAMES = FALSE)
 
     if (length(data.set.names) < min.data.sets)
-        stop("At least ", min.data.sets, " data set(s) are required.")
+        Stop("At least ", min.data.sets, " data set(s) are required.")
 
     if (!all(grepl('.+\\.sav$', data.set.names, ignore.case = TRUE))) {
-        stop("An input data file was not an SPSS .sav data file. ",
+        Stop("An input data file was not an SPSS .sav data file. ",
              "Only SPSS .sav data files are accepted.")
     }
 
@@ -215,6 +216,7 @@ metadataFromDataSets <- function(data.sets)
 #' @return A character scalar being one of "Numeric", "Text", "Categorical",
 #'  "Date", "Date/Time", "Duration".
 #' @noRd
+#' @importFrom flipU Stop
 variableType <- function(variable)
 {
     if (is.null(variable))
@@ -237,7 +239,7 @@ variableType <- function(variable)
     else if (inherits(variable, "difftime"))
         DURATION.VARIABLE.TYPE
     else
-        stop("Variable type not recognised")
+        Stop("Variable type not recognised")
 }
 
 NUMERIC.VARIABLE.TYPE = "Numeric";
@@ -426,6 +428,7 @@ dataSetNameWithoutPath <- function(data.set.name.or.path)
 #' @return A character vector of names of variables in the range. If the range
 #'  could not be found and error.if.not.found is FALSE, NULL is returned.
 #' @noRd
+#' @importFrom flipU Stop
 variablesFromRange <- function(variable.names, range.start, range.end,
                                data.set.index, input.text,
                                error.if.not.found = TRUE)
@@ -448,7 +451,7 @@ variablesFromRange <- function(variable.names, range.start, range.end,
     }
 
     if (start.ind > end.ind)
-        stop("The start variable '", range.start,
+        Stop("The start variable '", range.start,
              "' appears after the end variable '", range.end,
              "' in the input data set ", data.set.index,
              " for the input range '", input.text, "'.")
@@ -459,6 +462,7 @@ variablesFromRange <- function(variable.names, range.start, range.end,
 #' @param data.set.index Index of data set in which variable was not found.
 #' @return Nothing.
 #' @noRd
+#' @importFrom flipU Stop
 throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
 {
     data.set.text <- if (is.null(data.set.index))
@@ -466,7 +470,7 @@ throwVariableNotFoundError <- function(var.name, data.set.index = NULL)
     else
         paste0("input data set ", data.set.index, ". ")
 
-    stop("The input variable '", var.name,
+    Stop("The input variable '", var.name,
          "' could not be found in ", data.set.text,
          "Ensure that the variable has been correctly specified.")
 }
@@ -512,6 +516,7 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
 #' @return Character vector containing the variable names that match the
 #'  wildcard pattern.
 #' @noRd
+#' @importFrom flipU Stop
 parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
                                             data.set.ind, error.if.not.found)
 {
@@ -523,7 +528,7 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
                       EscapeRegexSymbols(end.var.text), "$")
     is.match <- grepl(pattern, variable.names)
     if (error.if.not.found && !any(is.match))
-        stop("No variables were found in data set ", data.set.ind,
+        Stop("No variables were found in data set ", data.set.ind,
              " matching the wildcard input '", wildcard.text, "'.")
     variable.names[is.match]
 }
@@ -608,12 +613,14 @@ addSuffixFittingByteLimit <- function(string, suffix = "", byte.limit = 64) {
     new.string
 }
 
+#' @importFrom flipU Stop
 throwInputDataSetsTooLargeError <- function() {
-    stop("The input data sets are too large to process.",
+    Stop("The input data sets are too large to process.",
          "Consider reducing their size or only combining a subset of the data sets.")
 }
 
+#' @importFrom flipU Stop
 throwCombinedDataSetTooLargeError <- function() {
-    stop("The combined data set is too large to create. ",
+    Stop("The combined data set is too large to create. ",
          "Consider omitting variables from the combined data set.")
 }
