@@ -7,7 +7,7 @@ parameters:
     default: ""
   remote-deps:
     type: string
-    default: "Displayr/flipU@master"
+    default: "Displayr/flipU@rename_Stop"
   plugins-branch:
     type: string
     default: ""
@@ -36,13 +36,13 @@ workflows:
           pre-steps:
             - run:
                 command: |
-                  # Forcibly remove rustup folder. This avoids 'Invalid cross-device link (os error 18)' errors that seem related to Docker's execution environment - failures when moving rustup folders to /tmp/* paths. See: 
+                  # Forcibly remove rustup folder. This avoids 'Invalid cross-device link (os error 18)' errors that seem related to Docker's execution environment - failures when moving rustup folders to /tmp/* paths. See:
                   # https://app.circleci.com/pipelines/github/Displayr/flipData/367/workflows/7f20ec95-3031-4fef-a52a-14ac48d54b0b/jobs/673?invite=true#step-102-1945_205
                   rm -rf /.rustup
                   # Install rustup
                   curl https://sh.rustup.rs -sSf | bash -s -- -y
                   # Source rustup into $PATH
-                  . "$HOME/.cargo/env" 
+                  . "$HOME/.cargo/env"
                   rustup show
                   # Install the current version of Rust toolchain.
                   rustup toolchain install stable
