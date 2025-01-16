@@ -67,10 +67,10 @@ ErrorIfMissingDataFound <- function(data)
     data
 }
 
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 notAvailable <- function(unavailable.function.name)
 {
-    Stop(paste(unavailable.function.name,"is not available for this analysis. Please contact support if you believe this option should be available."))
+    StopUserError(paste(unavailable.function.name,"is not available for this analysis. Please contact support if you believe this option should be available."))
 }
 
 #' \code{NoData}
@@ -78,10 +78,10 @@ notAvailable <- function(unavailable.function.name)
 #'     available for use as the "Exclude cases with missing data" option was
 #'     selected.
 #' @export
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 NoData <- function()
 {
-    Stop("All observations contain some missing data, so an analysis is not ",
+    StopUserError("All observations contain some missing data, so an analysis is not ",
          "possible. Check to see if there are any 'missing' options that can ",
          "be used.")
 }
@@ -90,10 +90,10 @@ NoData <- function()
 #' @description Error thrown when missing values are present and the
 #'     "Error if missing data" option was selected.
 #' @export
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 MissingDataFail <- function()
 {
-    Stop("The data contains missing values. Change the 'missing' option to run the analysis.")
+    StopUserError("The data contains missing values. Change the 'missing' option to run the analysis.")
 }
 
 #' \code{MissingValuesByVariable}
@@ -117,7 +117,7 @@ MissingValuesByVariable <- function(data)
 #' @param n.total The total number of observations.
 #' @importFrom verbs Sum
 #' @export
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 CleanSubset <- function(subset, n.total)
 {
     new.subset <- NULL
@@ -137,7 +137,7 @@ CleanSubset <- function(subset, n.total)
         else
         {
             if (subset.length != n.total)
-                Stop("subset.length != n.total")
+                StopUserError("subset.length != n.total")
             subset[is.na(subset)] <- FALSE
             subset[is.na(subset)] <- FALSE
 
@@ -168,14 +168,14 @@ CleanWeights <- function(weights)
 #'
 #' @param data A \code{data.frame}.
 #' @export
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 ErrorIfInfinity <- function(data)
 {
     infinite.cols <- sapply(data, function(x) any(is.infinite(x)))
     if (any(infinite.cols))
     {
         infinite.vars <- paste(names(infinite.cols)[infinite.cols], collapse = ", ")
-        Stop("Variable(s) ", infinite.vars, " contain infinite values.",
+        StopUserError("Variable(s) ", infinite.vars, " contain infinite values.",
              " Either recode the infinities to finite values or set them as missing data.")
     }
 }
@@ -242,7 +242,7 @@ AddDummyVariablesForNAs <- function(data, outcome.name, checks = TRUE)
 }
 
 # original.data should be data.frame input with numeric and factor columns
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 remapDataFrame <- function(dataframe)
 {
     remapped.list <- lapply(dataframe, function(x) {
@@ -251,7 +251,7 @@ remapDataFrame <- function(dataframe)
         else if (is.factor(x))
             x[is.na(x)] <- levels(x)[1]
         else
-            Stop("Unexpected class when using dummy variable adjustment. ",
+            StopUserError("Unexpected class when using dummy variable adjustment. ",
                  "Supplied variable should be 'numeric' or 'factor', ",
                  "however suppled variable is ", sQuote(class(x)))
         return(x)

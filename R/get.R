@@ -5,9 +5,9 @@
 #' @param data A \code{\link{data.frame}}.
 #' @param auxiliary.data A \code{\link{data.frame}} containing additional variables to be used in imputation (if required).
 #' @return character.
-#' @importFrom flipU AllVariablesNames Stop
+#' @importFrom flipU AllVariablesNames StopUserError
 #' @importFrom flipTransformations ProcessQVariables
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 #' @export
 GetData <- function(formula, data, auxiliary.data)
 {
@@ -32,9 +32,9 @@ GetData <- function(formula, data, auxiliary.data)
         names(data) <- variable.names
     }
     else if (!is.data.frame(data))
-        Stop("'data' must be a 'data.frame'.")
+        StopUserError("'data' must be a 'data.frame'.")
     else if (!all(RemoveBackticks(variable.names) %in% colnames(data)))
-        Stop(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))],
+        StopUserError(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))],
                    "were specified in the formula but are not in the data."))
     else # Extracting the variables from the data.frame.
         data <- data[, RemoveBackticks(variable.names), drop = FALSE]
@@ -44,7 +44,7 @@ GetData <- function(formula, data, auxiliary.data)
         if (!is.data.frame(auxiliary.data))
             auxiliary.data <- data.frame(auxiliary.data)
         if(nrow(data) != nrow(auxiliary.data))
-            Stop(paste("'data' has", nrow(data), "rows, whereas 'auxiliary.data' has", nrow(auxiliary.data), "rows. They need to have the same number of rows."))
+            StopUserError(paste("'data' has", nrow(data), "rows, whereas 'auxiliary.data' has", nrow(auxiliary.data), "rows. They need to have the same number of rows."))
         matches <- match(names(auxiliary.data), names(data))
         matched <- !is.na(matches)
         if(!all(matched))
@@ -185,7 +185,7 @@ indexOfUnescapedCharacter <- function(s, char)
 #' @param row.names.to.remove A vector of the row labels to remove.
 #' @param column.names.to.remove A vector of the column labels to remove.
 #' @importFrom flipU RemoveAt
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 #' @export
 GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.names.to.remove = NULL)
 {
@@ -203,7 +203,7 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
         }
         else
         {
-            Stop("This analysis requires a two-dimensional table (i.e., a table with one set of row headings, one set of columns headings, and one statistic in each cell.")
+            StopUserError("This analysis requires a two-dimensional table (i.e., a table with one set of row headings, one set of columns headings, and one statistic in each cell.")
         }
     }
     if (is.null(dim.names))

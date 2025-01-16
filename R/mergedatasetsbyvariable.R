@@ -194,7 +194,7 @@ matchCases <- function(input.data.sets.metadata, id.variables,
 # See params for the function matchCases.
 #' @return Returns the matched.cases matrix, see data dictionary.
 #' @noRd
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
                                       data.sets,
                                       only.keep.cases.matched.to.all.data.sets)
@@ -218,7 +218,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
                                      merged.id.var.type)
 
         if (all(is.na(ids)))
-            Stop("The id variable '", id.var.names[i], "' from data set ", i,
+            StopUserError("The id variable '", id.var.names[i], "' from data set ", i,
                  " does not contain any non-missing IDs.")
         ids
     })
@@ -255,7 +255,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
 
         # Check that there are no IDs that are duplicated in more than one data set
         if (sum(id.frequency > 1) > 1)
-            Stop("The data sets cannot be combined by the specified ID variables as the ID '",
+            StopUserError("The data sets cannot be combined by the specified ID variables as the ID '",
                  unique.id, "' is duplicated in multiple data sets.")
 
         merged.id.variable <- c(merged.id.variable,
@@ -281,7 +281,7 @@ matchCasesWithIDVariables <- function(input.data.sets.metadata, id.variables,
     {
         is.incomplete.case <- rowSums(is.na(result)) > 0
         if (all(is.incomplete.case))
-            Stop("The combined data set has no cases as there are no IDs that appear in all data sets. ",
+            StopUserError("The combined data set has no cases as there are no IDs that appear in all data sets. ",
                  "Ensure that the ID variable names have been correctly specified.")
         result <- result[!is.incomplete.case, , drop = FALSE]
         merged.id.variable <- merged.id.variable[!is.incomplete.case]
@@ -366,14 +366,14 @@ convertIDVariableType <- function(ids, id.variable.type,
 #' @param input.data.sets.metadata See data dictionary.
 #' @return Returns the matched.cases matrix, see data dictionary.
 #' @noRd
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 matchCasesWithoutIDVariables <- function(input.data.sets.metadata)
 {
     n.data.sets <- input.data.sets.metadata$n.data.sets
     n.cases <- input.data.sets.metadata$n.cases
 
     if (!allIdentical(n.cases))
-        Stop("The data sets could not be combined without ID variables (side-by-side, no matching) as they have differing numbers of cases. ",
+        StopUserError("The data sets could not be combined without ID variables (side-by-side, no matching) as they have differing numbers of cases. ",
              "To combine them, ID variables need to be specified.")
 
     matrix(rep(seq_len(n.cases[1]), n.data.sets), ncol = n.data.sets)
@@ -435,7 +435,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
         }
 
         if (length(included.variable.names.list[[data.set.ind]]) == 0)
-            Stop("All variables in data set ", data.set.ind, "were specified to be omitted. ",
+            StopUserError("All variables in data set ", data.set.ind, "were specified to be omitted. ",
                  "Ensure that the variables to be omitted have been correctly specified.")
 
         included.variable.names.list[[data.set.ind]] <- orderVariablesUsingInputDataSet(included.variable.names.list[[data.set.ind]],
@@ -521,7 +521,7 @@ parseInputVariableTextForDataSet <- function(input.text,
         else # range of variables
         {
             if (grepl("\\*", t))
-                Stop("The input '", t,
+                StopUserError("The input '", t,
                      "' is invalid as wildcard characters are not supported for variable ranges.")
 
             range.start <- trimws(substr(t, 1, dash.ind - 1))
@@ -674,7 +674,7 @@ print.MergeDataSetByVariablePage <- function(x, ...)
     do.call(DataSetMergingByVariableWidget, args)
 }
 
-#' @importFrom flipU Stop
+#' @importFrom flipU StopUserError
 recodeOutOfBoundsIntegersIfNecessary <- function(merged.var, input.var) {
     merged.unique.vals <- unique(merged.var)
     merged.unique.vals <- removeNA(merged.unique.vals)
@@ -689,7 +689,7 @@ recodeOutOfBoundsIntegersIfNecessary <- function(merged.var, input.var) {
                     input.var = input.var))
     lab <- attr(input.var, "label", exact = TRUE)
     if (n.bad.vals > 1 ) {
-        Stop("Variable: '",
+        StopUserError("Variable: '",
              lab,
              "' contains multiple values outside the allowable range. ",
              "Values larger than 1,000,000,000 or smaller than -1,000,000,000 ",
