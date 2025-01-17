@@ -7,7 +7,7 @@ parameters:
     default: ""
   remote-deps:
     type: string
-    default: "Displayr/flipU@rename_Stop"
+    default: "Displayr/flipU@master"
   plugins-branch:
     type: string
     default: ""
