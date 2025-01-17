@@ -10,7 +10,7 @@ CheckForPositiveVariance <- function(x, variable.names = names(x))
     if (any(no.variation <- apply(x, 2, sd, na.rm = TRUE) == 0))
     {
         vars <- paste(variable.names[no.variation], collapse = ", ")
-        StopUserError(paste0("Some variables have no variation: ", vars))
+        StopForUserError(paste0("Some variables have no variation: ", vars))
     }
 }
 
@@ -33,7 +33,7 @@ CheckForLinearDependence <- function(x, variable.names = colnames(x), correlatio
     {
         # Creating a nice error message if the linear dependence is a function of having two perfectly correlated variables.
         CheckCorrelationMatrix(cor(x, use = "pairwise.complete.obs"), variable.names)
-        StopUserError("There is perfect multicollinearity in the data (i.e., the variables are linearly dependent).")
+        StopForUserError("There is perfect multicollinearity in the data (i.e., the variables are linearly dependent).")
     }
 }
 
@@ -42,17 +42,17 @@ CheckForLinearDependenceInCorrelations <- function(correlations, variable.names)
     cors <- correlations
     k <- nrow(cors)
     if (k != ncol(cors))
-        StopUserError("Matrix is not a correlation matrix.")
+        StopForUserError("Matrix is not a correlation matrix.")
     if (any(ONEs <- cors > .9999999999999))
     {
         rs <- matrix(variable.names, k, k)[ONEs]
         cs <- matrix(, k, k, byrow = TRUE)[ONEs]
         vars <- paste(paste0(rs, ":", cs), collapse = ", ")
-        StopUserError(paste0("Some variables are perfectly correlated: ",
+        StopForUserError(paste0("Some variables are perfectly correlated: ",
                     vars))
     }
     if (min(eigen(correlations)$values) < -1e-15)
-        StopUserError("There is perfect multicollinearity in the data (i.e., the variables are linearly dependent).")
+        StopForUserError("There is perfect multicollinearity in the data (i.e., the variables are linearly dependent).")
 }
 
 #' CheckCorrelationMatrix
@@ -66,7 +66,7 @@ CheckCorrelationMatrix <- function(correlations, variable.names = colnames(corre
     cors <- correlations
     k <- nrow(cors)
     if (k != ncol(cors))
-        StopUserError("Matrix is not a correlation matrix.")
+        StopForUserError("Matrix is not a correlation matrix.")
     cors[lower.tri(cors)] <- 0 # Avoiding duplicates.
     diag(cors) <- 0
     if (any(NAs <- is.na(cors)))
@@ -74,7 +74,7 @@ CheckCorrelationMatrix <- function(correlations, variable.names = colnames(corre
         rs <- matrix(variable.names, k, k)[NAs]
         cs <- matrix(variable.names, k, k, byrow = TRUE)[NAs]
         vars <- paste(paste0(rs, ":", cs), collapse = ", ")
-        StopUserError(paste0("Correlations cannot be computed. Perhaps this is due to variables having no variation, or, no overlapping data (i.e., there are some variables in the data where no respondents saw both variables.) This makes it impossible to compute correlations.: ",
+        StopForUserError(paste0("Correlations cannot be computed. Perhaps this is due to variables having no variation, or, no overlapping data (i.e., there are some variables in the data where no respondents saw both variables.) This makes it impossible to compute correlations.: ",
                     vars))
     }
 }
@@ -103,7 +103,7 @@ CheckForUniqueVariableNames <- function(formula)
     if (max.times > 1)
     {
         nm <- (names(n.times)[max.times == n.times])[1]
-        StopUserError(paste0("A variable may only appear once in a formula, but " , nm, " appears ", max.times, " times."))
+        StopForUserError(paste0("A variable may only appear once in a formula, but " , nm, " appears ", max.times, " times."))
     }
 }
 
@@ -125,7 +125,7 @@ CheckForUniqueVariableNames <- function(formula)
 CheckPredictionVariables <- function(object, newdata)
 {
     if (missing(newdata) || !(is.data.frame(newdata) && NROW(newdata) > 0))
-        StopUserError(sQuote("newdata"), " argument must be a data.frame ",
+        StopForUserError(sQuote("newdata"), " argument must be a data.frame ",
              "with at least one observation.")
     valid.classes <- c("CART", "MachineLearning", "Regression")
     if (!inherits(object, valid.classes))
@@ -160,7 +160,7 @@ CheckPredictionVariables <- function(object, newdata)
         return(newdata)
 
     if (!identical(setdiff(relevant.cols, names(newdata)), character(0)))
-        StopUserError("Attempting to predict based on fewer variables than those used to train the model.")
+        StopForUserError("Attempting to predict based on fewer variables than those used to train the model.")
 
     # Identify training factors
     train.levels <- lapply(droplevels(training), levels)

@@ -189,9 +189,9 @@ StackData <- function(input.data.set.name,
                 msg <- paste0(msg, " Also ensure that the common labels are ",
                               "appropriate: ",
                               paste0(unlist(common.labels.list), collapse = ", "), ".")
-            StopUserError(msg)
+            StopForUserError(msg)
         } else
-            StopUserError(e)
+            StopForUserError(e)
     })
 }
 
@@ -223,7 +223,7 @@ commonLabels <- function(manual.common.labels, stack.with.common.labels,
         return(NULL)
     }
     else
-        StopUserError("Input for stack.with.common.labels not recognised: ",
+        StopForUserError("Input for stack.with.common.labels not recognised: ",
              stack.with.common.labels)
 }
 

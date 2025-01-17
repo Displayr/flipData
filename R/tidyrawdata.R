@@ -39,7 +39,7 @@
 #' @importFrom flipTransformations ProcessQVariables AsNumeric
 #' @importFrom stats as.formula
 #' @export
-#' @importFrom flipU StopUserError
+#' @importFrom flipU StopForUserError
 TidyRawData <- function(data,
                         as.numeric = FALSE,
                         as.binary = FALSE,
@@ -53,7 +53,7 @@ TidyRawData <- function(data,
 {
 
     if (missing(data) || !length(data))
-        StopUserError("No data supplied")
+        StopForUserError("No data supplied")
     if (auto.correct.class)
         for (i in seq_along(data))
             data[[i]] <- AutoCoerceClass(data[[i]])
@@ -90,7 +90,7 @@ TidyRawData <- function(data,
         attr(subset, "description") <- if (!is.null(substitute(subset)))
                                            deparse(substitute(subset))  # else NULL
         if (length(subset) > 1 && length(subset) != nrow(data))
-            StopUserError("'subset' and 'data' are required to have the same number of observations. They do not")
+            StopForUserError("'subset' and 'data' are required to have the same number of observations. They do not")
     }
 
     ## Deal with weights
@@ -101,7 +101,7 @@ TidyRawData <- function(data,
             attr(weights, "name") <- deparse(substitute(weights))
         weights <- eval(substitute(weights), data, parent.frame())
         if (length(weights) != nrow(data))
-            StopUserError("'weights' and 'data' are required to have the same number of observations. They do not.")
+            StopForUserError("'weights' and 'data' are required to have the same number of observations. They do not.")
     }
     ## Filter and impute missing values in the data (if required)
     names.without.backticks <- names(data)
