@@ -653,7 +653,7 @@ maxOneToManyValueAttrProportion <- function(v.val.attrs)
 # each row contains a set of variables to be combined, with the columns
 # corresponding to the input data sets.
 # See unit tests in test-mergedatasetsbycase.R
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 parseVariablesToCombine <- function(variables.to.combine,
                                     input.data.sets.metadata)
 {
@@ -682,7 +682,7 @@ parseVariablesToCombine <- function(variables.to.combine,
         {
             duplicate.name <- names(names.table)[names.table > 1][1]
             duplicate.match.source <- variables.to.combine[date.set.vars.names == duplicate.name]
-            Stop("The variable '", duplicate.name, "' has been specified to be combined in multiple inputs: ",
+            StopForUserError("The variable '", duplicate.name, "' has been specified to be combined in multiple inputs: ",
                  paste0(paste0("'", duplicate.match.source, "'"), collapse = ", "),
                  ". Ensure that any of the variables to be combined are specified in at most one input.")
         }
@@ -740,7 +740,7 @@ parseVariablesToOmit <- function(variables.to.omit,
 # The matrix has the attribute is.data.set.specified which is a logical scalar
 # indicating if the data set was specified in the input.
 # See unit tests in test-mergedatasetsbycase.R
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 parseInputTextIntoVariableNamesMatrix <- function(input.text,
                                                   input.data.sets.metadata,
                                                   allow.wildcards,
@@ -751,7 +751,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
     is.data.set.specified <- FALSE
 
     if (!allow.wildcards && grepl("\\*", input.text))
-        Stop("The input '", input.text,
+        StopForUserError("The input '", input.text,
              "' could not be parsed as wildcard characters are not supported for '",
              input.purpose, "' inputs.")
 
@@ -792,7 +792,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
                     }
                 }
                 if (!is.variable.found)
-                    Stop("No variables matching the wildcard name '",
+                    StopForUserError("No variables matching the wildcard name '",
                          input.text,
                          "' could be found in any of the input data sets. ",
                          "Ensure that the wildcard name has been correctly specified.")
@@ -823,7 +823,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
     else # range of variables
     {
         if (grepl("\\*", input.text))
-            Stop("The input '", input.text,
+            StopForUserError("The input '", input.text,
                  "' is invalid as wildcard characters are not supported for variable ranges.")
 
         range.start <- trimws(substr(input.text, 1, dash.ind - 1))
@@ -849,7 +849,7 @@ parseInputTextIntoVariableNamesMatrix <- function(input.text,
                 }
             }
             if (!is.range.found)
-                Stop("The input range '", input.text,
+                StopForUserError("The input range '", input.text,
                      "' was not found in any of the input data sets. ",
                      "Ensure that the range has been correctly specified.")
         }
@@ -909,7 +909,7 @@ parseInputTextForInteractingVariables <- function(input.text,
     n.data.sets <- input.data.sets.metadata$n.data.sets
     split.text <- splitByComma(input.text, ignore.commas.in.parentheses = TRUE)
     if (length(split.text) == 0)
-        Stop("The input '", input.text, "' is invalid. It needs to specify ",
+        StopForUserError("The input '", input.text, "' is invalid. It needs to specify ",
              input.purpose, ".")
 
     result <- NULL
@@ -930,7 +930,7 @@ parseInputTextForInteractingVariables <- function(input.text,
         else
         {
             if (nrow(v.names.matrix) != nrow(result))
-                Stop("The input '", input.text,
+                StopForUserError("The input '", input.text,
                      "' contains variable ranges with differing numbers of variables. ",
                      "Ensure that the ranges have been correctly specified so that they all contain the same number of variables.")
 
@@ -945,7 +945,7 @@ parseInputTextForInteractingVariables <- function(input.text,
                         is.data.set.specified.vector[j] <- TRUE
                     }
                     else # !is.na(result[1, j]) && is.data.set.specified.vector[j]
-                        Stop("The input '", input.text,
+                        StopForUserError("The input '", input.text,
                              "' contains different variables which have been specified for data set ",
                              j, ". Each input for '", input.purpose,
                              "' may only specify at most one variable or variable range per data set.")
@@ -962,7 +962,7 @@ parseInputTextForInteractingVariables <- function(input.text,
                     }
                     else if (!is.data.set.specified.vector[j]) # && !is.na(result[1, j])
                     {
-                        Stop("The input '", input.text, "' for '",
+                        StopForUserError("The input '", input.text, "' for '",
                              input.purpose,
                              "' contains variables which are both present in data set ",
                              j, ". Each input may only specify at most one variable or variable range per data set. ",
@@ -976,7 +976,7 @@ parseInputTextForInteractingVariables <- function(input.text,
     }
 
     if (sum(!is.na(result[1, ])) == 1)
-        Stop("The input '", input.text, "' for '", input.purpose,
+        StopForUserError("The input '", input.text, "' for '", input.purpose,
              "' only specifies variables from one data set. ",
              "It needs to specify variables from two or more data sets.")
 
@@ -986,7 +986,7 @@ parseInputTextForInteractingVariables <- function(input.text,
 
 # Parse data set indices from a variable name with data set indices appended,
 # e.g. "Q2(3,4)" becomes c(3,4).
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 parseDataSetIndices <- function(input.text, n.data.sets)
 {
     if (grepl("\\(.+\\)$", input.text))
@@ -998,19 +998,19 @@ parseDataSetIndices <- function(input.text, n.data.sets)
                                                     end.ind), ",")[[1]])
         data.set.ind <- suppressWarnings(as.integer(data.set.ind.text))
         if (any(is.na(data.set.ind)))
-            Stop("The data set indices in the input '", input.text,
+            StopForUserError("The data set indices in the input '", input.text,
                  "' could not be parsed. ",
                  "They need to be numbers corresponding to the data sets, e.g., 'Q2(3)'.")
 
         if (any(data.set.ind < 1) || any(data.set.ind > n.data.sets))
         {
             if (length(data.set.ind) == 1)
-                Stop("The data set index in the input '", input.text,
+                StopForUserError("The data set index in the input '", input.text,
                      "' is out of range. ",
                      "Data set indices must be between 1 and the number of input data sets (",
                      n.data.sets, ").")
             else
-                Stop("One or more of the data set indices in the input '",
+                StopForUserError("One or more of the data set indices in the input '",
                      input.text, "' are out of range. ",
                      "Data set indices must be between 1 and the number of input data sets (",
                      n.data.sets, ").")
@@ -1048,7 +1048,7 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
         if (length(data.set.ind.end) > 0)
         {
             if (!setequal(data.set.ind.start, data.set.ind.end))
-                Stop("The following specified variable range contains two different data set indices: '",
+                StopForUserError("The following specified variable range contains two different data set indices: '",
                      input.text.start, "-", input.text.end,
                      "'. The indices need refer to the same data sets.")
             return(data.set.ind.start)
@@ -1065,7 +1065,7 @@ parseDataSetIndicesForRange <- function(input.text.start, input.text.end, n.data
     }
 }
 
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 addToParsedNames <- function(parsed.names, input.text.without.index,
                              data.set.ind, source.text, input.text)
 {
@@ -1076,7 +1076,7 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
         parsed.names
     }
     else
-        Stop("The manually specified names '",
+        StopForUserError("The manually specified names '",
              source.text[data.set.ind], "' and '", input.text,
              "' were both found in data set ", data.set.ind,
              ". One of the names needs to be specified from a different data set by appending '(x)' to the variable name, ",
@@ -1085,7 +1085,7 @@ addToParsedNames <- function(parsed.names, input.text.without.index,
 
 # Check that variables to combine, variables to not combine, variables to keep
 # and variables to omit are all consistent with each other
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine,
                                       v.names.to.keep, v.names.to.omit,
                                       data.sets.whose.variables.are.kept,
@@ -1100,7 +1100,7 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
             row.to.not.combine <- v.names.to.not.combine[j, ]
             indices <- which(row.to.combine == row.to.not.combine)
             if (length(indices) > 1)
-                Stop("The variables ",
+                StopForUserError("The variables ",
                      paste0(paste0("'", row.to.combine[indices], "'"),
                             collapse = ", "),
                      " have been specified to be both combined and not combined. ",
@@ -1118,12 +1118,12 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
             v <- unique(v.names.to.combine[indices, i])
 
             if (length(v) == 1)
-                Stop("The variable ",
+                StopForUserError("The variable ",
                      paste0("'", v, "'"),
                      " has been specified to be both combined and omitted. ",
                      "Ensure that it is specified to be either combined or omitted.")
             else if (length(v) > 1)
-                Stop("The variable(s) ",
+                StopForUserError("The variable(s) ",
                      paste0(paste0("'", v, "'"), collapse = ", "),
                      " have been specified to be both combined and omitted. ",
                      "Ensure that they are specified to be either combined or omitted.")
@@ -1140,12 +1140,12 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
             v <- unique(v.names.to.keep[indices, i])
 
             if (length(v) == 1)
-                Stop("The variable ",
+                StopForUserError("The variable ",
                      paste0("'", v, "'"),
                      " has been specified to be both kept and omitted. ",
                      "Ensure that it is specified to be either kept or omitted.")
             else if (length(v) > 1)
-                Stop("The variable(s) ",
+                StopForUserError("The variable(s) ",
                      paste0(paste0("'", v, "'"), collapse = ", "),
                      " have been specified to be both kept and omitted. ",
                      "Ensure that they are specified to be either kept or omitted.")
@@ -1153,11 +1153,11 @@ checkMatchVariablesInputs <- function(v.names.to.combine, v.names.to.not.combine
     }
 
     if (length(data.sets.whose.variables.are.kept) == 0)
-        Stop("At least one data set needs to be specified in the input for the data sets whose variables are kept")
+        StopForUserError("At least one data set needs to be specified in the input for the data sets whose variables are kept")
 
     n.data.sets <- input.data.sets.metadata$n.data.sets
     if (any(!(data.sets.whose.variables.are.kept %in% seq_len(n.data.sets))))
-        Stop("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
+        StopForUserError("The input for 'data.sets.whose.variables.are.kept' contains invalid data set indices. ",
              "Ensure that it contains only indices from 1 to the number of input data sets.")
 }
 
@@ -1620,7 +1620,7 @@ isVariableCombinableIntoRow <- function(name.to.combine,
 
 # Checks that a variable's type is compatible with those of variables in a row
 # (representing variables to be merged)
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.row,
                                      input.data.sets.metadata, data.sets)
 {
@@ -1711,7 +1711,7 @@ isVariableTypeCompatible <- function(variable.name, data.set.ind, matched.names.
         return(TRUE)
     }
     else
-        Stop("Variable type not recognised")
+        StopForUserError("Variable type not recognised")
 }
 
 # See unit tests in test-mergedatasetsbycase.R
@@ -2380,7 +2380,7 @@ remapCategoricalVariable <- function(categorical.var, merged.val.attr, map)
 }
 
 # Combine variables in var.list into a (non-categorical) variable
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
 {
     unique.v.types <- unique(removeNA(v.types))
@@ -2431,7 +2431,7 @@ combineAsNonCategoricalVariable <- function(var.list, data.sets, v.types)
     else
     {
         # Don't expect this to ever occur
-        Stop("Unhandled variable types combination: ",
+        StopForUserError("Unhandled variable types combination: ",
              paste0(unique.v.types, collapse = ", "))
     }
 }

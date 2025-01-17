@@ -12,7 +12,7 @@
 #' @param force.to.n Force the sum of weights to equal the sample size.
 #' @return numeric A vector of weights
 #' @export
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 WeightingDialog <- function(categorical.variables = NULL,
                       categorical.targets = NULL,
                       numeric.variables = NULL,
@@ -30,7 +30,7 @@ WeightingDialog <- function(categorical.variables = NULL,
     targets = list()
 
     if ((is.null(categorical.variables) || length(categorical.variables) == 0) && (is.null(numeric.variables) || length(numeric.variables) == 0)) {
-        Stop("Nothing to do! At least one categorical OR numeric variable required.")
+        StopForUserError("Nothing to do! At least one categorical OR numeric variable required.")
     }
 
     # Categorical inputs
@@ -90,11 +90,11 @@ WeightingDialog <- function(categorical.variables = NULL,
 #' @importFrom stats model.matrix weights terms.formula
 #' @importFrom CVXR Variable Minimize Problem entr solve
 #' @importFrom verbs Sum
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, input.weight, lower, upper, calfun)
 {
     if (lower == "" & upper == "" & !has.numerics & is.null(input.weight))
-        Stop("This should be processed via the existing Q algorithm and this code should not have been called.")
+        StopForUserError("This should be processed via the existing Q algorithm and this code should not have been called.")
     if (is.null(input.weight))
         input.weight <- rep(1, NROW(adjustment.variables))
     # Bounds

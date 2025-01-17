@@ -20,7 +20,7 @@
 #' to this input.weight as possible
 #' @return numeric A vector of weights
 #' @importFrom icarus calibration
-#' @importFrom flipU Stop
+#' @importFrom flipU StopForUserError
 #' @export
 Calibrate <- function(categorical.variables = NULL,
                       categorical.targets = NULL,
@@ -40,7 +40,7 @@ Calibrate <- function(categorical.variables = NULL,
     targets = list()
 
     if ((is.null(categorical.variables) || length(categorical.variables) == 0) && (is.null(numeric.variables) || length(numeric.variables) == 0)) {
-        Stop("Nothing to do! At least one categorical OR numeric variable required.")
+        StopForUserError("Nothing to do! At least one categorical OR numeric variable required.")
     }
 
     # Categorical inputs
@@ -86,7 +86,7 @@ Calibrate <- function(categorical.variables = NULL,
     # Working out if to rake
     raking = n.categorical == length(adjustment.variables) & !always.calibrate
     if (raking & min(sapply(targets, min)) == 0)
-        Stop("One of your targets is set to 0. To achieve this, remove this category from the target and instead apply a filter to the weight to remove the category (or, in the R CODE set always.calibrate = TRUE)")
+        StopForUserError("One of your targets is set to 0. To achieve this, remove this category from the target and instead apply a filter to the weight to remove the category (or, in the R CODE set always.calibrate = TRUE)")
 
     # Creating the table of margins/targets in the desired format
     marg = createMargins(targets, adjustment.variables, n.categorical, raking, package)
@@ -114,7 +114,7 @@ convertToDataFrame <- function(x)
     if (any(var.missing))
     {
         var.missing = paste(names(var.missing)[var.missing], collapse = ", ")
-        Stop("One or more of the adjustment variables contains missing values; you cannot have missing values in adjustment variables: ", var.missing)
+        StopForUserError("One or more of the adjustment variables contains missing values; you cannot have missing values in adjustment variables: ", var.missing)
     }
     x
 }
@@ -129,7 +129,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
         subset <- rep(TRUE, nrow(adjustment.variables))
     n.categorical = length(adjustment.variables)
     if (n.categorical != length(categorical.targets)) {
-        Stop("The number of categorical adjustment variables needs to be the same as the number of sets of targets (it isn't)")
+        StopForUserError("The number of categorical adjustment variables needs to be the same as the number of sets of targets (it isn't)")
     }
     for (i in 1 : n.categorical)
     {
@@ -143,21 +143,21 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
         if(any(idx <- is.na(targets[[i]])))
         {
             bad.inputs <- paste(paste(tgt[idx, 1], tgt[idx, 2], sep = " - "), collapse = ", ")
-            Stop("Invalid target values for ", varname, ": ", bad.inputs, ".")
+            StopForUserError("Invalid target values for ", varname, ": ", bad.inputs, ".")
         }
 
         if (any(missing.targets))
         {
             missing.cats = paste0(adj.unique[missing.targets], collapse = ", ")
             if (nchar(missing.cats) > 0)
-                Stop("No targets have been provided for ", varname, ": ", missing.cats)
+                StopForUserError("No targets have been provided for ", varname, ": ", missing.cats)
         }
         excess.targets = ! tgt[, 1] %in% adj.unique
         if (any(excess.targets))
         {
             excess.cats = paste0(tgt[excess.targets, 1], collapse = ", ")
             if (nchar(excess.cats) > 0)
-                Stop("Target category that does not appear in variable ", varname, ": ",
+                StopForUserError("Target category that does not appear in variable ", varname, ": ",
                      excess.cats, (if(is.null(subset)) "" else " (after applying filter/subset)"))
         }
         if ((sm = Sum(targets[[i]], remove.missing = FALSE)) != 1)
@@ -165,7 +165,7 @@ categoricalTargets <- function(adjustment.variables, categorical.targets, subset
             if (round(sm, 6) == 1)# Forcing to add up to 1 if difference likely due to rounding errors.
                 targets[[i]] = prop.table(targets[[i]])
             else
-                Stop("Targets for ", varname, " add up to ", sm, "; they need to add up to exactly 1.")
+                StopForUserError("Targets for ", varname, " add up to ", sm, "; they need to add up to exactly 1.")
         }
         # Reordering targets to match order of levels
         targets[[i]] = targets[[i]][adj.unique]
@@ -182,7 +182,7 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets, subse
         subset <- rep(TRUE, n)
     if (length(adjustment.variables) - n.categorical != length(numeric.targets))
     {
-        Stop("The number of numeric adjustment variables needs to be the same as the number of sets of targets (it isn't)")
+        StopForUserError("The number of numeric adjustment variables needs to be the same as the number of sets of targets (it isn't)")
     }
     n.numeric = length(adjustment.variables) - n.categorical
     for (i in 1:n.numeric)
@@ -194,13 +194,13 @@ numericTargets <- function(targets, adjustment.variables, numeric.targets, subse
         varname = names(adjustment.variables)[i.adjustment.variables]
         targets[[i.adjustment.variables]] = tgt = numeric.targets[i]
         if (is.na(tgt))
-            Stop("The target for ", varname, " is invalid.")
+            StopForUserError("The target for ", varname, " is invalid.")
         if (!is.numeric(numvar))
-            Stop(varname, " is not a numeric variable; numeric adjustment variables must be numeric.")
+            StopForUserError(varname, " is not a numeric variable; numeric adjustment variables must be numeric.")
         if (max(numvar) < tgt)
-            Stop("The target for ", varname, " of ", tgt, " is higher than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
+            StopForUserError("The target for ", varname, " of ", tgt, " is higher than the maximum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
         if (min(numvar) > tgt)
-            Stop("The target for ", varname, " of ", tgt, " is lower than the minimum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
+            StopForUserError("The target for ", varname, " of ", tgt, " is lower than the minimum value of the variable", (if(is.null(subset)) "" else " (after applying filter/subset)"))
     }
     targets
 }
@@ -395,7 +395,7 @@ checkSolverStatus <- function(solve.output)
     {
         status <- solve.output[["status"]]
         if (status == "solver_error" || status == "infeasible")
-            Stop("Calibration could not be performed for the given input data. ",
+            StopForUserError("Calibration could not be performed for the given input data. ",
                  "Please check that the supplied targets are appropriate for your data.")
     }
     return(invisible())

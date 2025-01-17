@@ -19,7 +19,7 @@ WeightedSurveyDesign <- function(data, weights)
 EffectiveSampleSize <- function(weights)
 {
     if (any(is.na(weights) | weights < 0 | !is.finite(weights)))
-        Stop("'weights' must be positive numbers.")
+        StopForUserError("'weights' must be positive numbers.")
     Sum(weights, remove.missing = FALSE)^2 / Sum(weights^2, remove.missing = FALSE)
 }
 
@@ -45,4 +45,3 @@ CalibrateWeight <- function(weights, strata = NULL)
     }
     result
 }
-
