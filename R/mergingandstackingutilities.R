@@ -383,7 +383,7 @@ correctDataSetName <- function(data.set.name, default.data.set.name)
     {
         result <- data.set.name
 
-        # Check for '<', '>', ':', '\"', '/', '\\', '|', '?', '*'
+        # Check for '<', '>', ':', '\"', '/', '|', '?', '*'
         if (grepl("[<>:\"/\\|\\?\\*]", result))
         {
             warning("The input data set name '", data.set.name
