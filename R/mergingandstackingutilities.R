@@ -383,12 +383,12 @@ correctDataSetName <- function(data.set.name, default.data.set.name)
     {
         result <- data.set.name
 
-        # Check for '<', '>', ':', '\"', '/', '\\', '|', '?', '*'
-        if (grepl("[<>:\"/\\\\\\|\\?\\*]", result))
+        # Check for '<', '>', ':', '\"', '/', '|', '?', '*'
+        if (grepl("[<>:\"/|?*]", result))
         {
             warning("The input data set name '", data.set.name
                     , "' contains invalid characters that have been removed.")
-            result <- gsub("[<>:\"/\\\\\\|\\?\\*]", "", result)
+            result <- gsub("[<>:\"/|?*]", "", result)
         }
 
         result <- trimws(result)
