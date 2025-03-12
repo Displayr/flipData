@@ -127,13 +127,19 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
     # Period at beginning
     bad.names <- c(".A", ".B", ".C")
     expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables names which begin with '.'")
+                   "Cannot save variables names which begin or end with '.'")
     expect_equal(z, c("A", "B", "C"))
 
     # Period at end
     bad.names <- c("A.", "B.", "C.")
     expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables names which end with '.'")
+                   "Cannot save variables names which begin or end with '.'")
+    expect_equal(z, c("A", "B", "C"))
+
+    # Multiple periods
+    bad.names <- c("..A...", "..B...", "..C...")
+    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
+                   "Cannot save variables names which begin or end with '.'")
     expect_equal(z, c("A", "B", "C"))
 
     # Restricted names
