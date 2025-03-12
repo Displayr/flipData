@@ -534,21 +534,7 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 }
 
 sanitizeSPSSVariableNames <- function(variable.names) {
-    # Can't begin with or end with a period
-    forbidden.period <- startsWith(variable.names, ".")
-    if (any(forbidden.period)) {
-        warning("Cannot save variables names which begin with '.'. Some variables have had the '.' removed from their names: ",
-                 paste0(variable.names[forbidden.period], collapse = ", "))
-        variable.names[forbidden.period] <- gsub("^\\.", "", variable.names[forbidden.period])
-    }
-    forbidden.period <- endsWith(variable.names, ".")
-    if (any(forbidden.period)) {
-        warning("Cannot save variables names which end with '.'. Some variables have had the '.' removed from their names: ",
-                paste0(variable.names[forbidden.period], collapse = ", "))
-        variable.names[forbidden.period] <- gsub("\\.$", "", variable.names[forbidden.period])
-    }
-
-    # SPSS variable names can't be reseved keywords
+    # SPSS variable names can't be reserved keywords
     reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
     forbidden.keywords <- variable.names %in% reserved.keywords
     if (any(forbidden.keywords)) {
@@ -565,6 +551,14 @@ sanitizeSPSSVariableNames <- function(variable.names) {
         variable.names[bad.length] <- vapply(variable.names[bad.length],
                                              FUN = addSuffixFittingByteLimit,
                                              FUN.VALUE = character(1))
+    }
+
+    # Can't begin with or end with a period
+    starts.or.ends.with.period <- startsWith(variable.names, ".") | endsWith(variable.names, ".")
+    if (any(starts.or.ends.with.period)) {
+        warning("Cannot save variables names which begin or end with '.'. Some variables have had '.' removed from their names: ",
+                paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[starts.or.ends.with.period] <- gsub("^\\.+", "", gsub("\\.+$", "", variable.names[starts.or.ends.with.period]))
     }
 
     # SPSS variable names must be unique
