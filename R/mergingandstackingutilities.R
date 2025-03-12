@@ -534,6 +534,32 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 }
 
 sanitizeSPSSVariableNames <- function(variable.names) {
+    variable.names <- trimPeriods(variable.names)
+    variable.names <- replaceReservedKeywords(variable.names)
+    variable.names <- truncateVariableNames(variable.names)
+
+    # Extra call to trimPeriods in case truncateVariableNames
+    # results in trailling periods
+    variable.names <- trimPeriods(variable.names)
+
+    variable.names <- deduplicateVariableNames(variable.names)
+    variable.names
+}
+
+trimPeriods <- function(variable.names)
+{
+    # Can't begin with or end with a period
+    starts.or.ends.with.period <- startsWith(variable.names, ".") | endsWith(variable.names, ".")
+    if (any(starts.or.ends.with.period)) {
+        warning("Cannot save variables names which begin or end with '.'. Some variables have had '.' removed from their names: ",
+                paste0(variable.names[forbidden.period], collapse = ", "))
+        variable.names[starts.or.ends.with.period] <- gsub("^\\.+", "", gsub("\\.+$", "", variable.names[starts.or.ends.with.period]))
+    }
+    variable.names
+}
+
+replaceReservedKeywords <- function(variable.names)
+{
     # SPSS variable names can't be reserved keywords
     reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
     forbidden.keywords <- variable.names %in% reserved.keywords
@@ -542,7 +568,11 @@ sanitizeSPSSVariableNames <- function(variable.names) {
                 paste0(variable.names[forbidden.keywords], collapse = ", "))
         variable.names[forbidden.keywords] <- paste0(variable.names[forbidden.keywords], "_r")
     }
+    variable.names
+}
 
+truncateVariableNames <- function(variable.names)
+{
     # SPSS variable names can't be longer than 64 bytes
     bad.length <- nchar(variable.names, type = "bytes") > 64
     if (any(bad.length)) {
@@ -552,15 +582,11 @@ sanitizeSPSSVariableNames <- function(variable.names) {
                                              FUN = addSuffixFittingByteLimit,
                                              FUN.VALUE = character(1))
     }
+    variable.names
+}
 
-    # Can't begin with or end with a period
-    starts.or.ends.with.period <- startsWith(variable.names, ".") | endsWith(variable.names, ".")
-    if (any(starts.or.ends.with.period)) {
-        warning("Cannot save variables names which begin or end with '.'. Some variables have had '.' removed from their names: ",
-                paste0(variable.names[forbidden.period], collapse = ", "))
-        variable.names[starts.or.ends.with.period] <- gsub("^\\.+", "", gsub("\\.+$", "", variable.names[starts.or.ends.with.period]))
-    }
-
+deduplicateVariableNames <- function(variable.names)
+{
     # SPSS variable names must be unique
     dupes <- duplicated(tolower(variable.names))
     if (any(dupes)) {
@@ -571,7 +597,6 @@ sanitizeSPSSVariableNames <- function(variable.names) {
                                             delimiter = "_")
         }
     }
-
     variable.names
 }
 
