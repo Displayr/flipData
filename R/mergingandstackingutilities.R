@@ -552,7 +552,7 @@ trimPeriods <- function(variable.names)
     starts.or.ends.with.period <- startsWith(variable.names, ".") | endsWith(variable.names, ".")
     if (any(starts.or.ends.with.period)) {
         warning("Cannot save variables names which begin or end with '.'. Some variables have had '.' removed from their names: ",
-                paste0(variable.names[forbidden.period], collapse = ", "))
+                paste0(variable.names[starts.or.ends.with.period], collapse = ", "))
         variable.names[starts.or.ends.with.period] <- gsub("^\\.+", "", gsub("\\.+$", "", variable.names[starts.or.ends.with.period]))
     }
     variable.names
