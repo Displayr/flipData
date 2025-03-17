@@ -106,11 +106,8 @@ writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
                            ".zip on the Cloud Drive as it is too large. ",
                            "It needs to be downloaded, unzipped and re-uploaded to be ",
                            "used in a Displayr document.")
-        error.msg <- paste0("Some data files could not be parsed due to invalid characters ",
-                            "in some of the variable names. ",
-                            "These data files can be fixed by inserting them in a Displayr ",
-                            "document amd  exporting them as an SPSS file (.sav) to the ",
-                            " Cloud Drive via the Publish button.")
+        error.msg <- paste0("The data file could not be saved due to invalid characters ",
+                            "in some of the variable names. Please contact support for assistance.")
         InterceptExceptions(QSaveData(data.set, data.set.name, 2e9), # 2e9 bytes seems to be just below the API upload limit for the cloud drive
             warning.handler = createExceptionHandler("Object compressed into a zip file",
                                                      warn.msg, TRUE),
