@@ -2,9 +2,15 @@ library(testthat)
 
 context("Tests for the R Code Weights Dialog in Displayr")
 
+findInstDirFile <- function(file)
+{
+    file.path(system.file("testdata", package = "flipData", mustWork = TRUE),
+              file)
+}
+
 weighted.table = function(weight, variable) { prop.table(tapply(weight, variable, sum)) }
 
-marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
+marriage = foreign::read.spss(findInstDirFile("Marriage.sav"), to.data.frame = TRUE)
 
 input.weight = marriage$weight
 
