@@ -2603,20 +2603,33 @@ mergeSrc <- function(n.data.set.cases, data.set.names, existing.mergesrc = NULL)
     mergesrc <- rep(seq_len(n.data.sets), n.data.set.cases)
     attr(mergesrc, "labels") <- structure(seq_len(n.data.sets),
                                         .Names = data.set.names)
-    # Shift new mergesrc values and append to existing
-    # mergesrc variable.
-    if (!is.null(existing.mergesrc)) {
-        existing.labels <- attr(existing.mergesrc, "labels")
-        mergesrc[!is.na(existing.mergesrc)] <- NA
+    existing.labels <- attr(existing.mergesrc, "labels")
+
+    # existing.mergesrc is the mergesrc variable created my merging the input
+    # data sets. It exists when an input data set contains a mergesrc because
+    # it was created from a previous data set merge.
+    # We incorporate existing.mergesrc into the mergesrc of this merge by
+    # reusing the labels from existing.mergesrc when they are not missing,
+    # and adding labels based on the input data set names when they are missing.
+    # Note that the "labels" attribute is a named integer vector whose values
+    # correspond to those in mergesrc, and whose names are the actual "labels".
+    if (!is.null(existing.mergesrc) && !is.null(existing.labels)) {
+        existing.mergesrc.indices <- !is.na(existing.mergesrc)
+        mergesrc[existing.mergesrc.indices] <- NA
+
+        # Determine the new labels
         remaining.vals <- unique(mergesrc)
         remaining.labels <- attr(mergesrc, "labels")
         remaining.labels <- remaining.labels[remaining.labels %in% remaining.vals]
-        offset <- max(attr(existing.mergesrc, "labels")) - min(remaining.labels) + 1L
+        offset <- max(existing.labels) - min(remaining.labels) + 1L
         remaining.labels <- remaining.labels + offset
-        mergesrc <- mergesrc + offset
-        mergesrc[!is.na(existing.mergesrc)] <- existing.mergesrc[!is.na(existing.mergesrc)]
         new.labels <- c(existing.labels, remaining.labels)
+
+        # Determine the values of mergesrc
+        mergesrc <- mergesrc + offset
+        mergesrc[existing.mergesrc.indices] <- existing.mergesrc[existing.mergesrc.indices]
         mergesrc <- as.integer(mergesrc)
+
         attr(mergesrc, "labels") <- new.labels
     }
     attr(mergesrc, "label") <- "Source of cases"
