@@ -2,9 +2,15 @@ library(testthat)
 
 context("Calibrate")
 
+findInstDirFile <- function(file)
+{
+    file.path(system.file("testdata", package = "flipData", mustWork = TRUE),
+              file)
+}
+
 weighted.table = function(weight, variable) { prop.table(tapply(weight, variable, sum)) }
 
-marriage = foreign::read.spss("https://docs.displayr.com/images/8/89/Marriage.sav", to.data.frame = TRUE)
+marriage = foreign::read.spss(findInstDirFile("Marriage.sav"), to.data.frame = TRUE)
 
 input.weight = marriage$weight
 
@@ -321,9 +327,9 @@ test_that("DS-3646: Always drop empty levels when checking validity of targets",
 test_that("DS-3682: Normalize rake weight before trimming", {
     upper = 2
     lower = 0.3
-    x = Calibrate(list(Age = input.age, Gender = input.gender), 
-                  list(Age = variable.targets.age, Gender = variable.targets.gender), 
-                  upper = upper, 
+    x = Calibrate(list(Age = input.age, Gender = input.gender),
+                  list(Age = variable.targets.age, Gender = variable.targets.gender),
+                  upper = upper,
                   lower = lower)
     expect_equal(round(min(x), 7), 0.4089635)
     expect_equal(round(max(x), 6), 2.148377)
