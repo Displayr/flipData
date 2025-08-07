@@ -17,6 +17,7 @@ test_that("GetTidyTwoDimensionalArray",
           {
     expect_error(GetTidyTwoDimensionalArray(x.with.labels, "NET", "NET"),NA)
     expect_error(GetTidyTwoDimensionalArray(x), NA)
+        y
     # 3D array with no names
     z <- array(NA, c(8,11,2))
     z[,,1] <- x
