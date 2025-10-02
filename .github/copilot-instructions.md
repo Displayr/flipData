@@ -33,11 +33,10 @@
 - **Consistent quotes**: Always use double quotes `"` for strings. It is ok for quotes within strings to be single quotes `'` but the parent string must use double quotes.
 
 ### Function Design Patterns
-- **Type checking**: Use helper functions like `isSingleString()`, `isNamedListOrNull()` for validation
 - **Error handling**: Use `flipU::StopForUserError()` for user-facing errors with clear, actionable messages
 - **Return values**: Functions used for validation/side effects should explicitly return `NULL`
-- **Internal functions**: Helper functions should not be exported; use `@noRd` in roxygen comments
-- **File organization**: Group related helpers in logical files (e.g., check.inputs.R, tidy.inputs.R)
+- **Internal functions**: Internal or helper functions should not be exported; use `@noRd` in roxygen comments
+- **File organization**: Group related functions into logical files (e.g., check.inputs.R, tidy.inputs.R)
 
 ### Documentation Requirements
 - All exported functions must have complete roxygen2 documentation
