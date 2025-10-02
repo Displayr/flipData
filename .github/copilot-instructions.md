@@ -47,13 +47,6 @@
 - Use testthat v3 framework (edition 3)
 - Test files must be in `tests/testthat/` with `test-` prefix
 - Include snapshot tests where appropriate (`_snaps/` directory)
-- Tests requiring API keys should use `skip_if()` appropriately
-
-### Import/Dependency Guidelines
-- **Never assume libraries are available** - always check existing imports first
-- Use explicit `::` notation OR `@importFrom` in roxygen comments
-- Check DESCRIPTION for available packages before suggesting new dependencies
-- This package uses remotes from Displayr org - respect this pattern
 
 ### Security & Best Practices
 - **Never log or expose API keys or secrets**
@@ -64,8 +57,8 @@
 3. **Testing**: Verify new functionality has corresponding tests
 4. **Style consistency**: Check adherence to naming convetions, `<-`, `|>` patterns
 5. **Error messages**: Ensure user-facing errors are clear and helpful
-6. **Dependencies**: Question any new package dependencies
-7. **Versioning**: Check DESCRIPTION versioning for changes, each PR should increment version
+6. **Line length**: Flag lines exceeding 120 characters
+7. **Object names**: Ensure names don't exceed 50 characters
 
 ## Common Issues to Flag
 - Using `=` instead of `<-` for assignment
