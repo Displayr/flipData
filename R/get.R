@@ -220,8 +220,8 @@ GetOneDArray <- function(x) {
     dim.x = dim(x)
     if (is.array(x) && length(dim.x) == 1L) return(x)
     if (is.matrix(x) && (dim.x[1] == 1L || dim.x[2] == 1L)) {
-        nms <- if (!is.null(rownames(x))) rownames(x) else colnames(x)
-        return(setNames(as.vector(x), nms))
+      nms <- if (!is.null(rownames(x))) rownames(x) else colnames(x)
+      return(setNames(as.vector(x), nms))
     }
     StopForUserError("This analysis requires a one-dimensional array (i.e., a vector
     or a matrix with a single row or a single column).")
