@@ -21,8 +21,9 @@
 - Function names should be descriptive and action-oriented
 - Prefer full words over abbreviations -->
 
-<!-- ### Code Style
-- Use 4-space indentation
+### Code Style
+- Follow the tidyverse style guide (https://style.tidyverse.org/)
+<!-- - Use 4-space indentation
 - Place opening braces on the same line
 - Use meaningful variable names with dots for separation (e.g., `source.language`, `target.language`)
 - Functions should be well-structured with clear logic flow
