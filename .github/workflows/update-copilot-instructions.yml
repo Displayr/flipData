@@ -1,0 +1,56 @@
+name: Update Copilot Instructions
+
+on:
+  create:
+    # Trigger when a branch is created
+    branches: '**'
+  push:
+    # Trigger on push to any branch
+    branches: '**'
+
+jobs:
+  update-copilot-instructions:
+    runs-on: ubuntu-latest
+    
+    # Run on branch creation or push events
+    if: github.event_name == 'create' && github.ref_type == 'branch' || github.event_name == 'push'
+    
+    steps:
+    - name: Checkout current repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.ref }}
+    
+    - name: Download copilot-instructions.md from flipDevTools
+      run: |
+        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+             -H "Accept: application/vnd.github.v3.raw" \
+             -o .github/copilot-instructions.md \
+             https://api.github.com/repos/Displayr/flipDevTools/contents/.github/copilot-instructions.md
+    
+    - name: Check if file was updated
+      id: check-changes
+      run: |
+        if git diff --quiet .github/copilot-instructions.md; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Commit and push updated copilot-instructions.md
+      if: steps.check-changes.outputs.changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .github/copilot-instructions.md
+        git commit -m "Update copilot-instructions.md from flipDevTools repo"
+        git push origin ${{ github.ref_name }}
+    
+    - name: Log completion
+      run: |
+        if [ "${{ steps.check-changes.outputs.changed }}" == "true" ]; then
+          echo "✅ Copilot instructions updated successfully on branch ${{ github.ref_name }}"
+        else
+          echo "ℹ️ Copilot instructions were already up to date on branch ${{ github.ref_name }}"
+        fi
