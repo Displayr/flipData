@@ -67,10 +67,10 @@
 4. **Style consistency**: Check adherence to dotted.case, `<-`, `|>` patterns
 5. **Error messages**: Ensure user-facing errors are clear and helpful
 6. **Dependencies**: Question any new package dependencies
-7. **Async patterns**: Verify proper promise/async handling in API calls
-8. **NAMESPACE**: Confirm it's auto-generated and not manually edited
-9. **Line length**: Flag lines exceeding 120 characters
-10. **Object names**: Ensure names don't exceed 50 characters
+7. **NAMESPACE**: Confirm it's auto-generated and not manually edited
+8. **Line length**: Flag lines exceeding 120 characters
+9. **Object names**: Ensure names don't exceed 50 characters
+10. **Versioning**: Check DESCRIPTION versioning for changes, each PR should increment version
 
 ## Common Issues to Flag
 - Using `=` instead of `<-` for assignment
