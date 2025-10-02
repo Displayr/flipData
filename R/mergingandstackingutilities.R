@@ -356,7 +356,7 @@ isIntegerValued <- function(x)
     val.attr <- attr(x, "labels", exact = TRUE)
     if (!any(is.nan(val.attr)) && is.numeric(x))
     {
-        x.without.na = removeNA(x)
+        x.without.na <- removeNA(x)
         all(floor(x.without.na) == x.without.na &
             !is.infinite(x.without.na))
     }else
