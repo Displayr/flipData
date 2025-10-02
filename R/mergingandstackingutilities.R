@@ -365,7 +365,7 @@ isIntegerValued <- function(x)
 
 myFunction <- function(x)
 {
-    hello <- "Hello, World!"
+    hello <- "Helloooooooooo, World!"
     print(hello)
 }
 
