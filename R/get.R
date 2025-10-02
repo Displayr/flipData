@@ -34,8 +34,7 @@ GetData <- function(formula, data, auxiliary.data)
     else if (!is.data.frame(data))
         StopForUserError("'data' must be a 'data.frame'.")
     else if (!all(RemoveBackticks(variable.names) %in% colnames(data)))
-        StopForUserError(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))],
-                   "were specified in the formula but are not in the data."))
+        StopForUserError(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))], "were specified in the formula but are not in the data."))
     else # Extracting the variables from the data.frame.
         data <- data[, RemoveBackticks(variable.names), drop = FALSE]
 
@@ -80,7 +79,7 @@ DataFormula <- function(formula, data = NULL)
         dummy.vars <- var.names[dummy.vars.dataset.referral]
         var.names <- var.names[!dummy.vars.dataset.referral]
         # Temporarily remove dummy variables from formula.str
-        dummy.vars.patt <- sub(pattern = ".dummy.var_GQ9KqD7YOf",
+        dummy.vars.patt <- sub(pattern = '.dummy.var_GQ9KqD7YOf',
                                replacement = "\\.dummy\\.var_GQ9KqD7YOf",
                                dummy.vars, fixed = TRUE)
         patt <- paste0("?\\s\\+\\s*", gsub("$", "\\$", dummy.vars.patt, fixed = TRUE), collapse = "|")
