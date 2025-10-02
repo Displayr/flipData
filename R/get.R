@@ -215,3 +215,20 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
     }
     x
 }
+
+GetOneDArray <- function(x) {
+    dim.x <- dim(x)
+    if (is.array(x) && length(dim.x) == 1L) return(x)
+    if (is.matrix(x) && (dim.x[1] == 1L || dim.x[2] == 1L)) return(as.vector(x))
+    StopForUserError("This analysis requires a one-dimensional array (i.e., a vector
+    or a matrix with a single row or a single column).")
+}
+
+#' @para x Something
+#' @export
+Get3DArray <- function(x) {
+    dim.x <- dim(x)
+    if (is.array(x) && length(dim.x) == 3L) return(x)
+    StopForUserError("This analysis requires a three-dimensional array (i.e., a table with one set of row headings, one set of columns headings, and one set of layers, and one statistic in each cell).")
+
+}
