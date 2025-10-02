@@ -8,6 +8,10 @@ on:
     # Trigger on push to any branch
     branches: '**'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-copilot-instructions:
     runs-on: ubuntu-latest
@@ -21,13 +25,21 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         ref: ${{ github.ref }}
+        fetch-depth: 0
     
     - name: Download copilot-instructions.md from flipDevTools
       run: |
+        echo "Downloading copilot-instructions.md from flipDevTools..."
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
              -H "Accept: application/vnd.github.v3.raw" \
              -o .github/copilot-instructions.md \
              https://api.github.com/repos/Displayr/flipDevTools/contents/.github/copilot-instructions.md
+        
+        if [ ! -f .github/copilot-instructions.md ]; then
+          echo "❌ Failed to download copilot-instructions.md"
+          exit 1
+        fi
+        echo "✅ Successfully downloaded copilot-instructions.md"
     
     - name: Check if file was updated
       id: check-changes
@@ -41,11 +53,11 @@ jobs:
     - name: Commit and push updated copilot-instructions.md
       if: steps.check-changes.outputs.changed == 'true'
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add .github/copilot-instructions.md
-        git commit -m "Update copilot-instructions.md from flipDevTools repo"
-        git push origin ${{ github.ref_name }}
+        git commit -m "Update copilot-instructions.md from flipDevTools repo [skip ci]"
+        git push
     
     - name: Log completion
       run: |
