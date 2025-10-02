@@ -366,7 +366,9 @@ isIntegerValued <- function(x)
 myFunction <- function(x)
 {
     hello <- "Helloooooooooo, World!"
+    hello.again <- "Hello again!"
     print(hello)
+    print(hello.again)
 }
 
 #' @param data.set.name A character scalar of the user-input name for
