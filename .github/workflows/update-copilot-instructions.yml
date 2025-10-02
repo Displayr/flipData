@@ -23,14 +23,14 @@ jobs:
     - name: Checkout current repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.TOKEN }}
         ref: ${{ github.ref }}
         fetch-depth: 0
     
     - name: Download copilot-instructions.md from flipDevTools
       run: |
         echo "Downloading copilot-instructions.md from flipDevTools..."
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+        curl -H "Authorization: token ${{ secrets.TOKEN }}" \
              -H "Accept: application/vnd.github.v3.raw" \
              -o .github/copilot-instructions.md \
              https://api.github.com/repos/Displayr/flipDevTools/contents/.github/copilot-instructions.md
