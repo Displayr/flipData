@@ -23,6 +23,7 @@
 
 ### Code Style
 - Follow the tidyverse style guide (https://style.tidyverse.org/)
+- Allow = for assignment
 <!-- - Use 4-space indentation
 - Place opening braces on the same line
 - Use meaningful variable names with dots for separation (e.g., `source.language`, `target.language`)
