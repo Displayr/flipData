@@ -353,7 +353,8 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
 #' @noRd
 isIntegerValued <- function(x)
 {
-    if( is.numeric(x))
+    val.attr <- attr(x, "labels", exact = TRUE)
+    if (!any(is.nan(val.attr)) && is.numeric(x))
     {
         x.without.na <- removeNA(x)
         all(floor(x.without.na) == x.without.na &
@@ -512,7 +513,7 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
 #' @return Character vector containing the variable names that match the
 #'  wildcard pattern.
 #' @noRd
-#' @importFrom flipU StopForUserError EscapeRegexSymbols
+#' @importFrom flipU StopForUserError
 parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
                                             data.set.ind, error.if.not.found)
 {
