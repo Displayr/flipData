@@ -217,7 +217,7 @@ GetTidyTwoDimensionalArray <- function(x, row.names.to.remove = NULL, column.nam
 }
 
 GetOneDArray <- function(x) {
-    dim.x <- dim(x)
+    dim.x = dim(x)
     if (is.array(x) && length(dim.x) == 1L) return(x)
     if (is.matrix(x) && (dim.x[1] == 1L || dim.x[2] == 1L)) return(as.vector(x))
     StopForUserError("This analysis requires a one-dimensional array (i.e., a vector
