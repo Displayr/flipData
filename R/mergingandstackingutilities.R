@@ -357,11 +357,16 @@ isIntegerValued <- function(x)
     if (!any(is.nan(val.attr)) && is.numeric(x))
     {
         x.without.na <- removeNA(x)
-        s <- !exact
         all(floor(x.without.na) == x.without.na &
-            !is.infinite(x.without.na)) && s
+            !is.infinite(x.without.na))
     }else
         FALSE
+}
+
+myFunction <- function(x)
+{
+    hello <- "Hello, World!"
+    print(hello)
 }
 
 #' @param data.set.name A character scalar of the user-input name for
