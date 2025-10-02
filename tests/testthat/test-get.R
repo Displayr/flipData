@@ -143,3 +143,11 @@ test_that("DS-2988: Precise replacement when dataset references are used", {
     expect_equal(DataFormula(dat$Variables$`x one y` ~ `x one y`),
                  `dat$Variables$\`x one y\`` ~ `\`x one y\``)
 })
+
+
+test_that("Get3DArray", {
+    x <- array(1:24, dim = c(4,3,2))
+    dimnames(x) <- list(Brand=c('Coke','V',"Red\nBull","Lift\nPlus"),
+                        Attribute=c('Kids', 'Teens',    "Enjoy life"))
+    expect_equal(Get3DArray(x), x)
+})
