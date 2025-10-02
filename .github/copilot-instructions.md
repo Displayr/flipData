@@ -22,7 +22,6 @@
         vapply(x, .helpAdd, numeric(1L)
     }
     ```
-  - Classes/constructors: `CamelCase` (e.g., `OpenAISchema`, `ScalarSchema`)
 - **Object name length**: Maximum 50 characters
 - **Assignment**: Always use `<-` for assignment, never `=`
 - **Pipes**: Use native pipe `|>` for chaining operations
