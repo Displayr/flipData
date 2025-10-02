@@ -6,7 +6,7 @@
 - DESCRIPTION must be kept valid with proper versioning
 - All exported functions require complete roxygen2 documentation
 
-### Code Style Requirements (enforced by lintr)
+### Code Style Requirements
 - **Naming conventions**: Use `dotted.case`, `camelCase`, or `PascalCase` consistently
   - Parameters/variables: `dotted.case` (e.g., `response.format`, `text.variables`, `api.key`)
   - Functions: `camelCase` or `PascalCase` or `.camelCase` (e.g., `checkInputs`, `MakeOutput`, or `.nestedHelper`)
@@ -27,8 +27,8 @@
 - **Assignment**: Always use `<-` for assignment, never `=`
 - **Pipes**: Use native pipe `|>` for chaining operations
 - **NULL coalescing**: Use `%||%` operator for NULL defaults
-- **Indentation**: 4 spaces (enforced by lintr)
-- **Line length**: Maximum 120 characters (enforced by lintr)
+- **Indentation**: 4 spaces
+- **Line length**: Maximum 120 characters
 - **No trailing whitespace**
 - **Consistent quotes**: Always use double quotes `"` for strings. It is ok for quotes within strings to be single quotes `'` but the parent string must use double quotes.
 
