@@ -33,7 +33,6 @@
 
 ### Function Design Patterns
 - **Error handling**: Use `flipU::StopForUserError()` for user-facing errors with clear, actionable messages
-- **Return values**: Functions used for validation/side effects should explicitly return `NULL`
 - **Internal functions**: Internal or helper functions should not be exported; use `@noRd` in roxygen comments
 - **File organization**: Group related functions into logical files (e.g., check.inputs.R, tidy.inputs.R)
 
