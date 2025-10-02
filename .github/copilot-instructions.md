@@ -62,23 +62,15 @@
 1. **Breaking changes**: Flag any changes to exported function signatures
 2. **Documentation**: Ensure all new/modified exports have complete roxygen2 docs
 3. **Testing**: Verify new functionality has corresponding tests
-4. **Style consistency**: Check adherence to dotted.case, `<-`, `|>` patterns
+4. **Style consistency**: Check adherence to naming convetions, `<-`, `|>` patterns
 5. **Error messages**: Ensure user-facing errors are clear and helpful
 6. **Dependencies**: Question any new package dependencies
-7. **NAMESPACE**: Confirm it's auto-generated and not manually edited
-8. **Line length**: Flag lines exceeding 120 characters
-9. **Object names**: Ensure names don't exceed 50 characters
-10. **Versioning**: Check DESCRIPTION versioning for changes, each PR should increment version
+7. **Versioning**: Check DESCRIPTION versioning for changes, each PR should increment version
 
 ## Common Issues to Flag
 - Using `=` instead of `<-` for assignment
 - Missing or incomplete roxygen2 documentation
 - Direct API key exposure or logging
 - Inconsistent naming conventions (mixing dotted.case/camelCase inappropriately)
-- Manual edits to NAMESPACE file
 - New dependencies without justification
 - Error messages that don't guide users to solutions
-- Missing NULL handling with `%||%`
-- Line length violations (>120 chars)
-- Object names exceeding 50 characters
-- Trailing whitespace
