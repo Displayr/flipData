@@ -30,7 +30,7 @@
 - **Indentation**: 4 spaces (enforced by lintr)
 - **Line length**: Maximum 120 characters (enforced by lintr)
 - **No trailing whitespace**
-- **Consistent quotes**: Always use double quotes `"` for strings
+- **Consistent quotes**: Always use double quotes `"` for strings. It is ok for quotes within strings to be single quotes `'` but the parent string must use double quotes.
 
 ### Function Design Patterns
 - **Type checking**: Use helper functions like `isSingleString()`, `isNamedListOrNull()` for validation
