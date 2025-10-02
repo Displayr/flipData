@@ -30,6 +30,7 @@
 - **Indentation**: 4 spaces (enforced by lintr)
 - **Line length**: Maximum 120 characters (enforced by lintr)
 - **No trailing whitespace**
+- **Consistent quotes**: Always use double quotes `"` for strings
 
 ### Function Design Patterns
 - **Type checking**: Use helper functions like `isSingleString()`, `isNamedListOrNull()` for validation

@@ -34,8 +34,7 @@ GetData <- function(formula, data, auxiliary.data)
     else if (!is.data.frame(data))
         StopForUserError("'data' must be a 'data.frame'.")
     else if (!all(RemoveBackticks(variable.names) %in% colnames(data)))
-        StopForUserError(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))],
-                   "were specified in the formula but are not in the data."))
+        StopForUserError(paste("Variable(s)", variable.names[!(RemoveBackticks(variable.names) %in% colnames(data))], "were specified in the formula but are not in the data."))
     else # Extracting the variables from the data.frame.
         data <- data[, RemoveBackticks(variable.names), drop = FALSE]
 
@@ -44,7 +43,7 @@ GetData <- function(formula, data, auxiliary.data)
         if (!is.data.frame(auxiliary.data))
             auxiliary.data <- data.frame(auxiliary.data)
         if(nrow(data) != nrow(auxiliary.data))
-            StopForUserError(paste("'data' has", nrow(data), "rows, whereas 'auxiliary.data' has", nrow(auxiliary.data), "rows. They need to have the same number of rows."))
+            StopForUserError(paste("'data' has", nrow(data), "rows, whereas 'auxiliary.data' has", nrow(auxiliary.data), 'rows. They need to have the same number of rows.'))
         matches <- match(names(auxiliary.data), names(data))
         matched <- !is.na(matches)
         if(!all(matched))
