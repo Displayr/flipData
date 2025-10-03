@@ -144,9 +144,6 @@ StackData <- function(input.data.set.name,
         if (grepl("cannot allocate vector of size ", e$message)) {
             throwInputDataSetsTooLargeError()
         }
-        if (grepl("does not exist in the Displayr cloud drive", e[["message"]])) {
-            StopForUserError(e[["message"]])
-        }
         if (inherits(e, "UserError")) {
             StopForUserError(e[["message"]])
         }
