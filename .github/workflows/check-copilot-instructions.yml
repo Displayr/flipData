@@ -28,8 +28,7 @@ jobs:
         DOWNLOADED=false
         for path in "${POSSIBLE_PATHS[@]}"; do
           echo "Trying path: $path"
-          if curl -s -H "Authorization: token ${{ secrets.TOKEN }}" \
-                  -H "Accept: application/vnd.github.v3.raw" \
+          if curl -s -H "Accept: application/vnd.github.v3.raw" \
                   -o /tmp/source-copilot-instructions.md \
                   "https://api.github.com/repos/Displayr/flipDevTools/contents/$path" 2>/dev/null; then
             
