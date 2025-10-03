@@ -12,10 +12,10 @@ jobs:
     - name: Checkout current repository
       uses: actions/checkout@v4
     
-    - name: Download copilot-instructions.md from flipDevTools
+    - name: Download copilot-instructions.md from flipU
       id: download-source
       run: |
-        echo "Downloading copilot-instructions.md from flipDevTools..."
+        echo "Downloading copilot-instructions.md from flipU..."
         
         # Try multiple possible paths for the copilot instructions
         POSSIBLE_PATHS=(
@@ -30,7 +30,7 @@ jobs:
           echo "Trying path: $path"
           if curl -s -H "Accept: application/vnd.github.v3.raw" \
                   -o /tmp/source-copilot-instructions.md \
-                  "https://api.github.com/repos/Displayr/flipDevTools/contents/$path" 2>/dev/null; then
+                  "https://api.github.com/repos/Displayr/flipU/contents/$path" 2>/dev/null; then
             
             # Check if we got actual content (not an error response)
             if [ -f /tmp/source-copilot-instructions.md ] && [ -s /tmp/source-copilot-instructions.md ]; then
@@ -46,9 +46,9 @@ jobs:
         done
         
         if [ "$DOWNLOADED" = false ]; then
-          echo "❌ Could not find copilot-instructions.md in flipDevTools repo"
+          echo "❌ Could not find copilot-instructions.md in flipU repo"
           echo "This may indicate the file doesn't exist or has been moved."
-          echo "Please check the flipDevTools repository structure."
+          echo "Please check the flipU repository structure."
           exit 1
         fi
     
@@ -68,14 +68,14 @@ jobs:
     - name: Compare files
       run: |
         echo "Comparing copilot-instructions.md files..."
-        echo "Source: flipDevTools/${{ steps.download-source.outputs.source_path }}"
+        echo "Source: flipU/${{ steps.download-source.outputs.source_path }}"
         echo "Local: .github/copilot-instructions.md"
         echo ""
         
         # Compare the files
         if diff -u /tmp/source-copilot-instructions.md .github/copilot-instructions.md > /tmp/diff_output; then
           echo "✅ Files match perfectly!"
-          echo "Your copilot-instructions.md is up to date with flipDevTools."
+          echo "Your copilot-instructions.md is up to date with flipU."
         else
           echo "❌ Files do not match!"
           echo ""
@@ -89,7 +89,7 @@ jobs:
           echo "2. Or run the update-copilot-instructions workflow"
           echo "3. Or manually sync the files"
           echo ""
-          echo "Source file location: flipDevTools/${{ steps.download-source.outputs.source_path }}"
+          echo "Source file location: flipU/${{ steps.download-source.outputs.source_path }}"
           exit 1
         fi
     
