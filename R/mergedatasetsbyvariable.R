@@ -127,8 +127,11 @@ MergeDataSetsByVariable <- function(data.set.names,
     }, error = function(e) {
         if (grepl("cannot allocate vector of size ", e$message)) {
             throwInputDataSetsTooLargeError()
-        } else
-            stop(e)
+        }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
+        stop(e)
     })
 
 
@@ -168,8 +171,11 @@ MergeDataSetsByVariable <- function(data.set.names,
     }, error = function(e) {
         if (grepl("cannot allocate vector of size ", e$message)) {
             throwCombinedDataSetTooLargeError()
-        } else
-            stop(e)
+        }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
+        stop(e)
     })
 }
 
