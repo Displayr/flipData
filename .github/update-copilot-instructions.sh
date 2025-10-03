@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to update copilot-instructions.md from flipU repository
-# Usage: ./scripts/update-copilot-instructions.sh
+# Usage: ./.github/update-copilot-instructions.sh
 # Note: This script should be run from the root of this repository
 #      and requires internet access with curl installed.
 
