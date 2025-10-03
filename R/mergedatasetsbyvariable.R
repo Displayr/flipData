@@ -131,6 +131,9 @@ MergeDataSetsByVariable <- function(data.set.names,
         if (grepl("does not exist in the Displayr cloud drive", e[["message"]])) {
             StopForUserError(e[["message"]])
         }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
         stop(e)
     })
 
@@ -171,8 +174,11 @@ MergeDataSetsByVariable <- function(data.set.names,
     }, error = function(e) {
         if (grepl("cannot allocate vector of size ", e$message)) {
             throwCombinedDataSetTooLargeError()
-        } else
-            stop(e)
+        }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
+        stop(e)
     })
 }
 

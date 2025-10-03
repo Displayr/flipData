@@ -143,8 +143,14 @@ StackData <- function(input.data.set.name,
     }, error = function(e) {
         if (grepl("cannot allocate vector of size ", e$message)) {
             throwInputDataSetsTooLargeError()
-        } else
-            stop(e)
+        }
+        if (grepl("does not exist in the Displayr cloud drive", e[["message"]])) {
+            StopForUserError(e[["message"]])
+        }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
+        stop(e)
     })
 
     tryCatch({
@@ -190,8 +196,11 @@ StackData <- function(input.data.set.name,
                               "appropriate: ",
                               paste0(unlist(common.labels.list), collapse = ", "), ".")
             StopForUserError(msg)
-        } else
-            StopForUserError(e)
+        }
+        if (inherits(e, "UserError")) {
+            StopForUserError(e[["message"]])
+        }
+        stop(e)
     })
 }
 
