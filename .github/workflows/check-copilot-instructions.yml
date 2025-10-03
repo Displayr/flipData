@@ -86,9 +86,10 @@ jobs:
           echo ""
           echo "To fix this issue:"
           echo "1. Update your .github/copilot-instructions.md to match the source"
-          echo "2. Or run the update-copilot-instructions.sh script in .github"
-          echo "3. Or manually sync the files"
-          echo ""
+          echo "2. Or run the shell script in flipU to do this for you."
+          echo "   # Run these commands locally from the root of your repository"
+          echo "   > curl -O -L https://raw.githubusercontent.com/Displayr/flipU/master/.github/update-copilot-instructions.sh"
+          echo "   > bash update-copilot-instructions.sh"
           echo "Source file location: flipU/${{ steps.download-source.outputs.source_path }}"
           exit 1
         fi
