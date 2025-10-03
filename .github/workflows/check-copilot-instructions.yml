@@ -7,16 +7,16 @@ on:
 jobs:
   check-copilot-instructions:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout current repository
       uses: actions/checkout@v4
-    
+
     - name: Download copilot-instructions.md from flipU
       id: download-source
       run: |
         echo "Downloading copilot-instructions.md from flipU..."
-        
+
         # Try multiple possible paths for the copilot instructions
         POSSIBLE_PATHS=(
           ".github/copilot-instructions.md"
@@ -24,14 +24,14 @@ jobs:
           ".github/copilot_instructions.md"
           "docs/copilot-instructions.md"
         )
-        
+
         DOWNLOADED=false
         for path in "${POSSIBLE_PATHS[@]}"; do
           echo "Trying path: $path"
           if curl -s -H "Accept: application/vnd.github.v3.raw" \
                   -o /tmp/source-copilot-instructions.md \
                   "https://api.github.com/repos/Displayr/flipU/contents/$path" 2>/dev/null; then
-            
+
             # Check if we got actual content (not an error response)
             if [ -f /tmp/source-copilot-instructions.md ] && [ -s /tmp/source-copilot-instructions.md ]; then
               # Verify it's not a JSON error response
@@ -44,14 +44,14 @@ jobs:
             fi
           fi
         done
-        
+
         if [ "$DOWNLOADED" = false ]; then
           echo "❌ Could not find copilot-instructions.md in flipU repo"
           echo "This may indicate the file doesn't exist or has been moved."
           echo "Please check the flipU repository structure."
           exit 1
         fi
-    
+
     - name: Check if local copilot-instructions.md exists
       id: check-local
       run: |
@@ -64,14 +64,14 @@ jobs:
           echo "✅ Found local copilot-instructions.md"
           echo "exists=true" >> $GITHUB_OUTPUT
         fi
-    
+
     - name: Compare files
       run: |
         echo "Comparing copilot-instructions.md files..."
         echo "Source: flipU/${{ steps.download-source.outputs.source_path }}"
         echo "Local: .github/copilot-instructions.md"
         echo ""
-        
+
         # Compare the files
         if diff -u /tmp/source-copilot-instructions.md .github/copilot-instructions.md > /tmp/diff_output; then
           echo "✅ Files match perfectly!"
@@ -86,23 +86,23 @@ jobs:
           echo ""
           echo "To fix this issue:"
           echo "1. Update your .github/copilot-instructions.md to match the source"
-          echo "2. Or run the update-copilot-instructions workflow"
+          echo "2. Or run the update-copilot-instructions.sh script in .github"
           echo "3. Or manually sync the files"
           echo ""
           echo "Source file location: flipU/${{ steps.download-source.outputs.source_path }}"
           exit 1
         fi
-    
+
     - name: Verify file integrity
       run: |
         echo "Verifying file integrity..."
-        
+
         # Check that the local file is not empty
         if [ ! -s .github/copilot-instructions.md ]; then
           echo "❌ Local copilot-instructions.md is empty"
           exit 1
         fi
-        
+
         # Check that it contains expected content patterns
         if ! grep -q -i "copilot\|instruction\|coding\|standard" .github/copilot-instructions.md; then
           echo "⚠️  Warning: File doesn't seem to contain typical copilot instruction content"
@@ -110,6 +110,6 @@ jobs:
         else
           echo "✅ File appears to contain valid copilot instructions"
         fi
-        
+
         echo "File size: $(wc -c < .github/copilot-instructions.md) bytes"
         echo "Line count: $(wc -l < .github/copilot-instructions.md) lines"
