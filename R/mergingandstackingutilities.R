@@ -56,10 +56,13 @@ readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
     result
 }
 
-createExceptionHandler <- function(intercept.messages,
-                                   replacement.messages, warn = FALSE)
-{
-    if (length(replacement.messages) == 1 && length(intercept.messages) > 1)
+#' @importFrom flipU StopForUserError
+createExceptionHandler <- function(
+    intercept.messages,
+    replacement.messages,
+    warn = FALSE
+) {
+    if (length(replacement.messages) == 1 && length(intercept.messages) > 1) {
         replacement.messages <- rep(replacement.messages, length(intercept.messages))
     function(e) {
         condition.fun <- function(...) {
@@ -72,16 +75,15 @@ createExceptionHandler <- function(intercept.messages,
             }
         }
         msg.found <- FALSE
-        for (i in seq_along(intercept.messages))
-        {
-            if (grepl(intercept.messages[i], e$message))
-            {
-                condition.fun(replacement.messages[i], call. = FALSE)
+        for (i in seq_along(intercept.messages)) {
+            if (grepl(intercept.messages[i], e$message)) {
+                condition.fun(replacement.messages[i])
                 msg.found <- TRUE
             }
         }
-        if (!msg.found)
-            condition.fun(e$message, call. = FALSE)
+        if (!msg.found) {
+            condition.fun(e$message)
+        }
     }
 }
 
