@@ -61,9 +61,16 @@ createExceptionHandler <- function(intercept.messages,
 {
     if (length(replacement.messages) == 1 && length(intercept.messages) > 1)
         replacement.messages <- rep(replacement.messages, length(intercept.messages))
-    condition.fun <- if (warn) warning else stop
-    function(e)
-    {
+    function(e) {
+        condition.fun <- function(...) {
+            if (warn) {
+                warning(..., call. = FALSE)
+            } else if (inherits(e, "UserError")) {
+                StopForUserError(...)
+            } else {
+                stop(..., call. = FALSE)
+            }
+        }
         msg.found <- FALSE
         for (i in seq_along(intercept.messages))
         {
