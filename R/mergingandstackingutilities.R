@@ -68,6 +68,7 @@ createExceptionHandler <- function(
 ) {
     if (length(replacement.messages) == 1 && length(intercept.messages) > 1) {
         replacement.messages <- rep(replacement.messages, length(intercept.messages))
+    }
     function(e) {
         condition.fun <- function(...) {
             if (warn) {
