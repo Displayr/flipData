@@ -12,18 +12,22 @@ readDataSets <- function(data.set.names, min.data.sets = 1)
     data.set.names <- vapply(data.set.names, trimws, character(1),
                              USE.NAMES = FALSE)
 
-    if (length(data.set.names) < min.data.sets)
+    if (length(data.set.names) < min.data.sets) {
         StopForUserError("At least ", min.data.sets, " data set(s) are required.")
-
-    if (!all(grepl('.+\\.sav$', data.set.names, ignore.case = TRUE))) {
-        StopForUserError("An input data file was not an SPSS .sav data file. ",
-             "Only SPSS .sav data files are accepted.")
     }
 
-    if (IsDisplayrCloudDriveAvailable())
+    if (!all(grepl(".+\\.sav$", data.set.names, ignore.case = TRUE))) {
+        StopForUserError(
+            "An input data file was not an SPSS .sav data file. ",
+            "Only SPSS .sav data files are accepted."
+        )
+    }
+
+    if (IsDisplayrCloudDriveAvailable()) {
         readDataSetsFromDisplayrCloudDrive(data.set.names)
-    else
+    } else {
         readLocalDataSets(data.set.names)
+    }
 }
 
 #' @param data.set.paths A character vector of paths to local data files.
@@ -34,7 +38,7 @@ readDataSets <- function(data.set.names, min.data.sets = 1)
 readLocalDataSets <- function(data.set.paths, parser = read_sav)
 {
     result <- lapply(data.set.paths, function(path) {
-        handler = createReadErrorHandler(path)
+        handler <- createReadErrorHandler(path)
         InterceptExceptions(parser(path), error.handler = handler)
     })
     names(result) <- basename(data.set.paths)
@@ -49,7 +53,7 @@ readLocalDataSets <- function(data.set.paths, parser = read_sav)
 readDataSetsFromDisplayrCloudDrive <- function(data.set.names)
 {
     result <- lapply(data.set.names, function(nm) {
-        handler = createReadErrorHandler(nm)
+        handler <- createReadErrorHandler(nm)
         InterceptExceptions(QLoadData(nm), error.handler = handler)
     })
     names(result) <- data.set.names
@@ -89,12 +93,16 @@ createExceptionHandler <- function(
 
 createReadErrorHandler <- function(data.set.name)
 {
-    replacement.msg <- paste0("The data file '", data.set.name, "' could not be parsed. ",
-                      "The data file may be fixed by inserting it in a Displayr document, ",
-                      "exporting it as an SPSS file (.sav) via the Publish button, ",
-                      "and then uploading it back to the cloud drive.")
-    intercept.msgs <- c("Invalid file, or file has unsupported features",
-                        "Unable to convert string to the requested encoding")
+    replacement.msg <- paste0(
+        "The data file '", data.set.name, "' could not be parsed. ",
+        "The data file may be fixed by inserting it in a Displayr document, ",
+        "exporting it as an SPSS file (.sav) via the Publish button, ",
+        "and then uploading it back to the cloud drive."
+    )
+    intercept.msgs <- c(
+        "Invalid file, or file has unsupported features",
+        "Unable to convert string to the requested encoding"
+    )
     createExceptionHandler(intercept.msgs, replacement.msg, warn = FALSE)
 }
 
@@ -106,10 +114,8 @@ createReadErrorHandler <- function(data.set.name)
 #' @importFrom flipAPI QSaveData IsDisplayrCloudDriveAvailable
 #' @importFrom flipU InterceptExceptions
 #' @importFrom tools file_path_sans_ext
-writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
-{
-    if (is.saved.to.cloud)
-    {
+writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud) {
+    if (is.saved.to.cloud) {
         warn.msg <- paste0("The data file ", data.set.name,
                            " has been compressed into ", file_path_sans_ext(data.set.name),
                            ".zip on the Cloud Drive as it is too large. ",
@@ -117,13 +123,15 @@ writeDataSet <- function(data.set, data.set.name, is.saved.to.cloud)
                            "used in a Displayr document.")
         error.msg <- paste0("The data file could not be saved due to invalid characters ",
                             "in some of the variable names. Please contact support for assistance.")
-        InterceptExceptions(QSaveData(data.set, data.set.name, 2e9), # 2e9 bytes seems to be just below the API upload limit for the cloud drive
-            warning.handler = createExceptionHandler("Object compressed into a zip file",
-                                                     warn.msg, TRUE),
-            error.handler = createExceptionHandler("must have valid SPSS variable names",
-                                                   error.msg, FALSE))
-    }else
+        # 2e9 bytes seems to be just below the API upload limit for the cloud drive
+        InterceptExceptions(
+            QSaveData(data.set, data.set.name, 2e9),
+            warning.handler = createExceptionHandler("Object compressed into a zip file", warn.msg, TRUE),
+            error.handler = createExceptionHandler("must have valid SPSS variable names", error.msg, FALSE)
+        )
+    } else {
         write_sav(data.set, data.set.name)
+    }
 }
 
 #' @description Creates a list of metadata for a data set
@@ -248,12 +256,12 @@ variableType <- function(variable)
         StopForUserError("Variable type not recognised")
 }
 
-NUMERIC.VARIABLE.TYPE = "Numeric";
-TEXT.VARIABLE.TYPE = "Text";
-CATEGORICAL.VARIABLE.TYPE = "Categorical";
-DATE.VARIABLE.TYPE = "Date";
-DATE.TIME.VARIABLE.TYPE = "Date/Time";
-DURATION.VARIABLE.TYPE = "Duration";
+NUMERIC.VARIABLE.TYPE <- "Numeric"
+TEXT.VARIABLE.TYPE <- "Text"
+CATEGORICAL.VARIABLE.TYPE <- "Categorical"
+DATE.VARIABLE.TYPE <- "Date"
+DATE.TIME.VARIABLE.TYPE <- "Date/Time"
+DURATION.VARIABLE.TYPE <- "Duration"
 
 #' @param var.types A character vector containing variable types (see function
 #'  variableType).
@@ -351,6 +359,9 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
         result <- result[result != ""]
         result
     }
+    result <- trimws(result)
+    result <- result[result != ""]
+    result
 }
 
 #' @param x A vector.
