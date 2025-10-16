@@ -360,9 +360,6 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
         result <- result[result != ""]
         result
     }
-    result <- trimws(result)
-    result <- result[result != ""]
-    result
 }
 
 #' @param x A vector.
