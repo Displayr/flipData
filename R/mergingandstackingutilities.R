@@ -326,40 +326,37 @@ splitByComma <- function(input.text, ignore.commas.in.parentheses = FALSE)
         split.text <- trimws(strsplit(input.text, ",")[[1]])
         return(split.text[split.text != ""])
     }
-    else
+    split.char <- strsplit(input.text, "")[[1]]
+    result <- c()
+    start.ind <- NA_integer_
+    in.parentheses <- FALSE
+    for (i in seq_along(split.char))
     {
-        split.char <- strsplit(input.text, "")[[1]]
-        result <- c()
-        start.ind <- NA_integer_
-        in.parentheses <- FALSE
-        for (i in seq_along(split.char))
+        if (is.na(start.ind))
         {
-            if (is.na(start.ind))
-            {
-                if (split.char[i] != ",")
-                    start.ind <- i
-                else
-                    next
-            }
-
-            if (!in.parentheses && split.char[i] == ",")
-            {
-                result <- c(result, paste0(split.char[start.ind:(i - 1)],
-                                           collapse = ""))
-                start.ind <- NA_integer_
-            }
-            else if (i == length(split.char))
-                result <- c(result, paste0(split.char[start.ind:i],
-                                           collapse = ""))
-            else if (!in.parentheses && split.char[i] == "(")
-                in.parentheses <- TRUE
-            else if (in.parentheses && split.char[i] == ")")
-                in.parentheses <- FALSE
+            if (split.char[i] != ",")
+                start.ind <- i
+            else
+                next
         }
-        result <- trimws(result)
-        result <- result[result != ""]
-        result
+
+        if (!in.parentheses && split.char[i] == ",")
+        {
+            result <- c(result, paste0(split.char[start.ind:(i - 1)],
+                                       collapse = ""))
+            start.ind <- NA_integer_
+        }
+        else if (i == length(split.char))
+            result <- c(result, paste0(split.char[start.ind:i],
+                                       collapse = ""))
+        else if (!in.parentheses && split.char[i] == "(")
+            in.parentheses <- TRUE
+        else if (in.parentheses && split.char[i] == ")")
+            in.parentheses <- FALSE
     }
+    result <- trimws(result)
+    result <- result[result != ""]
+    result
 }
 
 #' @param x A vector.
