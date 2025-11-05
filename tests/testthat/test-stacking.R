@@ -334,9 +334,9 @@ test_that("stackWithCommonLabels", {
                                                                  variable.labels = v.labels,
                                                                  variable.types = v.types,
                                                                  variable.value.attributes = v.val.attr)),
-                   "Some variables could not be stacked due to mismatching ",
+                   paste0("Some variables could not be stacked due to mismatching ",
                    "variable types or value attributes. See Notes section in ",
-                   "output for more details.")
+                   "output for more details."))
     expect_equal(stacking.groups,
                  structure(integer(0), .Dim = c(0L, 3L),
                            unstackable.names = list(c("Q2_A", "Q2_B", "Q2_C"))))
@@ -350,9 +350,9 @@ test_that("stackWithCommonLabels", {
                                                                  variable.labels = v.labels,
                                                                  variable.types = v.types,
                                                                  variable.value.attributes = v.val.attr)),
-                   "Some variables could not be stacked due to mismatching ",
+                   paste0("Some variables could not be stacked due to mismatching ",
                    "variable types or value attributes. See Notes section in ",
-                   "output for more details.")
+                   "output for more details."))
     expect_equal(stacking.groups,
                  structure(integer(0), .Dim = c(0L, 3L),
                            unstackable.names = list(c("Q2_A", "Q2_B", "Q2_C"))))
@@ -475,7 +475,7 @@ test_that("stackingSpecifiedByVariable", {
     names(val.attr.2) <- letters[1:3]
     v.val.attr.2 <- v.val.attr
     v.val.attr.2[[2]] <- val.attr.2
-    
+
     ## DS-4405: No longer a warning when some labels have duplicate attr. names              {
     expect_warning(
         stacking.groups <- stackingSpecifiedByVariable(

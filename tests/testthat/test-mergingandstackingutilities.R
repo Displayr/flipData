@@ -126,26 +126,22 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
 
     # Period at beginning
     bad.names <- c(".A", ".B", ".C")
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables names which begin or end with '.'")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "C"))
 
     # Period at end
     bad.names <- c("A.", "B.", "C.")
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables names which begin or end with '.'")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "C"))
 
     # Multiple periods
     bad.names <- c("..A...", "..B...", "..C...")
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables names which begin or end with '.'")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "C"))
 
     # Restricted names
     bad.names <- c("A", "B", "WITH")
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables whose names are SPSS reserved keywords.")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "WITH_r"))
 
     # Too long
@@ -154,22 +150,42 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
                     'L2LeisureActivitiesConsideration_OtherpleasespecifyL2LeisureActivitiesConsideration_Otherpleasespecify',
                     'L2LeisureActivitiesConsideration_Otherpleasespecify_0L2LeisureActivitiesConsideration_Otherpleasespecify_0',
                     'PQ4a_OtherwithchildrenathomepleasespecifyPQ4a_Otherwithchildrenathomepleasespecify')
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Some variable names were too long and have been truncated: ")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_true(all(nchar(z, type = 'bytes') <= 64))
 
     # Too long, not ascii
     bad.names <- c("トム・クルーズが嫌いな理由を10語以内で教えてください",
                     "春に訪れたい日本で一番好きな都市はどこですか")
-
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Some variable names were too long and have been truncated: ")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_true(all(nchar(z, type = 'bytes') <= 64))
-
 
     # Prevent duplicates
     bad.names <- c("A", "B", "WITH", "A", "B", "WITH")
-    expect_warning(z <- sanitizeSPSSVariableNames(bad.names),
-                   "Cannot save variables whose names are SPSS reserved keywords")
+    z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "WITH_r", "A_1", "B_1", "WITH_r_1"))
+
+    # Invalid starting characters
+    bad.names <- c("_A", "??B")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("A", "B"))
+
+    # Spaces
+    bad.names <- c("  A \n B ")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("AB"))
+
+    # Edge cases
+    bad.names <- c(" _.WITH.",
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab.a", # 65 bytes long
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaa",
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaa",
+                   "_.",
+                   "__.")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("WITH_r",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaba",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_1",
+                      "VAR",
+                      "VAR_1"))
 })

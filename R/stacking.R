@@ -1126,7 +1126,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
             attr(v, "is.manually.stacked") <- is.manually.stacked[ind]
             attr(v, "stacking.input.variable.names") <- input.v.names[group.ind]
             attr(v, "stacking.input.variable.labels") <- input.v.labels[group.ind]
-            attr(v, "label") <- stackedVariableLabel(group.ind, input.v.labels, nm)
+            attr(v, "label") <- stackedVariableLabel(group.ind, input.v.labels)
             val.attr <- stackedValueAttributes(group.ind,
                                                input.data.set.metadata$variable.value.attributes)
             if (!is.null(val.attr))
@@ -1167,7 +1167,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
                 attr(v, "labels") <- val.attr
                 class(v) <- c(class(v), "haven_labelled")
             }
-            nm <- uniqueName(input.v.names[i], names(stacked.data.set))
+            nm <- makeValidNameForSpss(input.v.names[i], names(stacked.data.set))
             stacked.data.set[[nm]] <- v
         }
     }
@@ -1179,8 +1179,8 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         attr(original.case, "is.stacked") <- FALSE
         attr(original.case, "is.manually.stacked") <- NA
         attr(original.case, "is.original.case") <- TRUE
-        stacked.data.set[[uniqueName("original_case",
-                                     names(stacked.data.set))]] <- original.case
+        nm <- makeValidNameForSpss("original_case", names(stacked.data.set))
+        stacked.data.set[[nm]] <- original.case
     }
 
     if (include.observation.variable && has.stacking)
@@ -1199,14 +1199,11 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         attr(observation, "is.stacked") <- FALSE
         attr(observation, "is.manually.stacked") <- NA
         attr(observation, "is.observation") <- TRUE
-
-        stacked.data.set[[uniqueName("observation",
-                                     names(stacked.data.set))]] <- observation
+        nm <- makeValidNameForSpss("observation", names(stacked.data.set))
+        stacked.data.set[[nm]] <- observation
     }
 
-    stacked.data.set <- data.frame(stacked.data.set, check.names = FALSE)
-    colnames(stacked.data.set) <- sanitizeSPSSVariableNames(colnames(stacked.data.set))
-    stacked.data.set
+    data.frame(stacked.data.set, check.names = FALSE)
 }
 
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
@@ -1219,10 +1216,10 @@ stackedVariableName <- function(group.ind, input.variable.names, taken.names)
     if (candidate == "")
         candidate <- "stacked_var"
 
-    uniqueName(candidate, taken.names, "_")
+    makeValidNameForSpss(candidate, taken.names, "_")
 }
 
-stackedVariableLabel <- function(group.ind, input.variable.labels, stacked.variable.name)
+stackedVariableLabel <- function(group.ind, input.variable.labels)
 {
     ind <- removeNA(group.ind)
     lbl <- input.variable.labels[ind]
