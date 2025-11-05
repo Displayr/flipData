@@ -517,6 +517,49 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
     }
 }
 
+makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
+{
+    name <- removeInvalidStartingCharacters(input.name)
+    name <- removeWhitespace(name)
+    
+    repeat {
+        previous.name <- name
+        name <- trimPeriods(name)
+        name <- defaultNameIfEmpty(name)
+        name <- replaceReservedKeywords(name)
+        name <- uniqueName(name, existing.names, delimiter)
+        if (name == previous.name) {
+            return(name)
+        }
+    }
+}
+
+removeWhitespace <- function(name)
+{
+    gsub("\\s+", "", name)
+}
+
+removeInvalidStartingCharacters <- function(name)
+{
+    gsub("^[^a-zA-Z@]+", "", name)
+}
+
+trimPeriods <- function(name)
+{
+    gsub("^\\.+|\\.+$", "", name)
+}
+
+defaultNameIfEmpty <- function(name)
+{
+    ifelse(name == "", "VAR", name)
+}
+
+replaceReservedKeywords <- function(name)
+{
+    reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
+    ifelse(name %in% reserved.keywords, paste0(name, "_r"), name)
+}
+
 #' @description Return variable name matches to wildcard.text. Throw error if no matches
 #'  found and error.if.not.found == TRUE.
 #' @param wildcard.text Character scalar of the wildcard pattern to match for.
@@ -546,72 +589,14 @@ parseVariableWildcardForMerging <- function(wildcard.text, variable.names,
 }
 
 sanitizeSPSSVariableNames <- function(variable.names) {
-    variable.names <- trimPeriods(variable.names)
-    variable.names <- replaceReservedKeywords(variable.names)
-    variable.names <- truncateVariableNames(variable.names)
-
-    # Extra call to trimPeriods in case truncateVariableNames
-    # results in trailling periods
-    variable.names <- trimPeriods(variable.names)
-
-    variable.names <- deduplicateVariableNames(variable.names)
-    variable.names
-}
-
-trimPeriods <- function(variable.names)
-{
-    # Can't begin with or end with a period
-    starts.or.ends.with.period <- startsWith(variable.names, ".") | endsWith(variable.names, ".")
-    if (any(starts.or.ends.with.period)) {
-        warning("Cannot save variables names which begin or end with '.'. Some variables have had '.' removed from their names: ",
-                paste0(variable.names[starts.or.ends.with.period], collapse = ", "))
-        variable.names[starts.or.ends.with.period] <- gsub("^\\.+", "", gsub("\\.+$", "", variable.names[starts.or.ends.with.period]))
+    sanitized.names <- character(length(variable.names))
+    for (i in seq_along(variable.names)) {
+        sanitized.names[i] <- makeValidNameForSpss(variable.names[i],
+                                                   existing.names = sanitized.names[seq_len(i - 1)],
+                                                   delimiter = "_")
     }
-    variable.names
+    sanitized.names
 }
-
-replaceReservedKeywords <- function(variable.names)
-{
-    # SPSS variable names can't be reserved keywords
-    reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
-    forbidden.keywords <- variable.names %in% reserved.keywords
-    if (any(forbidden.keywords)) {
-        warning("Cannot save variables whose names are SPSS reserved keywords. The following variables have had '_r' added to their names:",
-                paste0(variable.names[forbidden.keywords], collapse = ", "))
-        variable.names[forbidden.keywords] <- paste0(variable.names[forbidden.keywords], "_r")
-    }
-    variable.names
-}
-
-truncateVariableNames <- function(variable.names)
-{
-    # SPSS variable names can't be longer than 64 bytes
-    bad.length <- nchar(variable.names, type = "bytes") > 64
-    if (any(bad.length)) {
-        warning("Some variable names were too long and have been truncated: ",
-                paste0(variable.names[bad.length], collapse = ", "))
-        variable.names[bad.length] <- vapply(variable.names[bad.length],
-                                             FUN = addSuffixFittingByteLimit,
-                                             FUN.VALUE = character(1))
-    }
-    variable.names
-}
-
-deduplicateVariableNames <- function(variable.names)
-{
-    # SPSS variable names must be unique
-    dupes <- duplicated(tolower(variable.names))
-    if (any(dupes)) {
-        dupe.ind <- which(dupes)
-        for (i in dupe.ind) {
-            variable.names[i] <- uniqueName(variable.names[i],
-                                            existing.names = variable.names,
-                                            delimiter = "_")
-        }
-    }
-    variable.names
-}
-
 
 addSuffixFittingByteLimit <- function(string, suffix = "", byte.limit = 64) {
     new.string <- paste0(string, suffix)
