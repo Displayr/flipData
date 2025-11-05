@@ -519,20 +519,14 @@ uniqueName <- function(new.name, existing.names, delimiter = "")
 
 makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
 {
-    name <- removeInvalidStartingCharacters(input.name)
-    name <- removeWhitespace(name)
-    
-    repeat {
-        previous.name <- name
-        name <- trimPeriods(name)
-        name <- defaultNameIfEmpty(name)
-        name <- replaceReservedKeywords(name)
-        name <- truncateNameToByteLimit(name)
-        name <- uniqueName(name, existing.names, delimiter)
-        if (name == previous.name) {
-            return(name)
-        }
-    }
+    input.name |>
+        removeWhitespace() |>
+        removeInvalidStartingCharacters() |>
+        truncateNameToByteLimit() |>
+        trimTrailingPeriods() |>
+        defaultNameIfEmpty() |>
+        replaceReservedKeywords() |>
+        uniqueName(existing.names, delimiter)
 }
 
 removeWhitespace <- function(name)
@@ -545,9 +539,9 @@ removeInvalidStartingCharacters <- function(name)
     gsub("^[^a-zA-Z@]+", "", name)
 }
 
-trimPeriods <- function(name)
+trimTrailingPeriods <- function(name)
 {
-    gsub("^\\.+|\\.+$", "", name)
+    gsub("\\.+$", "", name)
 }
 
 defaultNameIfEmpty <- function(name)

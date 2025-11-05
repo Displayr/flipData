@@ -159,9 +159,33 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
     z <- sanitizeSPSSVariableNames(bad.names)
     expect_true(all(nchar(z, type = 'bytes') <= 64))
 
-
     # Prevent duplicates
     bad.names <- c("A", "B", "WITH", "A", "B", "WITH")
     z <- sanitizeSPSSVariableNames(bad.names)
     expect_equal(z, c("A", "B", "WITH_r", "A_1", "B_1", "WITH_r_1"))
+
+    # Invalid starting characters
+    bad.names <- c("_A", "??B")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("A", "B"))
+
+    # Spaces
+    bad.names <- c("  A \n B ")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("AB"))
+
+    # Edge cases
+    bad.names <- c(" _.WITH.",
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab.a", # 65 bytes long
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaa",
+                   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaa",
+                   "_.",
+                   "__.")
+    z <- sanitizeSPSSVariableNames(bad.names)
+    expect_equal(z, c("WITH_r",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaba",
+                      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_1",
+                      "VAR",
+                      "VAR_1"))
 })
