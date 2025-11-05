@@ -527,6 +527,7 @@ makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
         name <- trimPeriods(name)
         name <- defaultNameIfEmpty(name)
         name <- replaceReservedKeywords(name)
+        name <- truncateNameToByteLimit(name)
         name <- uniqueName(name, existing.names, delimiter)
         if (name == previous.name) {
             return(name)
@@ -558,6 +559,11 @@ replaceReservedKeywords <- function(name)
 {
     reserved.keywords <- c("ALL", "AND", "BY", "EQ", "GE", "GT", "LE", "LT", "NE", "NOT", "OR", "TO", "WITH")
     ifelse(name %in% reserved.keywords, paste0(name, "_r"), name)
+}
+
+truncateNameToByteLimit <- function(name)
+{
+    addSuffixFittingByteLimit(name)
 }
 
 #' @description Return variable name matches to wildcard.text. Throw error if no matches

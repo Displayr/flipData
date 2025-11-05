@@ -450,12 +450,7 @@ mergedDataSetVariableNames <- function(input.data.sets.metadata,
                                                                                   v.names.list[[data.set.ind]])
     }
 
-    merged.data.set.var.names <- character(0)
-    for (i in seq_len(n.data.sets))
-        for (nm in included.variable.names.list[[i]])
-            merged.data.set.var.names <- c(merged.data.set.var.names,
-                                           makeValidNameForSpss(nm, merged.data.set.var.names, delimiter = "_"))
-    merged.data.set.var.names <- sanitizeSPSSVariableNames(merged.data.set.var.names)
+    merged.data.set.var.names <- sanitizeSPSSVariableNames(unlist(included.variable.names.list))
     attr(merged.data.set.var.names, "included.variable.names.list") <- included.variable.names.list
     attr(merged.data.set.var.names, "omitted.variable.names.list") <- omitted.var.names.list
 

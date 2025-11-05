@@ -1203,9 +1203,7 @@ stackedDataSet <- function(input.data.set, input.data.set.metadata,
         stacked.data.set[[nm]] <- observation
     }
 
-    stacked.data.set <- data.frame(stacked.data.set, check.names = FALSE)
-    colnames(stacked.data.set) <- sanitizeSPSSVariableNames(colnames(stacked.data.set))
-    stacked.data.set
+    data.frame(stacked.data.set, check.names = FALSE)
 }
 
 stackedVariableName <- function(group.ind, input.variable.names, taken.names)
