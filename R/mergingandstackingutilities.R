@@ -521,6 +521,7 @@ makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
 {
     input.name |>
         removeWhitespace() |>
+        removeInvalidCharacters() |>
         removeInvalidStartingCharacters() |>
         truncateNameToByteLimit() |>
         trimTrailingPeriods() |>
@@ -532,6 +533,24 @@ makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
 removeWhitespace <- function(name)
 {
     gsub("\\s+", "", name)
+}
+
+removeInvalidCharacters <- function(name)
+{
+    # Invalid characters are any ASCII (including extended ASCII, i.e., codes 0-255) that are not
+    # letters, numbers, or the special characters @ # $ _ \ .
+    # Note that Unicode is permitted in SPSS variable names.
+    # The regex was created by combining the ranges of the invalid characters. The valid ASCII characters are:
+    # 0-9 \x30-\x39
+    # A-Z \x41-\x5A
+    # a-z \x61-\x7A
+    # Character # \x23
+    # Character $ \x24
+    # Character . \x2E
+    # Character @ \x40
+    # Character \ \x5C
+    # Character _ \x5F
+    gsub("[\\x00-\\x22\\x25-\\x2D\\x2F\\x3A-\\x3F\\x5B\\x5D-\\x5E\\x60\\x7B-\\xFF]", "", name, perl = TRUE)
 }
 
 removeInvalidStartingCharacters <- function(name)

@@ -189,3 +189,8 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
                       "VAR",
                       "VAR_1"))
 })
+
+test_that("removeInvalidCharacters", {
+    expect_equal(removeInvalidCharacters(intToUtf8(0:255)), "#$.0123456789@ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz")
+    expect_equal(removeInvalidCharacters("名称"), "名称") # unicode characters are allowed
+})
