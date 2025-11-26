@@ -189,3 +189,16 @@ test_that("DS-4210: SPSS variable names sanitized before attempting to save", {
                       "VAR",
                       "VAR_1"))
 })
+
+test_that("removeInvalidCharacters", {
+    expect_equal(removeInvalidCharacters(intToUtf8(0:127)), "#$.0123456789@ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz") # check characters in basic ASCII
+    expect_equal(removeInvalidCharacters("ç"), "ç") # letter characters in extended ASCII are allowed
+    expect_equal(removeInvalidCharacters("½"), "") # number characters in extended ASCII are removed (allowed by haven but not Displayr)
+    expect_equal(removeInvalidCharacters("¥"), "¥") # currency characters in extended ASCII are allowed
+    expect_equal(removeInvalidCharacters("…"), "") # punctuation characters in extended ASCII are removed (allowed by Displayr but not haven)
+    expect_equal(removeInvalidCharacters("©"), "") # other characters in extended ASCII are removed (allowed by haven but not Displayr)
+    expect_equal(removeInvalidCharacters("名称"), "名称") # "letter" unicode characters are allowed
+    expect_equal(removeInvalidCharacters("∞"), "") # number characters in unicode are removed (allowed by haven but not Displayr)
+    expect_equal(removeInvalidCharacters("€"), "€") # currency unicode characters are allowed
+    expect_equal(removeInvalidCharacters("¿"), "") # punctuation unicode characters are removed (not allowed by either)
+})

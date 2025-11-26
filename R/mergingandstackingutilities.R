@@ -521,6 +521,7 @@ makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
 {
     input.name |>
         removeWhitespace() |>
+        removeInvalidCharacters() |>
         removeInvalidStartingCharacters() |>
         truncateNameToByteLimit() |>
         trimTrailingPeriods() |>
@@ -532,6 +533,19 @@ makeValidNameForSpss <- function(input.name, existing.names, delimiter = "")
 removeWhitespace <- function(name)
 {
     gsub("\\s+", "", name)
+}
+
+removeInvalidCharacters <- function(name)
+{
+    # The regex matches all characters except:
+    #   \\pL = any kind of letter from any language
+    #   Numeric characters 0-9
+    #   \\p{Sc} = any kind of currency symbol
+    #   The special characters \ . _ $ # @
+    #
+    # This is stricter than either haven or Displayr, because their set of allowed characters are different.
+    # See unit tests for removeInvalidCharacters
+    gsub("[^\\pL0-9\\p{Sc}\\\\._$#@]", "", name, perl = TRUE)
 }
 
 removeInvalidStartingCharacters <- function(name)
