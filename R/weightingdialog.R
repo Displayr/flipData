@@ -88,7 +88,7 @@ WeightingDialog <- function(categorical.variables = NULL,
 # Calibration function
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
-#' @importFrom CVXR Variable Minimize Problem entr solve
+#' @importFrom CVXR Variable Minimize Problem entr psolve value
 #' @importFrom verbs Sum
 #' @importFrom flipU StopForUserError
 computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, input.weight, lower, upper, calfun)
@@ -117,9 +117,9 @@ computeWeightsDialog <- function(adjustment.variables, has.numerics, margins, in
             constraints = list(t(A) %*% g == margins)
             Phi_R = Minimize(sum(input.weight * (-entr((g - lower) / (upper - lower)) - (entr((upper - g) / (upper - lower))))))
             p = Problem(Phi_R, constraints)
-            res = solve(p)
-            checkSolverStatus(res)
-            as.numeric(input.weight * res$getValue(g))
+            psolve(p)
+            checkSolverStatus(p)
+            as.numeric(input.weight * value(g))
     } else {
         weights(calibrate(svydesign(ids = ~1, weights = ~input.weight, data = adjustment.variables),
                           createFormula(adjustment.variables),

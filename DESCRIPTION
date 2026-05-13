@@ -27,7 +27,6 @@ Imports: CVXR (>= 1.0.0),
  survey,
  tools,
  verbs
-RoxygenNote: 7.3.3
 Encoding: UTF-8
 Suggests: foreign,
  gtools,
@@ -41,3 +40,4 @@ Remotes: Displayr/flipAPI,
  Displayr/flipTransformations,
  Displayr/flipU,
  Displayr/verbs,
+Config/roxygen2/version: 8.0.0
