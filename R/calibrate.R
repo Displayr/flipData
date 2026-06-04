@@ -388,6 +388,7 @@ print.Calibrate <- function (x, ...)
 }
 
 #' Check for errors from running CVXR::psolve
+#' @importFrom CVXR status
 #' @noRd
 checkSolverStatus <- function(problem)
 {
