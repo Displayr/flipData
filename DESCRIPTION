@@ -1,7 +1,7 @@
 Package: flipData
 Type: Package
 Title: Functions for extracting and describing data
-Version: 1.8.10
+Version: 1.8.11
 Author: Displayr <opensource@displayr.com>
 Maintainer: Displayr <opensource@displayr.com>
 Description: Functions for extracting data from formulas and
@@ -11,7 +11,7 @@ Description: Functions for extracting data from formulas and
 License: GPL-3
 LazyData: TRUE
 Depends: R (>= 4.4.0)
-Imports: CVXR (>= 1.0.0),
+Imports: CVXR (>= 1.8.2),
  flipAPI (>= 1.3.8),
  flipFormat (>= 1.11.0),
  flipImputation,
@@ -27,7 +27,6 @@ Imports: CVXR (>= 1.0.0),
  survey,
  tools,
  verbs
-RoxygenNote: 7.3.3
 Encoding: UTF-8
 Suggests: foreign,
  gtools,
@@ -41,3 +40,4 @@ Remotes: Displayr/flipAPI,
  Displayr/flipTransformations,
  Displayr/flipU,
  Displayr/verbs,
+Config/roxygen2/version: 8.0.0
