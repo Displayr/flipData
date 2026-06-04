@@ -258,7 +258,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 #' @importFrom icarus calibration
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
-#' @importFrom CVXR Variable Minimize Problem entr psolve value status
+#' @importFrom CVXR Variable Minimize Problem entr psolve value
 #' @importFrom verbs Sum
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {

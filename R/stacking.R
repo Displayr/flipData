@@ -724,6 +724,7 @@ permittedNA <- function(variable.names)
 #' @return matrix with one row per group of variables to be stacked. Number of columns
 #' is equal to the size of the largest group of variables, smaller groups will
 #' have NA values in their last columns
+#' @noRd
 stackingSpecifiedByVariable <- function(manual.stacking,
                                         input.data.set.metadata)
 {
