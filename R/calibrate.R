@@ -299,9 +299,9 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       constraints = list(t(A) %*% g == margins)
                       Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
                       p = Problem(Phi_R, constraints)
-                      res = psolve(p)
-                      checkSolverStatus(res)
-                      as.numeric(input.weight * res$getValue(g))
+                      psolve(p)
+                      checkSolverStatus(status(p))
+                      as.numeric(input.weight * value(g))
                       }
                   )
 }
@@ -389,14 +389,11 @@ print.Calibrate <- function (x, ...)
 
 #' Check for errors from running CVXR::psolve
 #' @noRd
-checkSolverStatus <- function(solve.output)
+checkSolverStatus <- function(solve.status)
 {
-    if (is.list(solve.output) && is.character(solve.output[["status"]]))
-    {
-        status <- solve.output[["status"]]
-        if (status == "solver_error" || status == "infeasible")
-            StopForUserError("Calibration could not be performed for the given input data. ",
-                 "Please check that the supplied targets are appropriate for your data.")
-    }
+    if (is.character(solve.status) &&
+        (solve.status == "solver_error" || solve.status == "infeasible"))
+        StopForUserError("Calibration could not be performed for the given input data. ",
+             "Please check that the supplied targets are appropriate for your data.")
     return(invisible())
 }
