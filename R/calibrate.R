@@ -258,7 +258,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 #' @importFrom icarus calibration
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
-#' @importFrom CVXR Variable Minimize Problem entr solve
+#' @importFrom CVXR Variable Minimize Problem entr psolve
 #' @importFrom verbs Sum
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
@@ -299,7 +299,7 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       constraints = list(t(A) %*% g == margins)
                       Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
                       p = Problem(Phi_R, constraints)
-                      res = solve(p)
+                      res = psolve(p)
                       checkSolverStatus(res)
                       as.numeric(input.weight * res$getValue(g))
                       }
@@ -387,7 +387,7 @@ print.Calibrate <- function (x, ...)
               instruction.for.getting.variable))
 }
 
-#' Check for errors from running CVXR::solve
+#' Check for errors from running CVXR::psolve
 #' @noRd
 checkSolverStatus <- function(solve.output)
 {
