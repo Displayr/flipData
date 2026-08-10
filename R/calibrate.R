@@ -258,7 +258,7 @@ createMargins <- function(targets, adjustment.variables, n.categorical, raking, 
 #' @importFrom icarus calibration
 #' @importFrom survey calibrate rake
 #' @importFrom stats model.matrix weights terms.formula
-#' @importFrom CVXR Variable Minimize Problem entr solve
+#' @importFrom CVXR Variable Minimize Problem entr psolve status value
 #' @importFrom verbs Sum
 computeCalibrate <- function(adjustment.variables, margins, input.weight, raking, package)
 {
@@ -299,9 +299,9 @@ computeCalibrate <- function(adjustment.variables, margins, input.weight, raking
                       constraints = list(t(A) %*% g == margins)
                       Phi_R = Minimize(sum(input.weight * (-entr(g) - g + 1)))
                       p = Problem(Phi_R, constraints)
-                      res = solve(p)
-                      checkSolverStatus(res)
-                      as.numeric(input.weight * res$getValue(g))
+                      psolve(p)
+                      checkSolverStatus(status(p))
+                      as.numeric(input.weight * value(g))
                       }
                   )
 }
@@ -387,16 +387,13 @@ print.Calibrate <- function (x, ...)
               instruction.for.getting.variable))
 }
 
-#' Check for errors from running CVXR::solve
+#' Check for errors from running CVXR::psolve
 #' @noRd
-checkSolverStatus <- function(solve.output)
+checkSolverStatus <- function(solve.status)
 {
-    if (is.list(solve.output) && is.character(solve.output[["status"]]))
-    {
-        status <- solve.output[["status"]]
-        if (status == "solver_error" || status == "infeasible")
-            StopForUserError("Calibration could not be performed for the given input data. ",
-                 "Please check that the supplied targets are appropriate for your data.")
-    }
+    if (is.character(solve.status) &&
+        (solve.status == "solver_error" || solve.status == "infeasible"))
+        StopForUserError("Calibration could not be performed for the given input data. ",
+             "Please check that the supplied targets are appropriate for your data.")
     return(invisible())
 }
