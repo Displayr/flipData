@@ -1,9 +1,13 @@
 context("Stacking")
 
+# StackData() writes its output next to its input file, so give it a copy in a writable directory: the installed
+# package directory can be read-only.
 findInstDirFile <- function(file)
 {
-    file.path(system.file("testdata", package = "flipData", mustWork = TRUE),
-              file)
+    path <- file.path(tempdir(), file)
+    file.copy(system.file("testdata", file, package = "flipData", mustWork = TRUE), path,
+              overwrite = TRUE)
+    path
 }
 
 test_that("no stacking", {
