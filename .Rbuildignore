@@ -3,3 +3,5 @@
 .*~
 ^\.circleci/config\.yml$
 ^\.github/
+^AGENTS\.md$
+^CLAUDE\.md$
